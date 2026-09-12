@@ -1,76 +1,119 @@
-"""Barra superior: acelerador, freio, delta, RPM e alertas.
+"""Barra superior: pedais, RPM, delta e os avisos.
 
-E a faixa que o piloto le em movimento, sem tirar os olhos da pista, entao
-carrega o que muda mais rapido -- e o que muda mais rapido e a entrada do
-piloto, nao o RPM (o motor tem sua propria barra de LEDs nas pontas do
-volante/cockpit; aqui ela e so um apoio). Por isso acelerador e freio levam o
-lugar de maior peso visual -- numero grande, barra alta -- e o RPM fica menor,
-abaixo deles.
+Implementa a revisao desenhada no Figma (`LDY1mlry0kX59Nw6ueDj1h`, section
+`4317:567`), medida num frame de 1329x132. Toda coordenada aqui esta nas
+unidades do desenho e passa por `grid.scaled()` na hora de virar pixel -- uma
+constante so (`layout.SCALE`) separa o desenho do painel.
 
-Simetria proposital: freio a esquerda, acelerador a direita, delta no meio.
-Cada lado tem a mesma estrutura -- valor e barra do pedal em cima (dominante),
-LEDs de RPM embaixo (apoio).
+A ordem, em cada lado, do exterior para o centro:
+
+    [4 quadrados de RPM]  [chip de aviso]  [numero do pedal]
+
+e por cima de tudo isso a fileira fina de dez segmentos do pedal. No miolo,
+o cartao do delta. O lado direito e o espelho do esquerdo -- o Figma tem os
+dois lados desenhados, mas os numeros da direita escapam do container (os
+segmentos terminam em 1349 num frame de 1329) e ficam 18px mais baixos, entao
+espelhar a esquerda e o que reproduz a intencao.
+
+O pedal enche do centro para fora: no estado de 75% do Figma sao os segmentos
+do lado de dentro que estao acesos.
 """
 
 from simhub.bindings import ncalc
 from simhub.model import Layer, LinearGaugeItem, RectangleItem, WidgetItem
 from simhub.theme import (
-    ALERT, BACKGROUND, BRAKE, CORNER_RADIUS_TILE, FASTER, FLAG_GREEN,
-    FLAG_WHITE, FLAG_YELLOW, FONT_MONO, PADDING, SIZE_LABEL, SIZE_VALUE,
-    SLOWER, TEXT, TEXT_SECONDARY, THROTTLE, TILE, TILE_RAISED, alpha, rounded,
+    BRAKE, FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN,
+    FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_WHITE, FLAG_YELLOW,
+    SLOWER, SURFACE_RAISED, TEXT, TEXT_DIM, TEXT_ON_LIGHT, THROTTLE, TILE,
+    rounded,
 )
-
 from . import layout as grid
-from .widgets import CENTER, LEFT, RIGHT, caption, ramp, segmented_bar, text, tile
+from .widgets import CENTER, LEFT, RIGHT, segmented_bar, text, tile
 
-PANEL = grid.TOP_BAR.inset(top=grid.MARGIN, left=grid.MARGIN,
-                           right=grid.MARGIN, bottom=4.0)
+#: O painel arredondado da barra -- o frame de 1329x132 do Figma.
+PANEL = grid.Region(grid.MARGIN, grid.MARGIN,
+                    grid.TOP_BAR_PANEL_WIDTH, grid.TOP_BAR_PANEL_HEIGHT)
 
-#: Largura das zonas laterais; o delta ocupa o miolo.
-SIDE_WIDTH = 470.0
-
-#: RPMLed em apoio: menos da metade do tamanho nativo, encostado no rodape da
-#: zona -- o RPM cede o lugar de destaque para o pedal.
-LED_SCALE = 0.45
-LED_WIDTH, LED_HEIGHT = 333.0 * LED_SCALE, 49.0 * LED_SCALE
-
-INPUT_SEGMENTS = 14
-#: Peso grafico do pedal: numero e barra bem maiores que o RPM de apoio --
-#: era o inverso antes do redesign (LEDs grandes em cima, pedal pequeno embaixo).
-PEDAL_VALUE_SIZE = 32.0
-PEDAL_VALUE_HEIGHT = 36.0
-BAR_HEIGHT = 16.0
+PANEL_RADIUS = 3
 
 
-def zone(side):
-    """Zona lateral, ancorada na borda externa do painel."""
-    if side is LEFT:
-        return grid.Region(PANEL.x + 8.0, PANEL.y, SIDE_WIDTH, PANEL.height)
-    return grid.Region(PANEL.right - SIDE_WIDTH - 8.0, PANEL.y,
-                       SIDE_WIDTH, PANEL.height)
+def box(x, y, width, height):
+    """Retangulo do Figma -> regiao em pixels do painel."""
+    return grid.Region(PANEL.x + grid.scaled(x), PANEL.y + grid.scaled(y),
+                       grid.scaled(width), grid.scaled(height))
+
+
+def flip(x, width):
+    """Reflete uma coordenada do Figma no eixo vertical do frame."""
+    return grid.DESIGN_WIDTH - x - width
+
+
+def side_box(side, x, y, width, height):
+    """`box()` do lado pedido: a direita e o espelho da esquerda."""
+    return box(x if side is LEFT else flip(x, width), y, width, height)
+
+
+# --- Medidas do Figma --------------------------------------------------------
+
+LABEL_SIZE = grid.scaled(13.0)
+LABEL = (6.0, 5.0, 113.0, 21.0)
+
+PEDAL_BAR = (40.0, 30.0, 471.0, 18.0)
+PEDAL_SEGMENTS = 10
+PEDAL_GAP = grid.scaled(4.0)
+PEDAL_RADIUS = 3
+
+PEDAL_VALUE = (424.0, 58.0, 113.0, 62.0)
+PEDAL_VALUE_SIZE = grid.scaled(50.0)
+
+LEDS = (40.0, 71.0, 229.0, 36.0)
+
+CHIP = (275.0, 71.0, 159.0, 36.0)
+CHIP_TEXT_INSET = 4.0
+CHIP_TEXT_SIZE = grid.scaled(19.0)
+CHIP_RADIUS = 3
+
+CARD = (527.0, 28.0, 289.0, 89.0)
+CARD_RADIUS = 7
+DELTA_LABEL = (511.0, 56.0, 113.0, 21.0)
+BEST_LABEL = (721.0, 56.0, 113.0, 21.0)
+DELTA_HERO = (589.0, 24.0, 165.0, 62.0)
+DELTA_HERO_SIZE = grid.scaled(40.0)
+
+#: As duas metades da barra do delta e as duas da barra de consistencia. O
+#: ponto de corte (672.06) e o centro do cartao.
+DELTA_BAR_LEFT = (533.0, 80.0, 135.72, 18.13)
+DELTA_BAR_RIGHT = (672.06, 80.0, 137.94, 18.13)
+PROGRESS_LEFT = (533.0, 103.47, 135.72, 8.53)
+PROGRESS_RIGHT = (672.06, 103.47, 137.94, 8.53)
+
+TICK_LEFT = (533.0, 35.0, 9.0, 40.0)
+TICK_RIGHT = (800.0, 35.0, 9.0, 40.0)
 
 
 def leds(side):
-    """Widget RPMLed, em apoio no rodape da zona.
+    """Widget RPMLed: os quatro quadrados na ponta externa.
 
     A instancia direita usa o arquivo espelhado -- mesma logica, vermelho na
-    ponta oposta -- para que os dois LEDs apontem para dentro do dash.
+    ponta oposta -- para que os dois apontem o vermelho para fora do dash,
+    como no Figma.
     """
-    area = zone(side)
+    from . import rpmled
+
+    area = side_box(side, *LEDS)
     return WidgetItem(
         name="RPMLed" if side is LEFT else "RPMLed2",
         FileName="RPMLed.djson" if side is LEFT else "RPMLedMirrored.djson",
         AutoSize=True,
-        AutoSizeScale=1.0,
+        AutoSizeScale=area.width / rpmled.WIDTH,
         InitialScreenIndex=0,
         FreezePageChanges=True,
         EnableScreenRolesAndActivation=True,
         NextScreenCommand=0,
         PreviousScreenCommand=0,
         BackgroundColor="#00FFFFFF",
-        Left=area.x + (area.width - LED_WIDTH) / 2,
-        Top=area.bottom - LED_HEIGHT - 4.0,
-        Width=LED_WIDTH, Height=LED_HEIGHT,
+        Left=area.x, Top=area.y,
+        Width=area.width, Height=area.height,
         Visible=True,
         BlinkPhasisInverted=False,
         RenderingSkip=0,
@@ -79,55 +122,120 @@ def leds(side):
 
 
 def pedal(side, label, prop, color):
-    """Entrada do piloto: rotulo, valor grande e barra alta -- o elemento
-    dominante da zona, no lugar que o RPM ocupava antes do redesign.
+    """Entrada do piloto: rotulo na borda externa, fileira fina de dez
+    segmentos, e o numero grande encostado no cartao do delta.
 
-    A barra do freio acende de fora para dentro e a do acelerador de dentro
-    para fora, entao as duas crescem em direcao a borda do painel -- o
-    movimento fica simetrico no canto do olho.
+    A barra enche do centro para fora nos dois lados, entao o movimento e
+    simetrico no canto do olho.
     """
-    area = zone(side)
-    inner_side = RIGHT if side is LEFT else LEFT
-    label_width = 110.0
-    value_width = 120.0
-
-    # Rotulo na borda externa, valor voltado para o centro do painel -- igual
-    # ao padrao anterior, so que agora em escala bem maior.
-    if side is LEFT:
-        label_x, value_x = area.x, area.right - value_width
-    else:
-        label_x, value_x = area.right - label_width, area.x
-
-    # Rotulo, valor e barra empilhados no topo da zona; os LEDs de RPM ficam
-    # encostados no rodape, entao a pilha do pedal tem folga ate ali.
-    label_y = area.y + 4.0
-    value_y = label_y + SIZE_LABEL + 4.0
-    bar_y = value_y + PEDAL_VALUE_HEIGHT + 3.0
-    bar = grid.Region(area.x, bar_y, area.width, BAR_HEIGHT)
+    label_area = side_box(side, *LABEL)
+    bar = side_box(side, *PEDAL_BAR)
+    value = side_box(side, *PEDAL_VALUE)
 
     return [
-        caption(label_x, label_y, label_width, label,
-                name=f"{label} Label", color=TEXT_SECONDARY,
-                align=LEFT if side is LEFT else RIGHT),
-        text(value_x, value_y, value_width, PEDAL_VALUE_HEIGHT, "00",
-             name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
-             font=FONT_MONO, mono=True, align=inner_side,
-             bindings={
-                 "Text": ncalc(f"if([{prop}]=100,'00',[{prop}])"),
-                 "Visible": ncalc(f"if([{prop}]<1,0,1)"),
-             }),
-        *segmented_bar(bar, f"[{prop}]", count=INPUT_SEGMENTS,
-                       colors=ramp(INPUT_SEGMENTS, [color, color, alpha(color, 100)]),
+        text(label_area.x, label_area.y, label_area.width, label_area.height,
+             label.upper(), name=f"{label} Label", size=LABEL_SIZE,
+             color=TEXT_DIM, weight="Bold",
+             align=LEFT if side is LEFT else RIGHT),
+        *segmented_bar(bar, f"[{prop}]", count=PEDAL_SEGMENTS, color=color,
+                       gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
                        name=f"{label} Bar", reverse=(side is LEFT)),
+        # Sem binding de Visible: o Figma mostra "00" tambem com o pedal solto.
+        text(value.x, value.y, value.width, value.height, "00",
+             name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
+             weight="Bold", align=CENTER, mono=True,
+             char_width=grid.scaled(30.0),
+             bindings={"Text": ncalc(f"if([{prop}]=100,'00',[{prop}])")}),
     ]
 
 
-#: Cartao do delta: uma superficie propria dentro da barra, no padrao das
-#: referencias (cada complication vive no proprio tile arredondado).
-DELTA_CARD = grid.Region(grid.CENTER.x + 8.0, PANEL.y + 4.0,
-                         grid.CENTER.width - 16.0, PANEL.height - 8.0)
-DELTA_INNER = DELTA_CARD.inset(top=PADDING, bottom=PADDING,
-                               left=PADDING, right=PADDING)
+# --- Chip de aviso -----------------------------------------------------------
+#
+# Os dez avisos do Figma vivem no mesmo chip, dentro da fileira de LEDs e
+# espelhado nos dois lados. Cada um e (nome, rotulo, fundo, cor do texto,
+# formula) -- formula None fica declarado e desligado, por nao haver
+# propriedade conhecida que o acione.
+#
+# A ordem importa: irmaos posteriores desenham por cima, entao a lista vai do
+# aviso menos urgente para o mais urgente. Se dois acenderem juntos (bandeira
+# amarela e carro do lado, por exemplo), o de baixo da lista e o que aparece.
+
+FLAG_PROP = "GameRawData.Telemetry.CarLeftRight"
+
+
+def flag(name):
+    """Bandeira do SimHub -- as propriedades vem como texto 'True'/'False'."""
+    return f"if([{name}]='True',1,0)"
+
+
+#: iRacing expoe a proximidade como enum: 2 carro a esquerda, 3 a direita,
+#: 4 dos dois lados, 5 dois carros a esquerda, 6 dois a direita.
+def proximity(*values):
+    return " || ".join(f"[{FLAG_PROP}]={value}" for value in values)
+
+
+CHIPS = [
+    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT_ON_LIGHT, None),
+    ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, None),
+    ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT_ON_LIGHT,
+     "if([Throttle]>5 && [Brake]>5,1,0)"),
+    ("Flag Car Left", "LEFT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
+     f"if({proximity(2, 4, 5)},1,0)"),
+    ("Flag Car Right", "RIGHT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
+     f"if({proximity(3, 4, 6)},1,0)"),
+    ("Flag Blue", "BLUE", FLAG_BLUE, TEXT, flag("Flag_Blue")),
+    ("Flag Green", "GREEN", FLAG_GREEN, TEXT_ON_LIGHT, flag("Flag_Green")),
+    ("Flag White", "WHITE", FLAG_WHITE, TEXT_ON_LIGHT, flag("Flag_White")),
+    ("Flag Black", "BLACK", FLAG_BLACK, TEXT, flag("Flag_Black")),
+    ("Flag Yellow", "YLW FLAG", FLAG_YELLOW, TEXT_ON_LIGHT,
+     flag("Flag_Yellow")),
+]
+
+#: Nomes dos chips, na ordem em que aparecem -- consumido pelo preview de
+#: modos, que forca um de cada vez.
+CHIP_NAMES = [name for name, *_ in CHIPS]
+
+
+def chip(side, name, label, background, color, formula):
+    """Um estado do chip de aviso: pilula colorida com o rotulo dentro."""
+    area = side_box(side, *CHIP)
+    inset = grid.scaled(CHIP_TEXT_INSET)
+    bindings = None
+    if formula:
+        condition = ncalc(formula)
+        bindings = {"Visible": condition, "BlinkEnabled": condition}
+
+    pill = RectangleItem(
+        name=name,
+        IsRectangleItem=True,
+        BackgroundColor=background,
+        BorderStyle=rounded(radius=CHIP_RADIUS),
+        Left=area.x, Top=area.y, Width=area.width, Height=area.height,
+        Visible=bool(formula),
+        BlinkPhasisInverted=False,
+        RenderingSkip=0,
+        MinimumRefreshIntervalMS=0.0,
+        bindings=bindings,
+    )
+    caption = text(area.x + inset, area.y + inset,
+                   area.width - inset * 2, area.height - inset * 2, label,
+                   name=f"{name} Label", size=CHIP_TEXT_SIZE, color=color,
+                   weight="Bold", align=CENTER, bindings=bindings)
+    caption["Visible"] = bool(formula)
+    return [pill, caption]
+
+
+def chips(side):
+    """Os dez avisos empilhados no mesmo lugar, um visivel por vez."""
+    return Layer(
+        *(item for spec in CHIPS for item in chip(side, *spec)),
+        name="Alerrts" if side is LEFT else "Alerrts2",
+        Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
+        RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
+    )
+
+
+# --- Delta -------------------------------------------------------------------
 
 #: Formula do delta: sinal explicito e duas casas, para o numero nao "pular"
 #: de largura enquanto o piloto anda.
@@ -138,15 +246,11 @@ DELTA_TEXT = (
     f"'+' + format({DELTA_PROP}, '0.00')))"
 )
 
-DELTA_HERO_SIZE = 34.0
-DELTA_HERO_HEIGHT = 40.0
-DELTA_BAR_HEIGHT = 10.0
-DELTA_PROGRESS_HEIGHT = 4.0
-DELTA_GAP = 4.0
+PROGRESS_PROP = "PersistantTrackerPlugin.SessionBestLiveDeltaProgressSeconds"
 
 
-def delta_gauge(name, x, y, width, height, color, maximum, value, *,
-                alignment, paw, radius, opacity=None, prop="DeltaToSessionBest"):
+def delta_gauge(name, area, color, maximum, value, *, alignment, radius,
+                opacity=None, prop="DeltaToSessionBest"):
     """Uma das barras do delta: cresce do centro para fora, verde quando esta
     mais rapido e vermelho quando mais lento."""
     return LinearGaugeItem(
@@ -158,10 +262,11 @@ def delta_gauge(name, x, y, width, height, color, maximum, value, *,
         GaugeColor=color,
         AlternateGaugeColor=color,
         UseAlternateStyle=False,
-        Minimum=0.0, Maximum=maximum, Value=value, Steps=0.0, PAW=paw,
+        Minimum=0.0, Maximum=maximum, Value=value, Steps=0.0,
+        PAW=area.width,
         BackgroundColor="#00FFFFFF",
         BorderStyle=radius,
-        Left=x, Top=y, Width=width, Height=height,
+        Left=area.x, Top=area.y, Width=area.width, Height=area.height,
         Opacity=100.0 if opacity is None else opacity,
         Visible=True,
         BlinkPhasisInverted=False,
@@ -171,106 +276,72 @@ def delta_gauge(name, x, y, width, height, color, maximum, value, *,
     )
 
 
+def tick(name, spec, color, bindings=None, visible=True):
+    """Marcador vertical nas bordas internas do cartao."""
+    area = box(*spec)
+    item = RectangleItem(
+        name=name,
+        IsRectangleItem=True,
+        BackgroundColor=color,
+        BorderStyle=rounded(radius=2),
+        Left=area.x, Top=area.y, Width=area.width, Height=area.height,
+        Visible=visible,
+        BlinkPhasisInverted=False,
+        RenderingSkip=0,
+        MinimumRefreshIntervalMS=0.0,
+        bindings=bindings,
+    )
+    return item
+
+
 def delta():
-    """Delta para a melhor volta da sessao -- redesenhado como uma
-    complication propria: rotulo em caixa alta, numero-heroi, e a mesma barra
-    bidirecional do original (cresce do centro para fora, vermelho para
-    atraso e verde para vantagem) com a barra de consistencia por baixo.
-    """
+    """O cartao do delta: rotulos DELTA e BEST, numero-heroi, barra
+    bidirecional e a barra de consistencia por baixo."""
     def corners(tl, tr, bl, br):
         return {"RadiusTopLeft": tl, "RadiusTopRight": tr,
                 "RadiusBottomLeft": bl, "RadiusBottomRight": br}
 
-    inner = DELTA_INNER
-    half = inner.width / 2
+    card = box(*CARD)
+    label = box(*DELTA_LABEL)
+    best = box(*BEST_LABEL)
+    hero = box(*DELTA_HERO)
 
-    label_y = inner.y
-    hero_y = label_y + SIZE_LABEL + 2.0
-    bar_y = hero_y + DELTA_HERO_HEIGHT + DELTA_GAP
-    progress_y = bar_y + DELTA_BAR_HEIGHT + DELTA_GAP * 0.5
-
-    progress = "PersistantTrackerPlugin.SessionBestLiveDeltaProgressSeconds"
     return Layer(
-        tile(DELTA_CARD, name="Delta Card", color=TILE_RAISED,
-             radius=CORNER_RADIUS_TILE),
-        caption(inner.x, label_y, inner.width, "Delta", name="Delta Label",
-                align=CENTER),
-        text(inner.x, hero_y, inner.width, DELTA_HERO_HEIGHT, "-0.43",
+        tile(card, name="Delta Card", color=SURFACE_RAISED,
+             radius=CARD_RADIUS),
+        text(label.x, label.y, label.width, label.height, "DELTA",
+             name="Delta Label", size=LABEL_SIZE, color=TEXT_DIM,
+             weight="Bold", align=CENTER),
+        text(best.x, best.y, best.width, best.height, "BEST",
+             name="Best Label", size=LABEL_SIZE, color=TEXT_DIM,
+             weight="Bold", align=CENTER),
+        text(hero.x, hero.y, hero.width, hero.height, "+0.00",
              name="Delta Value", size=DELTA_HERO_SIZE, color=TEXT,
-             weight="ExtraBold", font=FONT_MONO, mono=True, align=CENTER,
-             char_width=22.0, special_chars=".", special_chars_width=13.0,
+             weight="Bold", align=CENTER, mono=True,
+             char_width=grid.scaled(24.0), special_chars=".",
+             special_chars_width=grid.scaled(11.0),
              bindings={
                  "Text": ncalc(DELTA_TEXT),
                  "TextColor": ncalc(f"if({DELTA_PROP} < 0, 'SpringGreen', 'Tomato')"),
              }),
-        delta_gauge("Delta-Red", inner.x, bar_y, half, DELTA_BAR_HEIGHT,
-                    SLOWER, 0.5, 0.5, alignment=2, paw=half,
-                    radius=corners(10, 1, 1, 1)),
-        delta_gauge("Delta-Green", inner.x + half, bar_y, half, DELTA_BAR_HEIGHT,
-                    FASTER, -0.5, -0.25, alignment=0, paw=half,
-                    radius=corners(1, 10, 1, 1)),
-        delta_gauge("Progress-Red", inner.x, progress_y, half,
-                    DELTA_PROGRESS_HEIGHT, SLOWER, 0.1, 0.1, alignment=2,
-                    paw=half, radius=corners(1, 1, 10, 1), opacity=80.0,
-                    prop=progress),
-        delta_gauge("Progress-Green", inner.x + half, progress_y, half,
-                    DELTA_PROGRESS_HEIGHT, FASTER, -1.0, -0.1, alignment=0,
-                    paw=half, radius=corners(1, 1, 1, 10), opacity=80.0,
-                    prop=progress),
-        RectangleItem(
-            name="Invalid Lap",
-            IsRectangleItem=True,
-            BackgroundColor=SLOWER,
-            BorderStyle=rounded(radius=2),
-            Left=inner.x + 1.0, Top=hero_y, Width=10.0, Height=DELTA_HERO_HEIGHT,
-            Opacity=85.0,
-            Visible=True,
-            BlinkPhasisInverted=False,
-            RenderingSkip=0,
-            MinimumRefreshIntervalMS=0.0,
-            bindings={"Visible": ncalc(
-                "if([LastLapTime] < [BestLapTime] && "
-                "timespantoseconds([LastLapTime]) != 0, 1, 0)")},
-        ),
+        delta_gauge("Delta-Red", box(*DELTA_BAR_LEFT), SLOWER, 0.5, 0.5,
+                    alignment=2, radius=corners(6, 1, 1, 1)),
+        delta_gauge("Delta-Green", box(*DELTA_BAR_RIGHT), FASTER, -0.5, -0.25,
+                    alignment=0, radius=corners(1, 6, 1, 1)),
+        delta_gauge("Progress-Red", box(*PROGRESS_LEFT), SLOWER, 0.1, 0.1,
+                    alignment=2, radius=corners(1, 1, 6, 1), opacity=80.0,
+                    prop=PROGRESS_PROP),
+        delta_gauge("Progress-Green", box(*PROGRESS_RIGHT), FASTER, -1.0, -0.1,
+                    alignment=0, radius=corners(1, 1, 1, 6), opacity=80.0,
+                    prop=PROGRESS_PROP),
+        # Os dois marcadores das bordas do cartao. O da esquerda ganha uma
+        # segunda passagem em vermelho: e o aviso de volta invalidada.
+        tick("Tick Left", TICK_LEFT, TEXT_DIM),
+        tick("Tick Right", TICK_RIGHT, TEXT_DIM),
+        tick("Invalid Lap", TICK_LEFT, SLOWER, visible=False, bindings={
+            "Visible": ncalc("if([LastLapTime] < [BestLapTime] && "
+                             "timespantoseconds([LastLapTime]) != 0, 1, 0)")}),
         name="Delta",
-        Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
-        RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
-    )
-
-
-def banner(name, label, background, color, flag=None):
-    """Aviso que cobre a zona esquerda: bandeira, incidente ou clipping."""
-    area = zone(LEFT)
-    bindings = None
-    if flag:
-        condition = ncalc(f"if([{flag}]='True',1,0)")
-        bindings = {"Visible": condition, "BlinkEnabled": condition}
-    item = text(area.x + 10.0, area.y + 14.0, area.width - 20.0, 58.0, label,
-                name=name, size=SIZE_VALUE + 6.0, color=color, weight="Bold",
-                align=CENTER, bindings=bindings)
-    # Sem formula que os acione, os avisos ficam desligados -- do contrario
-    # cobririam a barra permanentemente.
-    item["Visible"] = bool(flag)
-    return item
-
-
-#: Nomes dos banners, na ordem em que `alerts()` os declara -- usado pelo
-#: preview de modos para forcar um de cada vez (ferramenta de revisao, sem
-#: efeito no dashboard real).
-BANNER_NAMES = ["Incident", "Clipping", "Overlaping", "Green Flag",
-               "Yellow Flag", "White Flag"]
-
-
-def alerts():
-    """Avisos, empilhados na mesma caixa -- so um aparece por vez."""
-    return Layer(
-        banner("Incident", "OFF-TRACK", BACKGROUND, ALERT),
-        banner("Clipping", "CLIPPING", BACKGROUND, "#FFBF5AF2"),
-        banner("Overlaping", "INPUT OVP", BACKGROUND, FLAG_YELLOW),
-        banner("Green Flag", "GREEN FLAG", BACKGROUND, FLAG_GREEN, flag="Flag_Green"),
-        banner("Yellow Flag", "FLAG AHEAD", BACKGROUND, FLAG_YELLOW, flag="Flag_Yellow"),
-        banner("White Flag", "LAST LAP", BACKGROUND, FLAG_WHITE, flag="Flag_White"),
-        name="Alerrts",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
     )
@@ -279,7 +350,14 @@ def alerts():
 def layer():
     """A barra superior inteira."""
     return Layer(
-        tile(PANEL, name="Background", color=TILE, radius=CORNER_RADIUS_TILE),
+        tile(PANEL, name="Background", color=TILE, radius=PANEL_RADIUS),
+        Layer(
+            leds(LEFT), leds(RIGHT),
+            name="LEDs",
+            Group=True, Repetitions=0, Visible=True,
+            BlinkPhasisInverted=False, RenderingSkip=0,
+            MinimumRefreshIntervalMS=0.0,
+        ),
         Layer(
             *pedal(LEFT, "Brake", "Brake", BRAKE),
             *pedal(RIGHT, "Throttle", "Throttle", THROTTLE),
@@ -288,15 +366,8 @@ def layer():
             BlinkPhasisInverted=False, RenderingSkip=0,
             MinimumRefreshIntervalMS=0.0,
         ),
-        Layer(
-            leds(LEFT), leds(RIGHT),
-            name="LEDs",
-            Group=True, Repetitions=0, Visible=True,
-            BlinkPhasisInverted=False, RenderingSkip=0,
-            MinimumRefreshIntervalMS=0.0,
-        ),
         delta(),
-        alerts(),
+        chips(LEFT), chips(RIGHT),
         name="Top Component",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,

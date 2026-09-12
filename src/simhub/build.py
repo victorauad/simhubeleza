@@ -77,6 +77,32 @@ def write_dashboard(out_dir, name, shell, screen, items, metadata=None,
     return data
 
 
+def verify_fonts(items):
+    """Confere que toda fonte referenciada na arvore existe em assets/fonts.
+
+    Uma fonte ausente nao quebra nada na geracao: o SimHub cai numa fonte
+    padrao em silencio, e o dashboard so parece "quase certo" na tela. Entao
+    a checagem e aqui, onde da para falhar alto.
+    """
+    available = {path.stem.split("-")[0].lower()
+                 for path in (ASSETS / "fonts").iterdir() if path.is_file()}
+    used = set()
+
+    def walk(node):
+        family = node.get("Font")
+        if isinstance(family, str) and family:
+            used.add(family)
+        for child in (node.get("Childrens") or []):
+            walk(child)
+
+    for item in items:
+        walk(item)
+
+    missing = sorted(name for name in used
+                     if name.replace(" ", "").lower() not in available)
+    return missing
+
+
 def copy_support_files(out_dir, previews=()):
     """Copia fontes, extensoes JS e previews para a pasta do dashboard."""
     fonts = out_dir / "_SHFonts"

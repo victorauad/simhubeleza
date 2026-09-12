@@ -55,12 +55,51 @@ class Region:
                 f"w={self.width:.1f}, h={self.height:.1f})")
 
 
-#: Grade do wireframe, em pixels do dashboard.
-TOP_BAR = Region(0.0, 0.0, 1280.0, 115.8)
-LEFT = Region(0.0, 115.8, 484.0, 389.1)
-CENTER = Region(484.0, 115.8, 312.1, 297.0)
-OTS = Region(484.0, 412.9, 312.1, 92.1)
-RIGHT = Region(796.0, 115.8, 484.0, 389.1)
-
 #: Margem externa do painel. O wireframe deixa ~12px livres no rodape.
 MARGIN = 6.0
+
+# --- Barra superior, medida no Figma ----------------------------------------
+#
+# A revisao da barra veio desenhada em 1329x132 (Figma, section 4317:567). Ela
+# entra aqui como o painel arredondado da barra, preservando a margem externa
+# que as outras secoes usam -- entao a escala sai da largura, e a altura vem
+# junto. Uma constante so: qualquer coordenada do Figma vira pixel do dash
+# multiplicando por `SCALE`.
+
+DESIGN_WIDTH, DESIGN_HEIGHT = 1329.0, 132.0
+
+TOP_BAR_PANEL_WIDTH = WIDTH - MARGIN * 2
+SCALE = TOP_BAR_PANEL_WIDTH / DESIGN_WIDTH
+TOP_BAR_PANEL_HEIGHT = DESIGN_HEIGHT * SCALE
+
+#: Respiro entre a barra e as colunas.
+TOP_BAR_GAP = 4.0
+
+
+def scaled(*values):
+    """Converte medidas do Figma (frame de 1329x132) para pixels do dash."""
+    out = tuple(value * SCALE for value in values)
+    return out[0] if len(out) == 1 else out
+
+
+#: Grade do wireframe, em pixels do dashboard. Tudo abaixo da barra deriva do
+#: rodape dela, entao mexer na altura da barra reposiciona as colunas sozinho.
+TOP_BAR = Region(0.0, 0.0, WIDTH,
+                 MARGIN + TOP_BAR_PANEL_HEIGHT + TOP_BAR_GAP)
+
+#: O rodape do painel e fixo: a moldura do dash reserva ~12px ali.
+BODY_BOTTOM = 505.0
+BODY_TOP = TOP_BAR.bottom
+BODY_HEIGHT = BODY_BOTTOM - BODY_TOP
+
+#: Altura da faixa inferior -- a mesma para o rodape da esquerda, o OTS e o
+#: rodape da direita, que juntos formam uma barra inferior unica. Sai daqui,
+#: nao de "o que sobrou" em cada coluna, senao os tres se desalinham a cada
+#: mudanca de altura da barra superior.
+BOTTOM_BAR_HEIGHT = 86.1
+
+LEFT = Region(0.0, BODY_TOP, 484.0, BODY_HEIGHT)
+RIGHT = Region(796.0, BODY_TOP, 484.0, BODY_HEIGHT)
+OTS = Region(484.0, BODY_BOTTOM - BOTTOM_BAR_HEIGHT - MARGIN,
+             312.1, BOTTOM_BAR_HEIGHT + MARGIN)
+CENTER = Region(484.0, BODY_TOP, 312.1, OTS.y - BODY_TOP)

@@ -15,12 +15,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 
-#: Nome da fonte no SimHub -> arquivo em assets/fonts.
+#: Nome da fonte no SimHub -> arquivos em assets/fonts, por faixa de peso.
+#: O Inter e estatico (um arquivo por peso), entao o preview precisa dos dois
+#: -- com um so, o navegador sintetiza o negrito e o texto sai mais gordo que
+#: no SimHub.
 FONT_FILES = {
-    "Funnel Sans": "FunnelSans-VariableFont_wght.ttf",
-    "Audiowide": "Audiowide-Regular.ttf",
-    "Arame Mono": "ArameMono.ttf",
-    "0Arame Mono": "ArameMono.ttf",
+    "Inter": [("Inter-Regular.ttf", "100 600"), ("Inter-Bold.ttf", "601 900")],
+    "Funnel Sans": [("FunnelSans-VariableFont_wght.ttf", "100 900")],
+    "Audiowide": [("Audiowide-Regular.ttf", "100 900")],
+    "Arame Mono": [("ArameMono.ttf", "100 900")],
+    "0Arame Mono": [("ArameMono.ttf", "100 900")],
 }
 
 FALLBACK = "system-ui, sans-serif"
@@ -282,16 +286,17 @@ def load_images():
 def font_faces():
     """@font-face embutidos, para o preview bater com o render do SimHub."""
     faces = []
-    for name, filename in FONT_FILES.items():
-        path = ASSETS / "fonts" / filename
-        if not path.exists():
-            continue
-        data = base64.b64encode(path.read_bytes()).decode()
-        faces.append(
-            f"@font-face{{font-family:'{name}';"
-            f"src:url(data:font/ttf;base64,{data}) format('truetype');"
-            f"font-weight:100 900;font-display:block}}"
-        )
+    for name, variants in FONT_FILES.items():
+        for filename, weight in variants:
+            path = ASSETS / "fonts" / filename
+            if not path.exists():
+                continue
+            data = base64.b64encode(path.read_bytes()).decode()
+            faces.append(
+                f"@font-face{{font-family:'{name}';"
+                f"src:url(data:font/ttf;base64,{data}) format('truetype');"
+                f"font-weight:{weight};font-display:block}}"
+            )
     return "\n".join(faces)
 
 

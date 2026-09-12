@@ -1,15 +1,20 @@
-"""Widget RPMLed -- a barra de 5 segmentos nas pontas do dashboard (333x49).
+"""Widget RPMLed -- os quatro quadrados nas pontas da barra superior.
 
-Quatro camadas empilhadas sobre os mesmos 5 slots:
+Geometria do Figma (section 4317:567): quadrados de 53x36 com 6 de respiro,
+o vermelho na ponta de fora. O widget e desenhado nessas unidades e escalado
+pela barra superior na hora de posicionar.
+
+Quatro camadas empilhadas sobre os mesmos 4 slots:
 
     BG            fundo escuro, sempre visivel
-    RPM           preenchimento progressivo em goldenrod conforme o motor sobe
+    RPM           preenchimento progressivo conforme o motor sobe
     Shift Light   magenta, ao passar do SLBlinkRPM: trocar a marcha agora
     Shift Light2  ciano, enquanto o pit limiter estiver ligado
 
-As duas camadas de alerta repetem os 5 slots tres vezes. Nao e redundancia: o
-SimHub nao tem efeito de glow, entao passagens borradas sobrepostas formam o
-halo e uma passagem final desenha a borda nitida por cima.
+Os dois ultimos sao estados que o Figma desenha explicitamente. As camadas de
+alerta repetem os 4 slots tres vezes -- nao e redundancia: o SimHub nao tem
+efeito de glow, entao passagens borradas sobrepostas formam o halo e uma
+passagem final desenha a borda nitida por cima.
 """
 
 from simhub.bindings import ncalc
@@ -20,30 +25,37 @@ from simhub.theme import (
     SHIFT_BORDER, rounded,
 )
 
-WIDTH, HEIGHT = 333, 49
+#: Tamanho nativo, nas unidades do Figma: os quatro quadrados de 53x36 a
+#: partir de x=40, com 6 de respiro (40, 99, 158, 216). O widget e colocado
+#: ja escalado pela barra superior, entao aqui ficam as medidas do desenho.
+SLOT_W, SLOT_H = 53.0, 36.0
+SLOT_GAP = 6.0
+SLOT_COUNT = 4
 
-#: Posicao X dos 5 slots, da direita para a esquerda -- a ordem em que o editor
-#: gravou, preservada para manter paridade com o dashboard original.
-SLOT_X = [268.0, 202.0, 136.0, 71.0, 6.0]
-SLOT_Y, SLOT_W, SLOT_H = 9.0, 58.0, 30.0
+WIDTH = int(SLOT_W * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1))  # 229
+HEIGHT = int(SLOT_H)
+
+#: Posicao X dos slots, do externo (indice 0) para o interno.
+SLOT_X = [(SLOT_W + SLOT_GAP) * index for index in range(SLOT_COUNT)]
+SLOT_Y = 0.0
 
 #: Nomes dos retangulos em cada passagem das camadas de alerta: artefatos da
 #: duplicacao no editor, sem significado, mantidos para bater com o original.
 PASS_NAMES = [
-    ["5", "4", "3", "2", "1"],
-    ["", "6", "7", "8", "9"],
-    ["10", "11", "12", "13", "14"],
+    ["4", "3", "2", "1"],
+    ["5", "6", "7", "8"],
+    ["9", "10", "11", "12"],
 ]
 
-#: Por slot, da direita para a esquerda: cor e o RPM que o acende.
+#: Por slot, do externo para o interno: cor e o RPM que o acende.
 #:
-#: A barra progride verde -> amarelo -> vermelho conforme o motor sobe, como a
-#: barra de nivel das referencias. O iRacing expoe os tres limiares por carro,
-#: entao o SF23 traz os proprios. Segmentos acesos vao em brilho cheio: a
-#: hierarquia vem da cor, nao de uma rampa de opacidade.
+#: A rampa do Figma poe o vermelho na ponta de FORA e o verde apontando para o
+#: centro do dash, entao o motor "cresce" das bordas para dentro do campo de
+#: visao. O iRacing expoe os tres limiares por carro, entao o SF23 traz os
+#: proprios. Segmentos acesos vao em brilho cheio: a hierarquia vem da cor,
+#: nao de uma rampa de opacidade.
 RPM_SLOTS = [
     (RPM_HIGH, "PlayerCarSLLastRPM"),
-    (RPM_MID, "PlayerCarSLShiftRPM"),
     (RPM_MID, "PlayerCarSLShiftRPM"),
     (RPM_LOW, "PlayerCarSLFirstRPM"),
     (RPM_LOW, "PlayerCarSLFirstRPM"),
@@ -51,6 +63,7 @@ RPM_SLOTS = [
 
 BLUR = 20.0
 BORDER_THICKNESS = 3
+SLOT_RADIUS = 3        # raio do Figma
 
 
 def optional(value):
@@ -64,7 +77,7 @@ def slot(x, name, color, opacity=70.0, blur=None, border=None, bindings=None):
         name=name,
         IsRectangleItem=True,
         BackgroundColor=color,
-        BorderStyle=rounded(border, BORDER_THICKNESS),
+        BorderStyle=rounded(border, BORDER_THICKNESS, radius=SLOT_RADIUS),
         BlurRadius=optional(blur),
         Left=x, Top=SLOT_Y, Width=SLOT_W, Height=SLOT_H,
         Opacity=optional(opacity),
@@ -101,14 +114,14 @@ def above(rpm_property):
 
 
 def positions(mirror):
-    """As 5 posicoes X, espelhadas quando `mirror` esta ligado.
+    """As posicoes X dos slots, espelhadas quando `mirror` esta ligado.
 
-    Espelhar troca cada slot pelo seu reflexo (`WIDTH - x - SLOT_W`), o que
-    inverte a ordem visual da rampa verde -> amarelo -> vermelho sem mexer em
-    RPM_SLOTS -- o significado de cada slot continua o mesmo, so a ponta que
-    ele ocupa no widget muda de lado. A instancia da direita do painel usa a
-    versao espelhada, para que os dois RPMLed apontem o vermelho para dentro
-    do dash -- para o centro -- em vez de os dois para o mesmo lado fisico.
+    RPM_SLOTS esta na ordem "do externo para o interno", e sem espelho o slot
+    externo cai em x=0 -- a borda esquerda do widget, que e a borda de fora na
+    zona esquerda do painel. A zona direita usa a versao espelhada, onde o
+    reflexo (`WIDTH - x - SLOT_W`) leva o mesmo slot para a borda direita.
+    Assim os dois RPMLed apontam o vermelho para fora do dash, como no Figma,
+    sem que RPM_SLOTS precise saber de que lado esta.
     """
     if not mirror:
         return SLOT_X

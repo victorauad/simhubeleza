@@ -25,7 +25,13 @@ PANEL = grid.LEFT.inset(left=grid.MARGIN, right=grid.MARGIN)
 CHART_NATIVE = (607.0, 250.0)
 
 CHART_HEIGHT = PANEL.width * CHART_NATIVE[1] / CHART_NATIVE[0]
-STATS_HEIGHT = 96.0
+
+#: O rodape tem altura fixa, compartilhada com o OTS e o rodape da direita --
+#: os tres formam uma barra inferior unica. Quem absorve o que sobra e a linha
+#: de stats, nao o rodape; do contrario mudar a altura da barra superior
+#: desalinha as tres faixas de baixo.
+FOOTER_HEIGHT = grid.BOTTOM_BAR_HEIGHT
+STATS_HEIGHT = PANEL.height - CHART_HEIGHT - FOOTER_HEIGHT - GUTTER * 2
 
 #: A primeira coluna da linha de stats carrega o bias, que e o dado mais
 #: consultado ali, entao ganha mais largura que as outras tres.
@@ -168,7 +174,7 @@ def footer_row(region):
 
 def layer():
     """A coluna esquerda inteira."""
-    top, rest = PANEL.split_top(CHART_HEIGHT, gutter=GUTTER)
+    _, rest = PANEL.split_top(CHART_HEIGHT, gutter=GUTTER)
     stats, footer = rest.split_top(STATS_HEIGHT, gutter=GUTTER)
 
     return Layer(

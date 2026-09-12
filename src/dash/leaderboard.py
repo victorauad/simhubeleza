@@ -19,7 +19,9 @@ from .generated.formulas import binding as original
 
 #: Area util da coluna, e quanto dela sobra para as linhas depois do rodape.
 PANEL = grid.RIGHT.inset(left=grid.MARGIN, right=grid.MARGIN)
-FOOTER_HEIGHT = 85.1
+
+#: Mesma altura do rodape da esquerda e do OTS -- ver layout.BOTTOM_BAR_HEIGHT.
+FOOTER_HEIGHT = grid.BOTTOM_BAR_HEIGHT
 BODY = grid.Region(PANEL.x, PANEL.y, PANEL.width,
                    PANEL.height - FOOTER_HEIGHT - 6.0)
 

@@ -52,6 +52,17 @@ O fonte dela é `tools/preview_page.html`; para republicar, gerar
 | Coluna direita | `right.py` | `Right Component` |
 | Leaderboard e overflow | `leaderboard.py` | (dentro de `right.py`) |
 
+- **Fase 6 — barra superior do Figma** (`LDY1mlry0kX59Nw6ueDj1h`, section
+  `4317:567`): `top_bar.py` reescrito contra o design medido, `rpmled.py`
+  re-autorado (4 slots de 53x36, **vermelho para fora**, invertendo a rodada
+  anterior), Inter adicionada em `assets/fonts/`, e a altura da barra passou
+  de 115.8 para ~136 (painel de 125.9 + margem de 6 + respiro de 4).
+  Toda a geometria da barra deriva de `grid.SCALE` (= 1268/1329) e do helper
+  `grid.scaled()`, e as regiões do corpo derivam de `TOP_BAR.bottom` em vez
+  dos três literais `115.8` de antes. A barra inferior única agora é o
+  `grid.BOTTOM_BAR_HEIGHT` compartilhado (esquerda, OTS e direita), com o
+  `STATS_HEIGHT` da esquerda absorvendo a folga.
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta
@@ -99,6 +110,15 @@ O que merece olhar primeiro, por ordem de risco:
 - **Cores em fórmula do OTS** usam nomes CSS (`limegreen`, `gold`, `orange`),
   não hex, porque são os que o SimHub resolve com certeza em fórmula de cor.
   Ficam a menos de 1% das cores da paleta.
+- **Hexes do Figma não confirmados**: o MCP bateu no limite do plano Starter
+  no meio da coleta. Ficaram por bater o cinza do segmento apagado e as 10
+  cores dos chips de bandeira; foram implementados com a paleta do tema (o
+  vermelho voltou `#ff453a`, idêntico ao `theme.RED`, o que sugere que a
+  paleta bate).
+- **Fórmulas removidas de propósito (2)**: `Gas Value.Visible` e
+  `Brake Value.Visible` (`if([Throttle]<1,0,1)`). O Figma mostra "00" em
+  repouso, então o número não some mais. `formula_audit.py` vai continuar
+  listando as duas em REMOVIDAS — é esperado, não regressão.
 - Egress para `figma.com` bloqueado: imagens do board só chegam inline via MCP.
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
@@ -120,6 +140,11 @@ próprio SimHub), eu confirmo ou corrijo:
   `PreviousLap_0<n>_DeltaToSessionBest` (essa sim confirmada, já usada no
   dashboard original); a propriedade de combustível por volta pode ter outro
   nome ou não existir.
+- `[Flag_Black]` e `[Flag_Blue]` — chips de bandeira novos da barra superior.
+- `[GameRawData.Telemetry.CarLeftRight]` — spotter do iRacing, usado nos chips
+  LEFT/RIGHT (valores 2/4/5 à esquerda, 3/4/6 à direita).
+- Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
+  propriedade clara para eles.
 - **Temperatura da pista por volta**: não há (que se saiba) um histórico
   indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
   mostra a leitura *atual* só na linha da volta mais recente, em vez de
@@ -139,3 +164,24 @@ os modos manualmente; agora são fórmulas reais):
   a seção inteira (não divide mais espaço com o relative) e ganhou 3 colunas
   novas por volta — temperatura da pista, delta para a melhor volta e
   combustível consumido (ver pendências de propriedades acima).
+
+## Próximos passos (barra superior)
+
+Tudo abaixo é verificação, não implementação — o código está pronto e o build
+está verde (30 arquivos, `verify_fonts` passando).
+
+1. **Comparar cada estado com o Figma lado a lado.** `tools/preview_modes.py`
+   emite 16 previews em `build/modes/`: os 4 modos da coluna direita, os 10
+   chips de bandeira e os 2 estados do LED (shift light, pit limiter).
+   Conferir: ordem dos blocos, altura da fileira fina do pedal vs. dos
+   quadrados de RPM, posição do número, o cartão DELTA/BEST, e o chip
+   espelhado nos dois lados.
+2. **Conferir a cascata da altura**: rodapé esquerdo + OTS + rodapé direito
+   ainda lendo como uma barra única, marcha sem estourar com `SIZE_GEAR=185`,
+   leaderboard legível a ~21.3px por linha.
+3. **`tools/preview_page.html` está desatualizado**: ainda tem as 6 abas de
+   bandeira antigas. Trocar pelos 10 chips + shift light + pit limiter, e
+   atualizar os `NOTES`. Depois republicar o artefato de revisão.
+4. **Mapeamento de propriedades do SimHub**: o usuário se ofereceu para mandar
+   a lista completa. Vale aceitar — várias fórmulas (ver pendências acima)
+   dependem de nomes não validados.

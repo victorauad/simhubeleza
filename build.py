@@ -15,7 +15,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from dash import rpmled  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
-from simhub.build import copy_support_files, write_dashboard  # noqa: E402
+from simhub.build import (  # noqa: E402
+    copy_support_files, verify_fonts, write_dashboard,
+)
 
 DASH_NAME = "iRacing_Dashboard_00"
 
@@ -54,6 +56,13 @@ WIDGETS = [
 def main(argv):
     out_root = Path(argv[1]) if len(argv) > 1 else ROOT / "build"
     out_dir = out_root / DASH_NAME
+
+    # Fonte ausente e falha silenciosa no SimHub -- para aqui, nao la.
+    missing = verify_fonts(main_dash.items())
+    if missing:
+        print("fonte referenciada sem arquivo em assets/fonts: "
+              + ", ".join(missing), file=sys.stderr)
+        return 1
 
     write_dashboard(
         out_dir, DASH_NAME,

@@ -35,24 +35,36 @@ MODES = {
     "practice": ({"Practice"}, {"Lap Data": 9}),
 }
 
-#: Bandeiras/avisos da barra superior -- ver `top_bar.BANNER_NAMES`. Cada
-#: entrada gera um preview `flag-<slug>.html` com so aquele aviso ligado, os
-#: demais desligados -- sem isso os seis se empilham (sao excludentes em
-#: pista) e a barra some da leitura.
+#: Avisos da barra superior -- os dez chips de `top_bar.CHIPS`. Cada entrada
+#: gera um preview `flag-<slug>.html` com so aquele aviso ligado, os demais
+#: desligados: em pista eles sao excludentes, e empilhados de uma vez o chip
+#: vira sopa.
 FLAGS = {
-    "flag-off-track": "Incident",
-    "flag-clipping": "Clipping",
-    "flag-input-overlap": "Overlaping",
-    "flag-green": "Green Flag",
-    "flag-yellow": "Yellow Flag",
-    "flag-white": "White Flag",
+    "flag-green": "Flag Green",
+    "flag-yellow": "Flag Yellow",
+    "flag-white": "Flag White",
+    "flag-black": "Flag Black",
+    "flag-blue": "Flag Blue",
+    "flag-dirt": "Flag Dirt",
+    "flag-incident": "Flag Incident",
+    "flag-overlap": "Flag Overlap",
+    "flag-car-left": "Flag Car Left",
+    "flag-car-right": "Flag Car Right",
+}
+
+#: Estados do RPMLed que so existem sob formula -- o Figma desenha os dois,
+#: entao o preview precisa conseguir mostra-los.
+LED_STATES = {
+    "shift-light": "Shift Light",
+    "pit-limiter": "Shift Light2",
 }
 
 MODE_LAYERS = {"Standings", "Practice", "Relative"}
 BANNER_NAMES = set(FLAGS.values())
+LED_LAYERS = set(LED_STATES.values())
 
 
-def render(mode, visible, repetitions, out_dir, work, flag=None):
+def render(mode, visible, repetitions, out_dir, work, flag=None, led=None):
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(BUILD, work)
     path = work / "iRacing_Dashboard_00.djson"
@@ -66,20 +78,23 @@ def render(mode, visible, repetitions, out_dir, work, flag=None):
             node["Repetitions"] = repetitions[name]
             if repetitions[name] == 0:
                 node["Visible"] = False
-        if name == "Alerrts" and flag is not None:
+        if name in ("Alerrts", "Alerrts2") and flag is not None:
             node["Visible"] = True
         elif name in BANNER_NAMES and flag is not None:
             node["Visible"] = name == flag
-        elif in_alerts:
+        elif name in BANNER_NAMES or in_alerts:
             node["Visible"] = False
             node.pop("Bindings", None)
         for child in (node.get("Childrens") or []):
-            walk(child, in_alerts or name == "Alerrts")
+            walk(child, in_alerts or name in ("Alerrts", "Alerrts2"))
 
     for screen in data.get("Screens", []):
         for item in screen["Items"]:
             walk(item)
     path.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+
+    if led:
+        force_led(work, led)
 
     target = out_dir / f"{mode}.html"
     subprocess.run(
@@ -87,6 +102,30 @@ def render(mode, visible, repetitions, out_dir, work, flag=None):
          "--bare", "--conditional", "show", "-o", str(target)],
         check=True, stdout=subprocess.DEVNULL)
     return target
+
+
+def force_led(work, layer_name):
+    """Liga uma camada de alerta dentro dos dois arquivos do RPMLed.
+
+    As camadas de shift light e pit limiter vivem no widget, nao na arvore
+    principal, e so aparecem sob formula -- entao o preview as liga a mao nos
+    dois .djson (o normal e o espelhado).
+    """
+    for filename in ("RPMLed.djson", "RPMLedMirrored.djson"):
+        path = work / filename
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+        def walk(node):
+            if node.get("Name") == layer_name:
+                node["Visible"] = True
+                node.pop("Bindings", None)
+            for child in (node.get("Childrens") or []):
+                walk(child)
+
+        for screen in data.get("Screens", []):
+            for item in screen["Items"]:
+                walk(item)
+        path.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
 
 
 def main(argv=None):
@@ -103,6 +142,10 @@ def main(argv=None):
     for slug, banner in FLAGS.items():
         target = render(slug, base_visible, base_repetitions, out_dir, work,
                         flag=banner)
+        print(f"{slug:20} -> {target}")
+    for slug, layer_name in LED_STATES.items():
+        target = render(slug, base_visible, base_repetitions, out_dir, work,
+                        led=layer_name)
         print(f"{slug:20} -> {target}")
     shutil.rmtree(work, ignore_errors=True)
 
