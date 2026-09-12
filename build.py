@@ -41,7 +41,14 @@ METADATA = {
 }
 
 #: Widgets embutidos, referenciados por WidgetItem na tela principal.
-WIDGETS = [("RPMLed", rpmled), ("Telemetry", telemetry)]
+#: RPMLedMirrored e o RPMLed com o vermelho na ponta oposta, para a instancia
+#: direita do painel apontar para dentro do dash como a esquerda.
+WIDGETS = [
+    ("RPMLed", rpmled.SHELL, rpmled.SCREEN, rpmled.items()),
+    ("RPMLedMirrored", rpmled.SHELL_MIRRORED, rpmled.SCREEN_MIRRORED,
+     rpmled.items(mirror=True)),
+    ("Telemetry", telemetry.SHELL, telemetry.SCREEN, telemetry.items()),
+]
 
 
 def main(argv):
@@ -53,8 +60,8 @@ def main(argv):
         main_dash.SHELL, main_dash.SCREEN, main_dash.items(),
         metadata=METADATA,
     )
-    for name, module in WIDGETS:
-        write_dashboard(out_dir, name, module.SHELL, module.SCREEN, module.items())
+    for name, widget_shell, widget_screen, widget_items in WIDGETS:
+        write_dashboard(out_dir, name, widget_shell, widget_screen, widget_items)
 
     copy_support_files(
         out_dir,

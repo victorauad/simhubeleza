@@ -100,59 +100,79 @@ def above(rpm_property):
     )
 
 
-def background():
+def positions(mirror):
+    """As 5 posicoes X, espelhadas quando `mirror` esta ligado.
+
+    Espelhar troca cada slot pelo seu reflexo (`WIDTH - x - SLOT_W`), o que
+    inverte a ordem visual da rampa verde -> amarelo -> vermelho sem mexer em
+    RPM_SLOTS -- o significado de cada slot continua o mesmo, so a ponta que
+    ele ocupa no widget muda de lado. A instancia da direita do painel usa a
+    versao espelhada, para que os dois RPMLed apontem o vermelho para dentro
+    do dash -- para o centro -- em vez de os dois para o mesmo lado fisico.
+    """
+    if not mirror:
+        return SLOT_X
+    return [WIDTH - x - SLOT_W for x in SLOT_X]
+
+
+def background(mirror):
     """Trilho apagado: os segmentos que ainda nao acenderam."""
     return group("BG", *(
         slot(x, name, LED_OFF, opacity=None)
-        for x, name in zip(SLOT_X, PASS_NAMES[0])
+        for x, name in zip(positions(mirror), PASS_NAMES[0])
     ))
 
 
-def rpm():
+def rpm(mirror):
     return group("RPM", *(
         slot(x, name, color, opacity=None,
              bindings={"Visible": above(rpm_property)})
         for x, name, (color, rpm_property)
-        in zip(SLOT_X, PASS_NAMES[0], RPM_SLOTS)
+        in zip(positions(mirror), PASS_NAMES[0], RPM_SLOTS)
     ))
 
 
-def glow(name, color, passes, visible_when, freezed=None):
+def glow(name, color, passes, visible_when, mirror, freezed=None):
     """Camada de alerta. `passes` traz (blur, border) de cada passagem."""
     rects = [
         slot(x, rect_name, color, opacity=None, blur=blur, border=border)
         for (blur, border), names in zip(passes, PASS_NAMES)
-        for x, rect_name in zip(SLOT_X, names)
+        for x, rect_name in zip(positions(mirror), names)
     ]
     return group(name, *rects, visible=False, freezed=freezed,
                  bindings={"Visible": visible_when})
 
 
-def shift_light():
+def shift_light(mirror):
     """Magenta: halo sem borda nas duas primeiras passagens, borda na terceira."""
     return glow(
         "Shift Light", SHIFT,
         passes=[(BLUR, None), (BLUR, None), (None, SHIFT_BORDER)],
         visible_when=above("PlayerCarSLBlinkRPM"),
-        freezed=True,
+        mirror=mirror, freezed=True,
     )
 
 
-def pit_limiter():
+def pit_limiter(mirror):
     """Ciano: borda em todas as passagens, o que engrossa o contorno."""
     return glow(
         "Shift Light2", LIMITER,
         passes=[(BLUR, LIMITER_BORDER), (BLUR, LIMITER_BORDER),
                 (None, LIMITER_BORDER)],
         visible_when=ncalc("if([PitLimiterOn] && [DataCorePlugin.GameRunning], 1, 0)"),
+        mirror=mirror,
     )
 
 
-def items():
-    """Itens de nivel superior da tela."""
+def items(mirror=False):
+    """Itens de nivel superior da tela.
+
+    `mirror=True` gera a variante usada pela instancia direita do painel --
+    mesma logica, vermelho na ponta oposta.
+    """
     return [
-        group("LEDs", background(), rpm(), shift_light()),
-        pit_limiter(),
+        group("LEDs", background(mirror), rpm(mirror), shift_light(mirror)),
+        pit_limiter(mirror),
     ]
 
 
@@ -162,3 +182,12 @@ SHELL = shell(
 )
 
 SCREEN = screen("ceaed06c-88e6-49dc-8523-984531f72a0e")
+
+#: Arquivo espelhado -- mesmo formato, Id proprio para o SimHub nao confundir
+#: os dois widgets embutidos.
+SHELL_MIRRORED = shell(
+    "b7b3d225-846d-58e0-bb05-fb75631504f9", WIDTH, HEIGHT,
+    metadata=metadata(WIDTH, HEIGHT),
+)
+
+SCREEN_MIRRORED = screen("dfbfe217-99f7-5ade-9634-a95642e83a0f")
