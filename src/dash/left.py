@@ -33,6 +33,10 @@ CHART_HEIGHT = PANEL.width * CHART_NATIVE[1] / CHART_NATIVE[0]
 FOOTER_HEIGHT = grid.BOTTOM_BAR_HEIGHT
 STATS_HEIGHT = PANEL.height - CHART_HEIGHT - FOOTER_HEIGHT - GUTTER * 2
 
+#: O ultimo campo do rodape e o unico com cinco glifos (`00:00`); com cinco
+#: colunas iguais ele corta no meio. Os outros quatro sao de dois digitos.
+FOOTER_WEIGHTS = (1.0, 1.0, 1.0, 1.0, 1.4)
+
 #: A primeira coluna da linha de stats carrega o bias, que e o dado mais
 #: consultado ali, entao ganha mais largura que as outras tres.
 BIAS_WIDTH = 160.0
@@ -154,7 +158,7 @@ def footer_row(region):
     inferior unica.
     """
     inner = region.inset(left=PADDING, right=PADDING)
-    cells = inner.columns(5, gutter=GUTTER)
+    cells = inner.columns(5, gutter=GUTTER, weights=FOOTER_WEIGHTS)
     fields = [
         ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
         ("Left", "Left", "00", "[RemainingLaps]", "00", None),

@@ -32,11 +32,28 @@ class Region:
         """Ponto absoluto a partir do canto superior esquerdo da regiao."""
         return self.x + dx, self.y + dy
 
-    def columns(self, count, gutter=0.0):
-        """Divide em colunas iguais separadas por gutter."""
-        span = (self.width - gutter * (count - 1)) / count
-        return [Region(self.x + (span + gutter) * i, self.y, span, self.height)
-                for i in range(count)]
+    def columns(self, count, gutter=0.0, weights=None):
+        """Divide em colunas separadas por gutter.
+
+        Sem `weights`, as colunas saem iguais. Com `weights`, cada uma recebe
+        uma fatia proporcional do espaco util -- e como um campo se dimensiona
+        pelo conteudo dele, nao pela contagem de irmaos. Um valor de tempo
+        (`00:00`, cinco glifos) numa fileira de valores de dois digitos corta
+        no meio se todo mundo tiver a mesma largura.
+        """
+        free = self.width - gutter * (count - 1)
+        if weights is None:
+            weights = [1.0] * count
+        elif len(weights) != count:
+            raise ValueError(f"weights precisa ter {count} itens")
+        total = sum(weights)
+
+        out, x = [], self.x
+        for weight in weights:
+            span = free * weight / total
+            out.append(Region(x, self.y, span, self.height))
+            x += span + gutter
+        return out
 
     def rows(self, count, gutter=0.0):
         span = (self.height - gutter * (count - 1)) / count

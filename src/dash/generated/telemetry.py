@@ -321,9 +321,12 @@ def items():
                             "RadiusBottomLeft": 5,
                             "RadiusBottomRight": 5,
                         },
-                        Height=36.0,
+                        # Height/Top iguais aos outros quatro rotulos: com
+                        # Top=-8 a caixa saia 4px acima do widget e cruzava a
+                        # borda do painel da coluna esquerda.
+                        Height=19.0,
                         Left=551.0,
-                        Top=-8.0,
+                        Top=0.0,
                         Width=42.0,
                     ),
                     name='100',
@@ -358,7 +361,9 @@ def items():
                     "RadiusBottomLeft": 5,
                     "RadiusBottomRight": 5,
                 },
-                Height=25.0,
+                # 227 (repouso, vindo da formula de Top) + 25 passava dos
+                # 250 de altura do widget: o badge sobrava para fora embaixo.
+                Height=23.0,
                 Left=560.0,
                 Top=227.0,
                 Width=44.0,
@@ -382,7 +387,9 @@ def items():
                     "RadiusBottomLeft": 5,
                     "RadiusBottomRight": 5,
                 },
-                Height=25.0,
+                # 227 (repouso, vindo da formula de Top) + 25 passava dos
+                # 250 de altura do widget: o badge sobrava para fora embaixo.
+                Height=23.0,
                 Left=560.0,
                 Top=227.0,
                 Width=44.0,

@@ -26,10 +26,15 @@ Preview como imagem (Chromium já instalado no ambiente):
   "file:///home/user/simhubeleza/build/preview.html"
 ```
 
-Página de revisão publicada (as quatro abas de modo, montadas sobre
-`build/modes/`): <https://claude.ai/code/artifact/326ce39f-af40-4fbb-87bb-0a9c5068dc36>
-O fonte dela é `tools/preview_page.html`; para republicar, gerar
-`build/modes/` e publicar a página com esses quatro arquivos ao lado.
+Página de revisão publicada (16 abas: 4 modos da coluna direita, 10 avisos da
+barra superior e 2 estados do RPMLed, montadas sobre `build/modes/`):
+<https://claude.ai/code/artifact/326ce39f-af40-4fbb-87bb-0a9c5068dc36>
+O fonte dela é `tools/preview_page.html`; para republicar, rodar
+`preview_modes.py`, copiar a página como `build/modes/index.html` e publicar
+com os 16 arquivos ao lado.
+
+Ao tirar screenshot, usar altura de janela **700**: a 540 o rodapé sai cortado
+pela janela, não pelo layout — o que já custou um diagnóstico errado.
 
 ## Concluído
 
@@ -165,23 +170,33 @@ os modos manualmente; agora são fórmulas reais):
   novas por volta — temperatura da pista, delta para a melhor volta e
   combustível consumido (ver pendências de propriedades acima).
 
-## Próximos passos (barra superior)
+## Verificação visual da barra superior — feita
 
-Tudo abaixo é verificação, não implementação — o código está pronto e o build
-está verde (30 arquivos, `verify_fonts` passando).
+Confirmado no render: a barra inferior é única de verdade (rodapé esquerdo,
+OTS e rodapé direito partilham topo 418.9 e base 505.0, agora por construção
+via `grid.BOTTOM_BAR_HEIGHT`); o vermelho do RPMLed aponta para fora nos dois
+lados; a marcha a `SIZE_GEAR=185` não estoura; o lap log ocupa a seção inteira
+com as 5 colunas; e o cartão do delta cai nas coordenadas do Figma.
 
-1. **Comparar cada estado com o Figma lado a lado.** `tools/preview_modes.py`
-   emite 16 previews em `build/modes/`: os 4 modos da coluna direita, os 10
-   chips de bandeira e os 2 estados do LED (shift light, pit limiter).
-   Conferir: ordem dos blocos, altura da fileira fina do pedal vs. dos
-   quadrados de RPM, posição do número, o cartão DELTA/BEST, e o chip
-   espelhado nos dois lados.
-2. **Conferir a cascata da altura**: rodapé esquerdo + OTS + rodapé direito
-   ainda lendo como uma barra única, marcha sem estourar com `SIZE_GEAR=185`,
-   leaderboard legível a ~21.3px por linha.
-3. **`tools/preview_page.html` está desatualizado**: ainda tem as 6 abas de
-   bandeira antigas. Trocar pelos 10 chips + shift light + pit limiter, e
-   atualizar os `NOTES`. Depois republicar o artefato de revisão.
-4. **Mapeamento de propriedades do SimHub**: o usuário se ofereceu para mandar
-   a lista completa. Vale aceitar — várias fórmulas (ver pendências acima)
-   dependem de nomes não validados.
+Dois defeitos achados e corrigidos:
+
+- `Time` e `Hour` renderizavam `00:0C` — cinco glifos a 25px num campo de
+  70.4px. `Region.columns()` agora aceita `weights`, e os dois rodapés dão
+  1.4× à coluna de tempo (mesmo padrão do `left.BIAS_WIDTH`).
+- No widget de telemetria, a caixa do rótulo `100` começava 8px acima do grupo
+  e saía 4px por cima do widget; os badges de pedal vazavam 2px por baixo.
+  Ambos ajustados em `src/dash/generated/telemetry.py` sem tocar em fórmula.
+
+## O que ainda falta
+
+1. **Mapeamento de propriedades do SimHub.** É o maior bloqueio. Os arquivos
+   `PluginsData\IRacing\SampleTelemetry.json` e `SampleSessionData.json` da
+   instalação do usuário são um dump da struct do iRacing e resolvem quase
+   tudo. Há um sinal de alerta: uma varredura pelas DLLs não achou **nenhuma**
+   string `PreviousLap_`, e não existe pasta do `PersistantTrackerPlugin` em
+   `PluginsData` — se o plugin não estiver instalado, o lap log inteiro não
+   resolve nada em tela.
+2. **Validar no SimHub de verdade** (abaixo).
+3. No lap log, a coluna TRACK sai apagada em todas as linhas no preview. A
+   intenção era apagar só as voltas antigas e manter viva a da volta atual;
+   como é fórmula, só dá para confirmar rodando.

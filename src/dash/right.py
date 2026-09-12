@@ -329,7 +329,9 @@ def footer():
     region = grid.Region(PANEL.x, BODY.bottom + GUTTER, PANEL.width,
                          leaderboard.FOOTER_HEIGHT)
     inner = region.inset(left=PADDING, right=PADDING)
-    cells = inner.columns(5, gutter=GUTTER)
+    # Hour e o unico campo de cinco glifos da fileira -- ver FOOTER_WEIGHTS
+    # na coluna esquerda, que resolve o mesmo problema do outro lado.
+    cells = inner.columns(5, gutter=GUTTER, weights=(1.4, 1.0, 1.0, 1.0, 1.0))
     fields = [
         ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
         ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
