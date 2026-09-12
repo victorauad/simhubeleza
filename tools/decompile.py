@@ -24,6 +24,7 @@ EXTRACTED = {
     "Leaderboard": ("from dash.leaderboard import layer as leaderboard", "leaderboard()"),
     "Top Component": ("from dash.top_bar import layer as top_bar", "top_bar()"),
     "Left Component2": ("from dash.left import layer as left", "left()"),
+    "Center Component": ("from dash.center import layer as center", "center()"),
 }
 
 

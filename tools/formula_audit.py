@@ -33,6 +33,22 @@ def normalize(expression):
     return "".join(parts).strip()
 
 
+#: Nomes de cor CSS e hex ARGB que aparecem em formulas de cor.
+COLOR_LITERAL = re.compile(
+    r"'(#[0-9A-Fa-f]{6,8}|transparent|darkcyan|lawngreen|darkgray|dimgray|red|"
+    r"orange|gold|limegreen|yellow|white|black|green|cyan|magenta)'")
+
+
+def colorless(expression):
+    """A mesma expressao com os literais de cor apagados.
+
+    Serve para separar duas coisas que o diff cru confunde: logica que sumiu
+    (regressao) e logica intacta cuja cor mudou (o redesign fazendo seu
+    trabalho). So a primeira e problema.
+    """
+    return COLOR_LITERAL.sub("'~'", expression)
+
+
 def collect(folder):
     """Mapeia expressao normalizada -> onde ela aparece."""
     found = defaultdict(list)
@@ -69,6 +85,19 @@ def main(argv=None):
     print(f"original:    {len(old)} formulas distintas")
     print(f"redesenhado: {len(new)} formulas distintas")
     print()
+
+    # Separa as que so trocaram de cor: mesma cascata de decisoes, paleta nova.
+    new_by_shape = {colorless(e): e for e in new}
+    restyled = [e for e in removed if colorless(e) in new_by_shape]
+    removed = [e for e in removed if colorless(e) not in new_by_shape]
+    added = [e for e in added
+             if colorless(e) not in {colorless(x) for x in restyled}]
+
+    if restyled:
+        print(f"RESTILIZADAS ({len(restyled)}) -- mesma logica, cores novas:")
+        for expression in restyled:
+            print(f"  {', '.join(old[expression][:3])}")
+        print()
 
     if removed:
         print(f"REMOVIDAS ({len(removed)}) -- logica do original que sumiu:")
