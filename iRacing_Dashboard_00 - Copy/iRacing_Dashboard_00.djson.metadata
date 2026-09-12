@@ -1,0 +1,21 @@
+{
+  "ScreenCount": 1.0,
+  "InGameScreensIndexs": [
+    0
+  ],
+  "IdleScreensIndexs": [],
+  "MainPreviewIndex": 0,
+  "IsOverlay": false,
+  "OverlaySizeWarning": true,
+  "MetadataVersion": 2.0,
+  "EnableOnDashboardMessaging": true,
+  "PitScreensIndexs": [],
+  "SimHubVersion": "9.10.6",
+  "Category": null,
+  "Title": null,
+  "Description": null,
+  "Author": null,
+  "Width": 1280.0,
+  "Height": 517.0,
+  "DashboardVersion": ""
+}
