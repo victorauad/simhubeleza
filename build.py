@@ -12,8 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from dash import rpmled  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
-from dash.generated import rpmled, telemetry  # noqa: E402
+from dash.generated import telemetry  # noqa: E402
 from simhub.build import copy_support_files, write_dashboard  # noqa: E402
 
 DASH_NAME = "iRacing_Dashboard_00"
