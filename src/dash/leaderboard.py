@@ -11,9 +11,22 @@ do jogador como propriedades numeradas (Driver_00_Name, Driver_01_Name, ...).
 
 from simhub.bindings import js
 from simhub.model import OFF, Layer, RectangleItem, TextItem
+from simhub.theme import (
+    FONT, PLAYER, SIZE_LABEL, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
+)
+from . import layout as grid
+from .generated.formulas import binding as original
 
-#: Altura de cada linha repetida.
-ROW_HEIGHT = 34.0
+#: Area util da coluna, e quanto dela sobra para as linhas depois do rodape.
+PANEL = grid.RIGHT.inset(left=grid.MARGIN, right=grid.MARGIN)
+FOOTER_HEIGHT = 85.1
+BODY = grid.Region(PANEL.x, PANEL.y, PANEL.width,
+                   PANEL.height - FOOTER_HEIGHT - 6.0)
+
+#: Altura de cada linha repetida: as 13 linhas do caso cheio tem que caber
+#: exatamente no corpo da coluna, entao a altura sai da divisao, nao de um
+#: numero escolhido.
+ROW_HEIGHT = BODY.height / 13.0
 
 #: Quantas linhas mostrar. Com grid pequeno, ou com o jogador perto do topo,
 #: cabe a tabela inteira (13); caso contrario mostra uma janela de 3 ao redor
@@ -47,12 +60,33 @@ if ({FIELD_SIZE} <= 13 || index < 0 || {PLAYER_POSITION} <= 11) {{
 \t
 }}"""
 
-TEXT_GRAY = "#FF808080"
-ROW_BG = "#FF1C1C1C"
+#: Colunas da linha. Posicao e nome a esquerda, os dois numeros a direita --
+#: e a ordem em que se le: quem e, depois quao longe esta.
+POSITION_WIDTH = 30.0
+GAP_WIDTH = 64.0
+DIFF_WIDTH = 78.0
+COLUMN_GAP = 8.0
+
+POSITION_X = BODY.x
+NAME_X = POSITION_X + POSITION_WIDTH + COLUMN_GAP
+GAP_X = BODY.right - GAP_WIDTH
+DIFF_X = GAP_X - DIFF_WIDTH - COLUMN_GAP
+NAME_WIDTH = DIFF_X - NAME_X - COLUMN_GAP
+
+ROW_TEXT_SIZE = 17.0
+ROW_INSET = 3.0
+
+TEXT_GRAY = TEXT_SECONDARY
+ROW_BG = TILE_RAISED
 ROW_BG_PLAYER = "White"
-DISCONNECTED = "#FF404040"
+DISCONNECTED = TEXT_TERTIARY
 FASTER = "#8800FF7F"
 SLOWER = "#88FF6347"
+
+
+def row_top(index=0):
+    """Topo da linha `index` dentro do corpo da coluna."""
+    return BODY.y + ROW_HEIGHT * index
 
 
 def driver(field, sep=""):
@@ -89,9 +123,9 @@ def row_text(name, left, width, size, text, align, **fields):
         CharWidth=fields.pop("char_width", 16.0),
         SpecialChars=fields.pop("special_chars", ",:;"),
         BackgroundColor="#00FFFFFF",
-        Height=40.0,
+        Height=fields.pop("height", ROW_HEIGHT),
         Left=left,
-        Top=fields.pop("top", 122.0),
+        Top=fields.pop("top", row_top()),
         Visible=True,
         BlinkPhasisInverted=False,
         Width=width,
@@ -104,7 +138,7 @@ def row_text(name, left, width, size, text, align, **fields):
 def position():
     """Posicao na classe. Laranja para o jogador, apagada se desconectado."""
     return row_text(
-        "DriverPosition", 821.0, 32.0, 25.0, "00", align=1,
+        "DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE, "00", align=1,
         bindings={
             "Text": js(f"""if ({driver('PositionInClass')} != 0) {{
 
@@ -145,10 +179,11 @@ def container():
         BackgroundColor=ROW_BG,
         BorderStyle={
             "BorderColor": "#FF00BFFF",
-            "RadiusTopLeft": 5,
-            "RadiusBottomLeft": 5,
+            "RadiusTopLeft": 5, "RadiusTopRight": 5,
+            "RadiusBottomLeft": 5, "RadiusBottomRight": 5,
         },
-        Height=29.0, Left=856.0, Top=128.0, Width=214.0,
+        Height=ROW_HEIGHT - ROW_INSET * 2, Left=NAME_X - 4.0,
+        Top=row_top() + ROW_INSET, Width=NAME_WIDTH + 8.0,
         Visible=True,
         BlinkPhasisInverted=False,
         RenderingSkip=0,
@@ -171,7 +206,7 @@ def container():
 def name():
     """Nome do piloto, alinhado a esquerda."""
     return row_text(
-        "DriverName", 864.0, 214.0, 20.0, "DRIVER NAME", align=0,
+        "DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE, "DRIVER NAME", align=0,
         bindings={
             "Text": js(f"return {driver('Name')};", jsext=3, format_string=""),
             "TextColor": js(f"""if ({is_player()}) {{
@@ -201,7 +236,7 @@ def last_lap_difference():
     faster = (f"timespantoseconds($prop('LastLapTime')) - "
               f"timespantoseconds({driver('LastLapTime')})")
     return row_text(
-        "LastLapDifference", 1087.0, 85.0, 25.0, "-0.00", align=1, top=121.0,
+        "LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE, "-0.00", align=2,
         color=FASTER,
         UseMonospacedText=True,
         char_width=14.0,
@@ -294,7 +329,7 @@ def gap():
     """
     leader_best = "$prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_00_BestLapTime')"
     return row_text(
-        "Gap", 1196.0, 64.0, 25.0, "00.0", align=1, top=121.0,
+        "Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
         color=FASTER,
         UseMonospacedText=True,
         char_width=14.0,
@@ -370,4 +405,99 @@ def layer():
         RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
         bindings={"Repetitions": js(ROWS_EXPRESSION)},
+    )
+
+
+#: Onde a janela do overflow comeca. Quando o jogador esta longe do topo, a
+#: camada principal mostra so o trio da frente e o overflow assume dali para
+#: baixo, com a janela centrada nele -- 3 + 7 = as 10 linhas do caso apertado.
+OVERFLOW_START = ROWS_WINDOW
+OVERFLOW_ROWS = 7
+
+
+def overflow_layer():
+    """A janela em volta do jogador, quando ele nao cabe na tabela cheia.
+
+    Mesma linha, mesma grade de colunas; o que muda e o indice, que aqui e
+    calculado a partir da posicao do jogador. Essas formulas vem verbatim do
+    original (`tools/dump_formulas.py`) -- sao trinta linhas de aritmetica de
+    indice que nao ganham nada em serem reescritas.
+    """
+    def at(node, target, **extra):
+        return original(f"Leaderboard Overflow/{node}", target, **extra)
+
+    top = row_top(OVERFLOW_START)
+    return Layer(
+        row_text("DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE,
+                 "00", align=1, top=top,
+                 bindings={
+                     "Text": at("DriverPosition", "Text"),
+                     "TextColor": at("DriverPosition", "TextColor"),
+                     "Opacity": at("DriverPosition", "Opacity"),
+                 }),
+        RectangleItem(
+            name="DriverContainer",
+            IsRectangleItem=True,
+            BackgroundColor=ROW_BG,
+            BorderStyle={
+                "BorderColor": "#FF00BFFF",
+                "RadiusTopLeft": 5, "RadiusTopRight": 5,
+                "RadiusBottomLeft": 5, "RadiusBottomRight": 5,
+            },
+            Height=ROW_HEIGHT - ROW_INSET * 2, Left=NAME_X - 4.0,
+            Top=top + ROW_INSET, Width=NAME_WIDTH + 8.0,
+            Visible=True,
+            BlinkPhasisInverted=False,
+            RenderingSkip=0,
+            MinimumRefreshIntervalMS=0.0,
+            bindings={
+                "Visible": at("DriverContainer", "Visible"),
+                "BackgroundColor": at("DriverContainer", "BackgroundColor"),
+            },
+        ),
+        row_text("DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE,
+                 "DRIVER NAME", align=0, top=top,
+                 bindings={
+                     "Text": at("DriverName", "Text"),
+                     "TextColor": at("DriverName", "TextColor"),
+                 }),
+        row_text("LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE,
+                 "-0.00", align=2, top=top, color=FASTER,
+                 UseMonospacedText=True, char_width=14.0,
+                 SpecialCharsWidth=8.0, special_chars=".,",
+                 bindings={
+                     "Text": at("LastLapDifference", "Text"),
+                     "Visible": at("LastLapDifference", "Visible"),
+                     "TextColor": at("LastLapDifference", "TextColor"),
+                 }),
+        row_text("Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
+                 top=top, color=FASTER,
+                 UseMonospacedText=True, char_width=14.0,
+                 SpecialCharsWidth=8.0, special_chars=".,",
+                 bindings={
+                     "Text": at("Gap", "Text"),
+                     "TextColor": at("Gap", "TextColor"),
+                     "Visible": at("Gap", "Visible"),
+                 }),
+        name="Leaderboard Overflow",
+        Group=True,
+        Repetitions=OVERFLOW_ROWS,
+        PrepareRepetitions=True,
+        RepeatTopOffset=ROW_HEIGHT,
+        Visible=True,
+        BlinkPhasisInverted=False,
+        RenderingSkip=0,
+        MinimumRefreshIntervalMS=0.0,
+        bindings={"Visible": original("Leaderboard Overflow", "Visible")},
+    )
+
+
+def standings():
+    """O modo padrao da coluna: a tabela da classe."""
+    return Layer(
+        layer(), overflow_layer(),
+        name="Standings",
+        Group=True, Repetitions=0, Visible=False,
+        BlinkPhasisInverted=False, RenderingSkip=0,
+        MinimumRefreshIntervalMS=0.0,
     )

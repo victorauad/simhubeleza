@@ -32,24 +32,27 @@ Preview como imagem (Chromium já instalado no ambiente):
 - **Design system**: `src/simhub/theme.py` com a paleta watchOS;
   `src/dash/layout.py` com a grade do wireframe; `src/dash/widgets.py` com
   `tile`, `value_unit`, `caption`, `segmented_bar`, `ramp`.
-- **Regiões redesenhadas**: barra superior (`src/dash/top_bar.py`) e o widget
-  `RPMLed` (progressão verde → amarelo → vermelho).
+- **Fase 5 completa**: todas as regiões redesenhadas, cada uma em seu módulo
+  em `src/dash/`, ligadas pelo dicionário `EXTRACTED` em `tools/decompile.py`:
 
-## Falta (Fase 5)
-
-Redesenhar as regiões restantes, cada uma em seu módulo em `src/dash/`, e
-ligá-las pelo dicionário `EXTRACTED` em `tools/decompile.py`:
-
-| Região | Módulo a criar | Camada a extrair |
+| Região | Módulo | Camada extraída |
 |---|---|---|
+| Barra superior | `top_bar.py` | `Top Component` |
 | Coluna esquerda | `left.py` | `Left Component2` |
 | Centro (marcha/SPD/RPM) | `center.py` | `Center Component` |
-| OTS (push-to-pass) | `ots.py` | `OTS` |
+| OTS (push-to-pass) | `ots.py` | (dentro de `center.py`) |
 | Coluna direita | `right.py` | `Right Component` |
+| Leaderboard e overflow | `leaderboard.py` | (dentro de `right.py`) |
 
-A coluna direita alterna entre **modos** — standings, overflow, relative
-(`Driver Ahead` / `Me` / `Driver Behind`) e `LAP LOG` de treino. Todos precisam
-ser restilizados, não só o visível no screenshot.
+- **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
+  `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
+  que permite restilizar overflow, relative e lap log sem recopiar trinta
+  linhas de JavaScript a mão.
+
+## Falta
+
+Validar no SimHub de verdade — é o único passo que não dá para fazer daqui.
+Copiar `build/iRacing_Dashboard_00` para a pasta `DashTemplates` e abrir.
 
 ## Como redesenhar uma região
 
@@ -73,6 +76,12 @@ ser restilizados, não só o visível no screenshot.
 - `parity.py` vai divergir conforme o redesign avança — é esperado. A garantia
   ativa passa a ser `formula_audit.py`. O plano prevê um `build.py --legacy`
   para manter a paridade validando o toolchain; ainda não implementado.
+- **Modos sobrepostos na direita**: em treino, o `LAP LOG` fica por cima das
+  colunas de tempo do relative (o original fazia o mesmo). Só se resolve
+  decidindo qual dos dois cede espaço — decisão de design, não de código.
+- **Cores em fórmula do OTS** usam nomes CSS (`limegreen`, `gold`, `orange`),
+  não hex, porque são os que o SimHub resolve com certeza em fórmula de cor.
+  Ficam a menos de 1% das cores da paleta.
 - Egress para `figma.com` bloqueado: imagens do board só chegam inline via MCP.
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
