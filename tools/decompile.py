@@ -18,6 +18,12 @@ OUT = ROOT / "src" / "dash" / "generated"
 
 INDENT = "    "
 
+#: Subarvores ja reescritas a mao. O decompilador emite a chamada ao modulo em
+#: vez de reexportar a arvore, para que a versao refatorada seja a unica fonte.
+EXTRACTED = {
+    "Leaderboard": ("from dash.leaderboard import layer as leaderboard", "leaderboard()"),
+}
+
 
 def short_type(node):
     return node["$type"].split(",")[0].split(".")[-1]
@@ -53,25 +59,32 @@ def binding_call(binding, depth):
     is_js = formula.get("Interpreter") == 1
     fn = "js" if is_js else "ncalc"
     fmt = binding.get("FormatString")
-    if fmt is not None:
-        if is_js:
-            return literal(binding, depth)
-        return f"formatted({expression!r}, {fmt!r})"
+    args = [repr(expression)]
     if is_js and formula.get("JSExt"):
-        return f"js({expression!r}, jsext={formula['JSExt']!r})"
-    return f"{fn}({expression!r})"
+        args.append(f"jsext={formula['JSExt']!r}")
+    if fmt is not None:
+        if not is_js:
+            return f"formatted({expression!r}, {fmt!r})"
+        args.append(f"format_string={fmt!r}")
+    return f"{fn}({', '.join(args)})"
 
 
-def emit(node, depth=1):
+def emit(node, depth=1, extracted=None):
     """Gera a chamada de construtor para um no e seus filhos."""
     pad = INDENT * depth
+    name = node.get("Name")
+    if name in EXTRACTED:
+        import_line, call = EXTRACTED[name]
+        if extracted is not None:
+            extracted.add(import_line)
+        return f"{pad}{call}"
     type_name = short_type(node)
     defaults = DEFAULTS[type_name]
     children = node.get("Childrens") or []
 
     parts = []
     for child in children:
-        parts.append(emit(child, depth + 1) + ",")
+        parts.append(emit(child, depth + 1, extracted) + ",")
 
     if "Name" in node:
         parts.append(f"{pad}{INDENT}name={node['Name']!r},")
@@ -114,7 +127,9 @@ def decompile(path):
     if len(items) != 1:
         raise NotImplementedError(f"{path.name}: esperado 1 tela, achei {len(items)}")
 
-    tree = ",\n".join(emit(item, 2) for item in items[0])
+    extracted = set()
+    tree = ",\n".join(emit(item, 2, extracted) for item in items[0])
+    extra_imports = "".join(line + "\n" for line in sorted(extracted))
 
     return f'''"""Dashboard {path.stem} -- arvore de controles.
 
@@ -122,7 +137,7 @@ GERADO por tools/decompile.py a partir de referencia-manual/{path.name}.
 Ponto de partida da refatoracao; paridade validada por tools/parity.py.
 """
 
-from simhub.bindings import formatted, js, ncalc
+{extra_imports}from simhub.bindings import formatted, js, ncalc
 from simhub.model import (
     OFF, ChartItem, GearText, GradientItem, GroupItem, ImageItem,
     Layer, LinearGaugeItem, RectangleItem, TextItem, WidgetItem,

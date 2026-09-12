@@ -11,15 +11,19 @@ def ncalc(expression):
     return {"Formula": {"Expression": expression}, "Mode": 2}
 
 
-def js(expression, jsext=0):
+def js(expression, jsext=0, format_string=None):
     """Formula JavaScript. Referencia propriedades via $prop('Plugin.Campo').
 
     `jsext` seleciona o conjunto de extensoes JavaScript visivel a formula.
+    `format_string` formata o valor retornado (ex.: 'mm\\:ss\\.ff').
     """
-    return {
+    binding = {
         "Formula": {"JSExt": jsext, "Interpreter": 1, "Expression": expression},
         "Mode": 2,
     }
+    if format_string is not None:
+        binding["FormatString"] = format_string
+    return binding
 
 
 def formatted(expression, format_string):
