@@ -22,6 +22,7 @@ INDENT = "    "
 #: vez de reexportar a arvore, para que a versao refatorada seja a unica fonte.
 EXTRACTED = {
     "Leaderboard": ("from dash.leaderboard import layer as leaderboard", "leaderboard()"),
+    "Top Component": ("from dash.top_bar import layer as top_bar", "top_bar()"),
 }
 
 

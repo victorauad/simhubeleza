@@ -16,7 +16,8 @@ from simhub.bindings import ncalc
 from simhub.dashboard import metadata, screen, shell
 from simhub.model import OFF, Layer, RectangleItem
 from simhub.theme import (
-    LED_OFF, LED_RPM, LIMITER, LIMITER_BORDER, SHIFT, SHIFT_BORDER, rounded,
+    LED_OFF, LIMITER, LIMITER_BORDER, RPM_HIGH, RPM_LOW, RPM_MID, SHIFT,
+    SHIFT_BORDER, rounded,
 )
 
 WIDTH, HEIGHT = 333, 49
@@ -34,14 +35,18 @@ PASS_NAMES = [
     ["10", "11", "12", "13", "14"],
 ]
 
-#: Por slot (direita -> esquerda): opacidade e o RPM que o acende. O iRacing
-#: expoe os tres limiares por carro, entao o SF23 traz os proprios.
+#: Por slot, da direita para a esquerda: cor e o RPM que o acende.
+#:
+#: A barra progride verde -> amarelo -> vermelho conforme o motor sobe, como a
+#: barra de nivel das referencias. O iRacing expoe os tres limiares por carro,
+#: entao o SF23 traz os proprios. Segmentos acesos vao em brilho cheio: a
+#: hierarquia vem da cor, nao de uma rampa de opacidade.
 RPM_SLOTS = [
-    (None, "PlayerCarSLLastRPM"),   # o editor gravou este slot sem Opacity
-    (82.0, "PlayerCarSLShiftRPM"),
-    (76.0, "PlayerCarSLShiftRPM"),
-    (68.0, "PlayerCarSLFirstRPM"),
-    (60.0, "PlayerCarSLFirstRPM"),
+    (RPM_HIGH, "PlayerCarSLLastRPM"),
+    (RPM_MID, "PlayerCarSLShiftRPM"),
+    (RPM_MID, "PlayerCarSLShiftRPM"),
+    (RPM_LOW, "PlayerCarSLFirstRPM"),
+    (RPM_LOW, "PlayerCarSLFirstRPM"),
 ]
 
 BLUR = 20.0
@@ -96,17 +101,18 @@ def above(rpm_property):
 
 
 def background():
+    """Trilho apagado: os segmentos que ainda nao acenderam."""
     return group("BG", *(
-        slot(x, name, LED_OFF)
+        slot(x, name, LED_OFF, opacity=None)
         for x, name in zip(SLOT_X, PASS_NAMES[0])
     ))
 
 
 def rpm():
     return group("RPM", *(
-        slot(x, name, LED_RPM, opacity=opacity,
+        slot(x, name, color, opacity=None,
              bindings={"Visible": above(rpm_property)})
-        for x, name, (opacity, rpm_property)
+        for x, name, (color, rpm_property)
         in zip(SLOT_X, PASS_NAMES[0], RPM_SLOTS)
     ))
 

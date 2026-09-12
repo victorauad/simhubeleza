@@ -29,6 +29,11 @@ FALLBACK = "system-ui, sans-serif"
 #: revisar a coluna cheia sem depender do valor gravado no editor.
 REPEAT_OVERRIDE = 0
 
+#: Como tratar controles cujo Visible depende de formula. "hide" mostra o
+#: estado de repouso do dashboard, que e o que o piloto ve a maior parte do
+#: tempo; "show" revela todas as camadas condicionais sobrepostas.
+CONDITIONAL = "hide"
+
 #: HorizontalAlignment / VerticalAlignment do SimHub -> flexbox.
 H_ALIGN = {0: "flex-start", 1: "center", 2: "flex-end"}
 V_ALIGN = {0: "flex-start", 1: "center", 2: "flex-end"}
@@ -209,6 +214,8 @@ def render_widget(node, folder, images, depth):
 def render_node(node, folder, images, depth=0):
     if node.get("Visible") is False:
         return ""
+    if CONDITIONAL != "show" and "Visible" in (node.get("Bindings") or {}):
+        return ""
 
     kind = short_type(node)
     if kind in ("Layer", "GroupItem"):
@@ -360,12 +367,16 @@ def main(argv=None):
     parser.add_argument("-n", "--name", help="nome do .djson (sem extensao)")
     parser.add_argument("-t", "--title", help="titulo do preview")
     parser.add_argument("-o", "--out", default=str(ROOT / "build" / "preview.html"))
+    parser.add_argument("-c", "--conditional", choices=("hide", "show"),
+                        default="hide",
+                        help="controles acionados por formula")
     parser.add_argument("-r", "--repeat", type=int, default=0,
                         help="forca a contagem de linhas das camadas repetidas")
     args = parser.parse_args(argv)
 
-    global REPEAT_OVERRIDE
+    global REPEAT_OVERRIDE, CONDITIONAL
     REPEAT_OVERRIDE = args.repeat
+    CONDITIONAL = args.conditional
 
     html = render_dashboard(args.folder, args.name, args.title)
     out = Path(args.out)
