@@ -10,18 +10,26 @@ por código. Substitui a edição manual no editor do SimHub.
 
 ```bash
 python3 build.py                    # gera build/iRacing_Dashboard_00
-python3 tools/preview.py --repeat 8 # gera build/preview.html
 python3 tools/formula_audit.py      # confere que nenhuma fórmula sumiu
+python3 tools/preview.py --repeat 8 # gera build/preview.html
+python3 tools/preview_modes.py      # um preview por modo -> build/modes/
+python3 tools/dump_formulas.py      # re-extrai as fórmulas do original
+python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
 
 ```bash
-/opt/pw-browsers/chromium-1194/chrome-linux/chrome --headless --disable-gpu \
-  --no-sandbox --hide-scrollbars --window-size=1360,660 \
-  --screenshot=shot.png "file:///home/user/simhubeleza/build/preview.html"
+/opt/pw-browsers/chromium --headless --disable-gpu --no-sandbox \
+  --hide-scrollbars --window-size=1360,660 --screenshot=shot.png \
+  "file:///home/user/simhubeleza/build/preview.html"
 ```
+
+Página de revisão publicada (as quatro abas de modo, montadas sobre
+`build/modes/`): <https://claude.ai/code/artifact/326ce39f-af40-4fbb-87bb-0a9c5068dc36>
+O fonte dela é `tools/preview_page.html`; para republicar, gerar
+`build/modes/` e publicar a página com esses quatro arquivos ao lado.
 
 ## Concluído
 
@@ -51,8 +59,20 @@ Preview como imagem (Chromium já instalado no ambiente):
 
 ## Falta
 
-Validar no SimHub de verdade — é o único passo que não dá para fazer daqui.
-Copiar `build/iRacing_Dashboard_00` para a pasta `DashTemplates` e abrir.
+**Validar no SimHub de verdade.** É o único passo que não dá para fazer daqui,
+e nada do redesign foi visto rodando: o preview é estático e não avalia
+fórmula nenhuma. Copiar `build/iRacing_Dashboard_00` para a pasta
+`DashTemplates` e abrir.
+
+O que merece olhar primeiro, por ordem de risco:
+
+1. **Cores em fórmula do OTS** — usam nomes CSS, não hex (ver pendências).
+   Se hex funcionar, trocar pelos valores exatos da paleta.
+2. **Escala do widget de telemetria** — virou `472/607` (largura exata do
+   painel) no lugar do `0.74` do original. Conferir se não serrilhou.
+3. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
+   coluna), então ficou menor que a do original. Conferir legibilidade em
+   pista, não parado no menu.
 
 ## Como redesenhar uma região
 

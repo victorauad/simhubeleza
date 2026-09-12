@@ -1,0 +1,273 @@
+<title>Painel SF23</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #08090b;
+    --surface: #131519;
+    --raised: #1b1f25;
+    --hairline: #232830;
+    --text: #e9ecf0;
+    --muted: #868d98;
+    --dim: #5b626c;
+    --accent: #64d2ff;
+    --warn: #ff9f0a;
+    --sans: "Funnel Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding-block: 40px 64px;
+  }
+
+  .page { width: 100%; max-width: 1312px; margin: 0 auto; padding-inline: 16px; }
+
+  header { border-bottom: 1px solid var(--hairline); padding-bottom: 20px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+
+  .lede { margin: 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
+
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 20px;
+    padding: 0;
+    list-style: none;
+  }
+  .specs div { display: flex; flex-direction: column; gap: 2px; }
+  .specs dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .specs dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 28px 0 16px;
+  }
+
+  .tab {
+    appearance: none;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .tab:hover { color: var(--text); border-color: #313841; }
+  .tab[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #04202c;
+  }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stage-inner { position: relative; width: 100%; }
+  .stage iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1280px;
+    height: 517px;
+    border: 0;
+    transform-origin: top left;
+    display: block;
+  }
+  .stage iframe[hidden] { display: none; }
+
+  .note {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    margin-top: 18px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+  }
+  .note h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: .01em;
+  }
+  .note p { margin: 0; color: var(--muted); font-size: 14px; max-width: 72ch; }
+  .note code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--raised);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .caveats { margin-top: 40px; border-top: 1px solid var(--hairline); padding-top: 24px; }
+  .caveats h2 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--warn);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .caveats ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+  .caveats li { margin-bottom: 8px; max-width: 74ch; }
+  .caveats li::marker { color: var(--dim); }
+  .caveats strong { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 560px) {
+    body { padding-block: 28px 48px; }
+    .specs { gap: 8px 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">Super Formula SF23 · iRacing · 1280×517</p>
+    <h1>Painel SF23</h1>
+    <p class="lede">
+      Render estático do dashboard gerado por código. É o HTML lendo o mesmo
+      <code style="font-family:var(--mono);font-size:13px">.djson</code> que o SimHub lê — posição, cor e tipografia são as reais.
+      As fórmulas não são avaliadas, então os números são os valores de projeto.
+    </p>
+    <dl class="specs">
+      <div><dt>Controles</dt><dd>199</dd></div>
+      <div><dt>Bindings</dt><dd>134</dd></div>
+      <div><dt>Fórmulas preservadas</dt><dd>103 / 103</dd></div>
+      <div><dt>Módulos</dt><dd>7</dd></div>
+      <div><dt>Esforço manual no editor</dt><dd>0</dd></div>
+    </dl>
+  </header>
+
+  <nav role="tablist" aria-label="Modos da coluna direita">
+    <button class="tab" role="tab" id="tab-relative" aria-controls="view-relative" aria-selected="true">Relative</button>
+    <button class="tab" role="tab" id="tab-standings" aria-controls="view-standings" aria-selected="false">Standings</button>
+    <button class="tab" role="tab" id="tab-window" aria-controls="view-window" aria-selected="false">Janela</button>
+    <button class="tab" role="tab" id="tab-practice" aria-controls="view-practice" aria-selected="false">Lap log</button>
+  </nav>
+
+  <div class="stage">
+    <div class="stage-inner" id="stage-inner">
+      <iframe id="view-relative" src="relative.html" title="Modo relative" loading="eager"></iframe>
+      <iframe id="view-standings" src="standings.html" title="Modo standings" hidden></iframe>
+      <iframe id="view-window" src="window.html" title="Modo janela" hidden></iframe>
+      <iframe id="view-practice" src="practice.html" title="Modo lap log" hidden></iframe>
+    </div>
+  </div>
+
+  <div class="note">
+    <h2 id="note-title">Relative</h2>
+    <p id="note-body"></p>
+  </div>
+
+  <section class="caveats">
+    <h2>O que o preview não prova</h2>
+    <ul>
+      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto gravados no arquivo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
+      <li><strong>As cores em fórmula do OTS usam nomes CSS</strong> (<code>limegreen</code>, <code>gold</code>, <code>orange</code>), não hex — são os que o SimHub resolve com certeza em fórmula de cor. Ficam a menos de 1% da paleta.</li>
+      <li><strong>O widget de telemetria</strong> aparece só como moldura: ele é outro <code>.djson</code>, com gráfico desenhado em tempo de execução.</li>
+      <li><strong>Em treino, o lap log fica por cima das colunas de tempo do relative.</strong> O original fazia igual. Resolver exige decidir qual dos dois cede espaço.</li>
+      <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const NOTES = {
+    relative: ["Relative",
+      "Os dois carros à frente, você, e os dois atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador some do cinza para o laranja. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
+    standings: ["Standings · tabela cheia",
+      "As 13 linhas cabem exatas no corpo da coluna — a altura de linha sai da divisão, não de um número escolhido. Aparece quando o grid é pequeno ou o jogador está entre os 11 primeiros."],
+    window: ["Standings · janela",
+      "Quando o jogador está longe do topo: o trio da frente, e daí a janela de 7 linhas centrada nele. Mesma grade de colunas da tabela cheia, então a leitura não se desloca quando o SimHub troca de um para o outro."],
+    practice: ["Lap log",
+      "Modo de treino: as últimas seis voltas com a melhor destacada. O relative continua embaixo — em treino o tráfego ainda importa."]
+  };
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const frames = [...document.querySelectorAll('.stage iframe')];
+  const title = document.getElementById('note-title');
+  const body = document.getElementById('note-body');
+
+  function select(id) {
+    tabs.forEach(tab => {
+      const on = tab.id === 'tab-' + id;
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    frames.forEach(frame => { frame.hidden = frame.id !== 'view-' + id; });
+    const [heading, text] = NOTES[id];
+    title.textContent = heading;
+    body.textContent = text;
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => select(tab.id.replace('tab-', '')));
+  });
+
+  // O painel tem largura fixa de 1280; encolhe proporcional ao espaco disponivel.
+  function fit() {
+    const inner = document.getElementById('stage-inner');
+    const scale = Math.min(1, inner.clientWidth / 1280);
+    frames.forEach(frame => { frame.style.transform = 'scale(' + scale + ')'; });
+    inner.style.height = (517 * scale) + 'px';
+  }
+  addEventListener('resize', fit);
+  select('relative');
+  fit();
+</script>
