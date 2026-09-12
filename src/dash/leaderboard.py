@@ -114,7 +114,7 @@ def row_text(name, left, width, size, text, align, **fields):
     return TextItem(
         name=name,
         IsTextItem=True,
-        Font="Funnel Sans",
+        Font=FONT,
         FontSize=size,
         Text=text,
         TextColor=fields.pop("color", TEXT_GRAY),
@@ -492,12 +492,15 @@ def overflow_layer():
     )
 
 
-def standings():
-    """O modo padrao da coluna: a tabela da classe."""
+def standings(visible=None):
+    """A tabela da classe. `visible` e o binding que decide quando ela
+    aparece -- ver `right.SHOW_STANDINGS`; sem ele, fica sempre desligada
+    (usado pela ferramenta de preview, que liga cada modo a mao)."""
     return Layer(
         layer(), overflow_layer(),
         name="Standings",
         Group=True, Repetitions=0, Visible=False,
         BlinkPhasisInverted=False, RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
+        bindings={"Visible": visible} if visible else None,
     )

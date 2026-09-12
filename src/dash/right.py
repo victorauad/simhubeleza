@@ -1,25 +1,30 @@
 """Coluna direita: quem esta em volta, e o contexto da pista no rodape.
 
-A coluna troca de modo conforme a sessao. Sao quatro, empilhados no mesmo
-espaco e ligados/desligados pelo SimHub:
+A coluna troca de modo conforme a sessao. Sao tres, empilhados no mesmo
+espaco e ligados/desligados por formula (nao mais so pela ferramenta de
+preview):
 
   Standings  a tabela da classe (com a janela de overflow quando o jogador
-             esta longe do topo) -- em leaderboard.py
-  Relative   os dois carros na frente, o jogador e os dois atras
-  Practice   o log das ultimas voltas, para treino
+             esta longe do topo) -- em leaderboard.py. Aparece fora de pista,
+             e por 4s toda vez que uma volta e completada.
+  Relative   os tres carros na frente, o jogador e os tres atras. O modo
+             padrao -- aparece sempre que os outros dois nao se aplicam.
+  Practice   o log das voltas, so em treino offline -- ocupa a secao
+             inteira, sem dividir espaco com o relative.
 
-Todos usam a mesma grade de colunas e a mesma altura de linha, entao trocar de
-modo nao reposiciona a leitura: a posicao continua na esquerda, os tempos na
-direita.
+Standings e Relative usam a mesma grade de colunas e a mesma altura de linha,
+entao trocar entre os dois nao reposiciona a leitura: a posicao continua na
+esquerda, os tempos na direita.
 
 O rodape e fixo em qualquer modo -- hora, pista, ar, grip e chuva.
 """
 
-from simhub.bindings import formatted, ncalc
+from simhub.bindings import formatted, js, ncalc
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    BACKGROUND, CORNER_RADIUS, CYAN, FONT, GUTTER, PADDING, PLAYER, SIZE_LABEL,
-    SIZE_VALUE_SM, TEXT, TEXT_SECONDARY, TILE_RAISED, WEIGHT_VALUE,
+    BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FONT, GUTTER,
+    PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
+    TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE,
 )
 from . import layout as grid
 from . import leaderboard
@@ -29,10 +34,26 @@ from .widgets import CENTER, LEFT, RIGHT, caption, text, tile
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
 
-#: Altura de linha do relative. Mais alta que a do leaderboard porque sao so
-#: cinco linhas e cada uma carrega mais campos.
-REL_ROW = 44.0
-REL_ROWS = 5
+#: Condicoes que decidem qual modo aparece. So [SessionTypeName],
+#: [GameRawData.Telemetry.IsOnTrack] e [GameRawData.Telemetry.LapCurrentLapTime]
+#: nao tem uso confirmado em nenhum outro lugar do projeto -- sao os nomes
+#: padrao do SDK do iRacing, mas precisam de validacao no SimHub real (ver
+#: pendencia em ESTADO.md). Todo o resto do projeto ja usa [SessionTypeName]
+#: e [DataCorePlugin.GameRunning].
+IN_PRACTICE = "[SessionTypeName]='Offline Testing'"
+NOT_ON_TRACK = ("!([DataCorePlugin.GameRunning] && "
+               "[GameRawData.Telemetry.IsOnTrack]='TRUE')")
+#: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
+#: acabou de ser completada.
+JUST_COMPLETED_LAP = ("[GameRawData.Telemetry.LapCurrentLapTime] >= 0 && "
+                      "[GameRawData.Telemetry.LapCurrentLapTime] < 4")
+SHOW_STANDINGS = f"!({IN_PRACTICE}) && (({NOT_ON_TRACK}) || ({JUST_COMPLETED_LAP}))"
+SHOW_RELATIVE = f"!({IN_PRACTICE}) && !(({NOT_ON_TRACK}) || ({JUST_COMPLETED_LAP}))"
+
+#: Altura de linha do relative -- sete linhas (3 a frente, eu, 3 atras) no
+#: mesmo corpo que antes cabia cinco (2+1+2), com folga de sobra.
+REL_ROWS = 7
+REL_ROW = BODY.height / REL_ROWS
 
 #: Colunas, da esquerda para a direita.
 POS_X, POS_W = BODY.x, 40.0
@@ -50,7 +71,7 @@ def rel_top(index):
     return BODY.y + (BODY.height - block) / 2 + REL_ROW * index
 
 
-ME_INDEX = 2
+ME_INDEX = 3
 
 
 def rel_text(name, left, width, sample, *, align, size=SIZE_LABEL + 5.0,
@@ -161,51 +182,133 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
 
 
 def relative():
-    """Os dois carros a frente, o jogador, e os dois atras."""
+    """Os tres carros a frente, o jogador, e os tres atras."""
     return Layer(
         rel_row("Relative/Driver Ahead Repeat", "Driver Ahead Repeat",
-                rel_top(ME_INDEX - 1), repetitions=2, offset=-REL_ROW),
+                rel_top(ME_INDEX - 1), repetitions=3, offset=-REL_ROW),
         rel_row("Relative/Me", "Me", rel_top(ME_INDEX), me=True),
         rel_row("Relative/Driver Behind Repeat", "Driver Behind Repeat",
-                rel_top(ME_INDEX + 1), repetitions=2, offset=REL_ROW),
+                rel_top(ME_INDEX + 1), repetitions=3, offset=REL_ROW),
         name="Relative",
         Group=True, Repetitions=0, Visible=True,
         BlinkPhasisInverted=False, RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
+        bindings={"Visible": ncalc(SHOW_RELATIVE)},
     )
 
 
-#: Log de voltas: seis linhas, na metade direita do corpo.
-LOG_ROWS = 6
-LOG_ROW = 33.0
+#: Log de voltas: agora ocupa a secao inteira que o relative usa (so aparece
+#: em treino offline, entao nao precisa dividir espaco com ele) -- cabem mais
+#: linhas e mais colunas: numero, tempo, temperatura da pista, delta para a
+#: melhor volta e consumo de combustivel.
+LOG_HEADER_HEIGHT = 26.0
+LOG_ROWS = 9
+LOG_ROW = (BODY.height - LOG_HEADER_HEIGHT) / LOG_ROWS
+
+#: Colunas do log, da esquerda para a direita. Numero e tempo repetem as
+#: formulas extraidas do original (`Practice/Lap Data/...`); temperatura,
+#: delta e combustivel sao novas -- ver ESTADO.md para a pendencia de
+#: validar `PersistantTrackerPlugin.PreviousLap_XX_FuelConsumed`, que nao
+#: aparece em nenhum outro lugar do projeto.
+LOG_NUM_W = 40.0
+LOG_TIME_W = 92.0
+LOG_TRACK_W = 76.0
+LOG_DELTA_W = 90.0
+LOG_FUEL_W = 90.0
+
+
+#: Guarda comum: sem volta suficiente ainda, a linha fica em branco -- mesma
+#: condicao usada por `Practice/Lap Data/LapNumber.Text` no original.
+LAP_INVALID = "(($prop('GameRawData.Telemetry.Lap') - repeatindex()) < 1)"
+
+
+def lap_js(body, format_string=None):
+    """Formula JS de uma coluna nova do log: `body` e o codigo dentro do
+    `else` (a guarda de volta invalida ja fica por fora)."""
+    expression = (
+        f"if ({LAP_INVALID}) {{\r\n\r\n\treturn '';\r\n\t\r\n}} else {{\r\n\r\n"
+        f"{body}\r\n\t\r\n}}"
+    )
+    return js(expression, jsext=3, format_string=format_string)
 
 
 def practice():
-    """Modo de treino: as ultimas voltas, com a melhor destacada."""
-    width = 200.0
-    area = grid.Region(BODY.right - width, BODY.y + PADDING, width,
-                       LOG_ROW * (LOG_ROWS + 1))
-    header, rows = area.split_top(LOG_ROW)
+    """Modo de treino: o log de voltas, com a melhor destacada."""
+    area = BODY
+    header, rows = area.split_top(LOG_HEADER_HEIGHT)
 
     def at(node, target, **extra):
         return original(f"Practice/Lap Data/{node}", target, **extra)
 
+    inner = area.inset(left=PADDING, right=PADDING)
+    num_x = inner.x
+    time_x = num_x + LOG_NUM_W + GUTTER
+    track_x = time_x + LOG_TIME_W + GUTTER
+    delta_x = track_x + LOG_TRACK_W + GUTTER
+    fuel_x = delta_x + LOG_DELTA_W + GUTTER
+
+    columns = [
+        ("#", LOG_NUM_W, num_x, RIGHT),
+        ("Time", LOG_TIME_W, time_x, RIGHT),
+        ("Track", LOG_TRACK_W, track_x, RIGHT),
+        ("Delta", LOG_DELTA_W, delta_x, RIGHT),
+        ("Fuel", LOG_FUEL_W, fuel_x, RIGHT),
+    ]
+
+    delta_body = (
+        "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
+        "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
+        "\tif (d < 0) { return '-' + format(Math.abs(d), '0.00'); }\r\n"
+        "\telse { return '+' + format(d, '0.00'); }"
+    )
+    delta_color_body = (
+        "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
+        "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
+        "\tif (d < 0) { return 'SpringGreen'; } else { return 'Tomato'; }"
+    )
+    #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
+    #: variavel (so o `PersistantTrackerPlugin` tem `PreviousLap_XX_*` para
+    #: tempo e delta) -- entao so a volta mais recente mostra a leitura
+    #: atual; as demais ficam em branco em vez de repetir um valor errado.
+    track_body = (
+        "\tif (repeatindex() == 1) { return $prop('GameRawData.Telemetry.TrackTemp'); }\r\n"
+        "\telse { return ''; }"
+    )
+    #: Combustivel por volta: propriedade nao confirmada (ver ESTADO.md).
+    fuel_body = (
+        "\treturn $prop('PersistantTrackerPlugin.PreviousLap_0' + "
+        "(repeatindex() - 1) + '_FuelConsumed');"
+    )
+
     return Layer(
-        tile(area, name="Log Tile", color=TILE_RAISED, radius=CORNER_RADIUS),
-        caption(header.x + PADDING, header.y + PADDING, header.width,
-                "Lap log", name="Log Title"),
+        tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),
+        *(caption(x, header.y + 4.0, w, label, name=f"Log {label} Header",
+                  align=align)
+          for label, w, x, align in columns),
         Layer(
-            text(rows.x + PADDING, rows.y, 40.0, LOG_ROW, "00",
-                 name="LapNumber", size=SIZE_LABEL + 4.0, align=RIGHT,
+            text(num_x, rows.y, LOG_NUM_W, LOG_ROW, "00",
+                 name="LapNumber", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT_SECONDARY,
                  bindings={"Text": at("LapNumber", "Text"),
                            "TextColor": at("LapNumber", "TextColor")}),
-            text(rows.x + PADDING + 48.0, rows.y,
-                 rows.width - PADDING * 2 - 48.0, LOG_ROW, "0:00.00",
-                 name="LapTime", size=SIZE_LABEL + 4.0, align=RIGHT,
+            text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.00",
+                 name="LapTime", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
                  bindings={"Text": at("LapTime", "Text"),
                            "TextColor": at("LapTime", "TextColor")}),
+            text(track_x, rows.y, LOG_TRACK_W, LOG_ROW, "32",
+                 name="LapTrackTemp", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 color=TEXT_TERTIARY,
+                 bindings={"Text": lap_js(track_body, "00")}),
+            text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.12",
+                 name="LapDelta", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 color=TEXT, mono=True, char_width=14.0,
+                 bindings={"Text": lap_js(delta_body),
+                           "TextColor": lap_js(delta_color_body)}),
+            text(fuel_x, rows.y, LOG_FUEL_W, LOG_ROW, "2.30",
+                 name="LapFuel", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 color=TEXT_SECONDARY,
+                 bindings={"Text": lap_js(fuel_body, "0.00")}),
             name="Lap Data",
             Group=True, Repetitions=LOG_ROWS, PrepareRepetitions=True,
             RepeatTopOffset=LOG_ROW,
@@ -216,15 +319,17 @@ def practice():
         Group=True, Repetitions=0, Visible=False,
         BlinkPhasisInverted=False, RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
+        bindings={"Visible": ncalc(IN_PRACTICE)},
     )
 
 
 def footer():
-    """Condicoes da pista. Igual ao rodape da esquerda, para as duas colunas
-    terminarem na mesma linha e com o mesmo peso."""
+    """Condicoes da pista. Um unico cartao, igual ao rodape da esquerda e ao
+    OTS -- as tres faixas formam uma barra inferior continua."""
     region = grid.Region(PANEL.x, BODY.bottom + GUTTER, PANEL.width,
                          leaderboard.FOOTER_HEIGHT)
-    cells = region.columns(5, gutter=GUTTER)
+    inner = region.inset(left=PADDING, right=PADDING)
+    cells = inner.columns(5, gutter=GUTTER)
     fields = [
         ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
         ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
@@ -234,19 +339,18 @@ def footer():
         ("Rain", "Rain", "00",
          "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, None),
     ]
-    items = []
+    items = [tile(region, name="Footer Tile")]
     for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
-        inner = cell.inset(left=PADDING, right=PADDING)
+        cell_inner = cell.inset(left=PADDING, right=PADDING)
         label_height = SIZE_LABEL + 6.0
-        body = grid.Region(inner.x, inner.y + label_height + 2.0,
-                           inner.width, inner.height - label_height - 8.0)
+        body = grid.Region(cell_inner.x, cell_inner.y + label_height + 2.0,
+                           cell_inner.width, cell_inner.height - label_height - 8.0)
         items += [
-            tile(cell, name=f"{name} Tile"),
-            caption(inner.x, inner.y + PADDING * 0.75, inner.width, label,
-                    name=f"{name} Label"),
+            caption(cell_inner.x, cell_inner.y + PADDING * 0.75,
+                    cell_inner.width, label, name=f"{name} Label"),
             text(body.x, body.y, body.width, body.height, sample, name=name,
                  size=SIZE_VALUE_SM, color=color or TEXT, weight=WEIGHT_VALUE,
-                 align=RIGHT,
+                 align=LEFT,
                  bindings={"Text": formatted(expression, fmt) if fmt
                            else ncalc(expression)}),
         ]
@@ -262,8 +366,9 @@ def footer():
 def layer():
     """A coluna direita inteira, com os modos empilhados."""
     return Layer(
+        tile(PANEL, name="Background", color=TILE),
         footer(),
-        leaderboard.standings(),
+        leaderboard.standings(visible=ncalc(SHOW_STANDINGS)),
         relative(),
         practice(),
         name="Right Component",

@@ -96,12 +96,46 @@ O que merece olhar primeiro, por ordem de risco:
 - `parity.py` vai divergir conforme o redesign avança — é esperado. A garantia
   ativa passa a ser `formula_audit.py`. O plano prevê um `build.py --legacy`
   para manter a paridade validando o toolchain; ainda não implementado.
-- **Modos sobrepostos na direita**: em treino, o `LAP LOG` fica por cima das
-  colunas de tempo do relative (o original fazia o mesmo). Só se resolve
-  decidindo qual dos dois cede espaço — decisão de design, não de código.
 - **Cores em fórmula do OTS** usam nomes CSS (`limegreen`, `gold`, `orange`),
   não hex, porque são os que o SimHub resolve com certeza em fórmula de cor.
   Ficam a menos de 1% das cores da paleta.
 - Egress para `figma.com` bloqueado: imagens do board só chegam inline via MCP.
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
+
+### Propriedades do SimHub ainda não confirmadas (precisam de validação real)
+
+Usadas nas fórmulas dos modos automáticos da coluna direita (`src/dash/right.py`)
+e no lap log redesenhado. Todas seguem nomes padrão do SDK do iRacing/SimHub,
+mas nenhuma tinha uso anterior neste projeto — se você puder mandar o
+mapeamento de propriedades do SimHub (a lista completa, ou um export do
+próprio SimHub), eu confirmo ou corrijo:
+
+- `[GameRawData.Telemetry.IsOnTrack]` — usado para decidir "fora de pista"
+  (Standings aparece quando `false`).
+- `[GameRawData.Telemetry.LapCurrentLapTime]` — tempo decorrido da volta
+  atual; usado como proxy de "acabou de completar uma volta" (`< 4` segundos).
+- `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — combustível da
+  volta `n` no lap log. É um palpite seguindo o padrão de
+  `PreviousLap_0<n>_DeltaToSessionBest` (essa sim confirmada, já usada no
+  dashboard original); a propriedade de combustível por volta pode ter outro
+  nome ou não existir.
+- **Temperatura da pista por volta**: não há (que se saiba) um histórico
+  indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
+  mostra a leitura *atual* só na linha da volta mais recente, em vez de
+  repetir um valor errado nas voltas anteriores. Se o `PersistantTrackerPlugin`
+  expuser algo como `PreviousLap_0<n>_TrackTemp`, dá para preencher a coluna
+  inteira.
+
+## Modos automáticos da coluna direita
+
+Implementado em `src/dash/right.py` (antes só a ferramenta de preview ligava
+os modos manualmente; agora são fórmulas reais):
+
+- **Standings**: fora de pista, ou nos 4s seguintes a cada volta completada.
+- **Relative**: nos demais casos (o modo padrão de corrida). Agora com 3
+  pilotos à frente + o jogador + 3 atrás (antes eram 2+1+2).
+- **Practice** (lap log): só em `SessionTypeName = 'Offline Testing'`. Ocupa
+  a seção inteira (não divide mais espaço com o relative) e ganhou 3 colunas
+  novas por volta — temperatura da pista, delta para a melhor volta e
+  combustível consumido (ver pendências de propriedades acima).

@@ -202,12 +202,27 @@
     <button class="tab" role="tab" id="tab-practice" aria-controls="view-practice" aria-selected="false">Lap log</button>
   </nav>
 
+  <nav role="tablist" aria-label="Bandeiras e avisos da barra superior">
+    <button class="tab" role="tab" id="tab-flag-off-track" aria-controls="view-flag-off-track" aria-selected="false">Off-track</button>
+    <button class="tab" role="tab" id="tab-flag-clipping" aria-controls="view-flag-clipping" aria-selected="false">Clipping</button>
+    <button class="tab" role="tab" id="tab-flag-input-overlap" aria-controls="view-flag-input-overlap" aria-selected="false">Input ovp</button>
+    <button class="tab" role="tab" id="tab-flag-green" aria-controls="view-flag-green" aria-selected="false">Green flag</button>
+    <button class="tab" role="tab" id="tab-flag-yellow" aria-controls="view-flag-yellow" aria-selected="false">Flag ahead</button>
+    <button class="tab" role="tab" id="tab-flag-white" aria-controls="view-flag-white" aria-selected="false">Last lap</button>
+  </nav>
+
   <div class="stage">
     <div class="stage-inner" id="stage-inner">
       <iframe id="view-relative" src="relative.html" title="Modo relative" loading="eager"></iframe>
       <iframe id="view-standings" src="standings.html" title="Modo standings" hidden></iframe>
       <iframe id="view-window" src="window.html" title="Modo janela" hidden></iframe>
       <iframe id="view-practice" src="practice.html" title="Modo lap log" hidden></iframe>
+      <iframe id="view-flag-off-track" src="flag-off-track.html" title="Aviso off-track" hidden></iframe>
+      <iframe id="view-flag-clipping" src="flag-clipping.html" title="Aviso clipping" hidden></iframe>
+      <iframe id="view-flag-input-overlap" src="flag-input-overlap.html" title="Aviso de input overlap" hidden></iframe>
+      <iframe id="view-flag-green" src="flag-green.html" title="Bandeira verde" hidden></iframe>
+      <iframe id="view-flag-yellow" src="flag-yellow.html" title="Bandeira amarela" hidden></iframe>
+      <iframe id="view-flag-white" src="flag-white.html" title="Bandeira branca" hidden></iframe>
     </div>
   </div>
 
@@ -222,8 +237,9 @@
       <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto gravados no arquivo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
       <li><strong>As cores em fórmula do OTS usam nomes CSS</strong> (<code>limegreen</code>, <code>gold</code>, <code>orange</code>), não hex — são os que o SimHub resolve com certeza em fórmula de cor. Ficam a menos de 1% da paleta.</li>
       <li><strong>O widget de telemetria</strong> aparece só como moldura: ele é outro <code>.djson</code>, com gráfico desenhado em tempo de execução.</li>
-      <li><strong>Em treino, o lap log fica por cima das colunas de tempo do relative.</strong> O original fazia igual. Resolver exige decidir qual dos dois cede espaço.</li>
       <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
+      <li><strong>As bandeiras são excludentes em pista</strong> (só uma aparece por vez). Aqui cada aba força uma isolada; nenhuma tem preview do estado "todas desligadas", que é o padrão em corrida.</li>
+      <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
     </ul>
   </section>
 </div>
@@ -237,7 +253,19 @@
     window: ["Standings · janela",
       "Quando o jogador está longe do topo: o trio da frente, e daí a janela de 7 linhas centrada nele. Mesma grade de colunas da tabela cheia, então a leitura não se desloca quando o SimHub troca de um para o outro."],
     practice: ["Lap log",
-      "Modo de treino: as últimas seis voltas com a melhor destacada. O relative continua embaixo — em treino o tráfego ainda importa."]
+      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido."],
+    "flag-off-track": ["Aviso · off-track",
+      "Cobre a zona do freio quando o jogador sai da pista. Sem fórmula que o acione ainda (pendência antiga, ver ESTADO.md) — aqui é forçado."],
+    "flag-clipping": ["Aviso · clipping",
+      "Mesma zona, para quando o áudio ou a curva estão sendo cortados. Também sem fórmula real ainda."],
+    "flag-input-overlap": ["Aviso · input overlap",
+      "Acelerador e freio pressionados ao mesmo tempo. Idem: sem fórmula real."],
+    "flag-green": ["Bandeira verde",
+      "Largada ou relargada — a única das seis já ligada a telemetria real ([Flag_Green])."],
+    "flag-yellow": ["Bandeira amarela",
+      "Incidente à frente, cuidado — ligada a [Flag_Yellow]."],
+    "flag-white": ["Bandeira branca",
+      "Última volta — ligada a [Flag_White]."]
   };
 
   const tabs = [...document.querySelectorAll('.tab')];

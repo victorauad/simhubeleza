@@ -27,20 +27,32 @@ BUILD = ROOT / "build" / "iRacing_Dashboard_00"
 #: modo -> (camadas visiveis, repeticoes por camada repetidora)
 MODES = {
     "relative": ({"Relative"},
-                 {"Driver Ahead Repeat": 2, "Driver Behind Repeat": 2}),
+                 {"Driver Ahead Repeat": 3, "Driver Behind Repeat": 3}),
     "standings": ({"Standings"},
                   {"Leaderboard": 13, "Leaderboard Overflow": 0}),
     "window": ({"Standings"},
                {"Leaderboard": 3, "Leaderboard Overflow": 7}),
-    "practice": ({"Practice", "Relative"},
-                 {"Lap Data": 6, "Driver Ahead Repeat": 2,
-                  "Driver Behind Repeat": 2}),
+    "practice": ({"Practice"}, {"Lap Data": 9}),
+}
+
+#: Bandeiras/avisos da barra superior -- ver `top_bar.BANNER_NAMES`. Cada
+#: entrada gera um preview `flag-<slug>.html` com so aquele aviso ligado, os
+#: demais desligados -- sem isso os seis se empilham (sao excludentes em
+#: pista) e a barra some da leitura.
+FLAGS = {
+    "flag-off-track": "Incident",
+    "flag-clipping": "Clipping",
+    "flag-input-overlap": "Overlaping",
+    "flag-green": "Green Flag",
+    "flag-yellow": "Yellow Flag",
+    "flag-white": "White Flag",
 }
 
 MODE_LAYERS = {"Standings", "Practice", "Relative"}
+BANNER_NAMES = set(FLAGS.values())
 
 
-def render(mode, visible, repetitions, out_dir, work):
+def render(mode, visible, repetitions, out_dir, work, flag=None):
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(BUILD, work)
     path = work / "iRacing_Dashboard_00.djson"
@@ -54,7 +66,11 @@ def render(mode, visible, repetitions, out_dir, work):
             node["Repetitions"] = repetitions[name]
             if repetitions[name] == 0:
                 node["Visible"] = False
-        if in_alerts:
+        if name == "Alerrts" and flag is not None:
+            node["Visible"] = True
+        elif name in BANNER_NAMES and flag is not None:
+            node["Visible"] = name == flag
+        elif in_alerts:
             node["Visible"] = False
             node.pop("Bindings", None)
         for child in (node.get("Childrens") or []):
@@ -81,6 +97,13 @@ def main(argv=None):
     for mode, (visible, repetitions) in MODES.items():
         target = render(mode, visible, repetitions, out_dir, work)
         print(f"{mode:10} -> {target}")
+    # As bandeiras usam o modo relative como base (a barra superior nao muda
+    # entre modos da coluna direita).
+    base_visible, base_repetitions = MODES["relative"]
+    for slug, banner in FLAGS.items():
+        target = render(slug, base_visible, base_repetitions, out_dir, work,
+                        flag=banner)
+        print(f"{slug:20} -> {target}")
     shutil.rmtree(work, ignore_errors=True)
 
 

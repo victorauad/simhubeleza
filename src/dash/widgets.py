@@ -79,19 +79,38 @@ def caption(x, y, width, content, *, name=None, color=TEXT_SECONDARY,
 
 def value_unit(region, value, unit, *, name="Value", unit_width=None,
                value_size=SIZE_VALUE, unit_size=SIZE_UNIT, color=TEXT,
-               unit_color=TEXT_SECONDARY, mono=False, value_bindings=None,
-               unit_bindings=None):
+               unit_color=TEXT_SECONDARY, mono=False, align=RIGHT,
+               value_bindings=None, unit_bindings=None):
     """O par numero grande + unidade pequena: a assinatura das referencias.
 
-    O valor e alinhado a direita e a unidade a esquerda, encostados no meio,
-    entao o par continua colado qualquer que seja o comprimento do numero --
-    o SimHub nao mede texto para posicionar.
+    Por padrao (`align=RIGHT`) o valor fica alinhado a direita e a unidade a
+    esquerda, encostados no meio, entao o par continua colado qualquer que
+    seja o comprimento do numero -- o SimHub nao mede texto para posicionar.
+
+    Com `align=LEFT` o par cola na borda esquerda da regiao, como o rotulo
+    acima dele -- e o padrao das referencias (valor sempre alinhado com o
+    rotulo, nunca "flutuando" pra direita conforme o numero de digitos muda).
     """
     unit_width = unit_width if unit_width is not None else len(unit) * unit_size * 0.62
     value_width = region.width - unit_width
 
     baseline = region.y + (region.height - value_size) * 0.5
     unit_drop = (value_size - unit_size) * 0.62
+
+    if align is LEFT:
+        # O valor cola na esquerda; a unidade, sem como saber a largura real
+        # do numero (o SimHub nao mede texto), fica ancorada logo depois de
+        # uma largura de valor generosa o bastante para o maior caso comum.
+        return [
+            text(region.x, region.y, value_width, region.height, value,
+                 name=name, size=value_size, color=color, weight=WEIGHT_VALUE,
+                 align=LEFT, mono=mono, bindings=value_bindings),
+            text(region.x + value_width, baseline + unit_drop,
+                 unit_width, unit_size * 1.4, unit,
+                 name=f"{name} Unit", size=unit_size, color=unit_color,
+                 weight=WEIGHT_UNIT, align=LEFT, valign=CENTER,
+                 bindings=unit_bindings),
+        ]
 
     return [
         text(region.x, region.y, value_width, region.height, value,

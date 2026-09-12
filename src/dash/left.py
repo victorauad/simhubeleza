@@ -58,21 +58,27 @@ def chart():
 
 def stat(region, label, value, expression, unit=None, *, name,
          format_string=None, value_size=SIZE_VALUE, unit_color=TEXT_SECONDARY,
-         color=TEXT, extra=()):
-    """Um tile: rotulo em cima, valor grande embaixo."""
+         color=TEXT, extra=(), align=LEFT, envelope=True):
+    """Rotulo em cima, valor grande embaixo -- alinhados na mesma borda.
+
+    `envelope=False` omite o tile de fundo individual: usado quando varios
+    `stat()` dividem um unico cartao de fundo (o rodape, ver `footer_row`),
+    em vez de cada campo ter o proprio tile.
+    """
     inner = region.inset(left=PADDING, right=PADDING)
     label_height = SIZE_LABEL + 6.0
     body = grid.Region(inner.x, inner.y + label_height + 2.0,
                        inner.width, inner.height - label_height - 8.0)
     binding = (formatted(expression, format_string) if format_string
                else ncalc(expression))
+    items = [tile(region, name=f"{name} Tile")] if envelope else []
     return [
-        tile(region, name=f"{name} Tile"),
+        *items,
         caption(inner.x, inner.y + PADDING * 0.75, inner.width, label,
-                name=f"{name} Label", size=SIZE_LABEL),
+                name=f"{name} Label", size=SIZE_LABEL, align=align),
         *value_unit(body, value, unit or "", name=name,
                     value_size=value_size, unit_color=unit_color, color=color,
-                    unit_width=0.0 if not unit else None,
+                    unit_width=0.0 if not unit else None, align=align,
                     value_bindings={"Text": binding}),
         *extra,
     ]
@@ -133,8 +139,16 @@ def stats_row(region):
 
 
 def footer_row(region):
-    """Contexto da sessao: consultado entre voltas, nao dentro delas."""
-    cells = region.columns(5, gutter=GUTTER)
+    """Contexto da sessao: consultado entre voltas, nao dentro delas.
+
+    Um unico cartao por baixo dos cinco campos -- nao um tile por campo --
+    para o rodape ler como uma faixa continua, no mesmo tratamento que o
+    OTS ja usa e que o rodape da coluna direita passa a usar tambem. As tres
+    faixas inferiores (aqui, a direita e o OTS) formam assim uma barra
+    inferior unica.
+    """
+    inner = region.inset(left=PADDING, right=PADDING)
+    cells = inner.columns(5, gutter=GUTTER)
     fields = [
         ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
         ("Left", "Left", "00", "[RemainingLaps]", "00", None),
@@ -144,11 +158,11 @@ def footer_row(region):
          "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
         ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
     ]
-    items = []
+    items = [tile(region, name="Footer Tile")]
     for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
         items += stat(cell, label, sample, expression, name=name,
                       format_string=fmt, value_size=SIZE_VALUE_SM,
-                      color=color or TEXT)
+                      color=color or TEXT, envelope=False)
     return items
 
 
@@ -158,6 +172,7 @@ def layer():
     stats, footer = rest.split_top(STATS_HEIGHT, gutter=GUTTER)
 
     return Layer(
+        tile(PANEL, name="Background", color=TILE, radius=CORNER_RADIUS_TILE),
         chart(),
         Layer(
             *stats_row(stats),
