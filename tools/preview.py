@@ -332,7 +332,22 @@ addEventListener('resize', fit); fit();
 """
 
 
-def render_dashboard(folder, name=None, title=None, subtitle=""):
+#: Versao sem moldura: so o painel, do tamanho exato do dashboard. Serve para
+#: embutir o preview em outra pagina, que entao cuida do enquadramento.
+BARE_PAGE = """<meta charset="utf-8">
+<title>{title}</title>
+<style>
+{faces}
+:root {{ color-scheme: dark; }}
+html, body {{ margin:0; background:{background}; }}
+.frame {{ position:relative; width:{width}px; height:{height}px;
+          background:{background}; overflow:hidden; }}
+</style>
+<div class="frame">{body}</div>
+"""
+
+
+def render_dashboard(folder, name=None, title=None, subtitle="", bare=False):
     """Gera o HTML de um dashboard da pasta indicada."""
     folder = Path(folder)
     candidates = sorted(folder.glob("*.djson"))
@@ -349,7 +364,7 @@ def render_dashboard(folder, name=None, title=None, subtitle=""):
     width = data.get("BaseWidth", 1280)
     height = data.get("BaseHeight", 517)
 
-    return PAGE.format(
+    return (BARE_PAGE if bare else PAGE).format(
         title=title or target.stem,
         subtitle=subtitle or f"{width}x{height} — render estatico, sem avaliar formulas",
         faces=font_faces(),
@@ -366,6 +381,8 @@ def main(argv=None):
                         help="pasta do dashboard gerado")
     parser.add_argument("-n", "--name", help="nome do .djson (sem extensao)")
     parser.add_argument("-t", "--title", help="titulo do preview")
+    parser.add_argument("-b", "--bare", action="store_true",
+                        help="so o painel, sem titulo nem moldura")
     parser.add_argument("-o", "--out", default=str(ROOT / "build" / "preview.html"))
     parser.add_argument("-c", "--conditional", choices=("hide", "show"),
                         default="hide",
@@ -378,7 +395,7 @@ def main(argv=None):
     REPEAT_OVERRIDE = args.repeat
     CONDITIONAL = args.conditional
 
-    html = render_dashboard(args.folder, args.name, args.title)
+    html = render_dashboard(args.folder, args.name, args.title, bare=args.bare)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
