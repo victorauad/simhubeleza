@@ -16,6 +16,7 @@ python3 tools/preview_modes.py      # um preview por modo -> build/modes/
 python3 tools/dump_formulas.py      # re-extrai as fórmulas do original
 python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
+python3 tools/package.py            # empacota build/ num .simhubdash importável
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
@@ -77,8 +78,16 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
 
 **Validar no SimHub de verdade.** É o único passo que não dá para fazer daqui,
 e nada do redesign foi visto rodando: o preview é estático e não avalia
-fórmula nenhuma. Copiar `build/iRacing_Dashboard_00` para a pasta
-`DashTemplates` e abrir.
+fórmula nenhuma. O SimHub **não** lê dashboards soltos numa pasta em
+`DashTemplates` — ele importa um arquivo único `.simhubdash` (zip com
+extensão trocada, confirmado por busca externa, sem doc oficial). Rodar
+`python3 tools/package.py` (gera `build/iRacing_Dashboard_00.simhubdash`),
+transferir o arquivo para o PC com o SimHub e dar duplo-clique nele com o
+SimHub aberto, confirmando a importação para a biblioteca.
+
+Ressalva: o layout interno exato que o SimHub espera dentro do zip (arquivos
+na raiz, como fizemos, vs. dentro de alguma subpasta) não está 100%
+confirmado — só a importação real vai validar isso.
 
 O que merece olhar primeiro, por ordem de risco:
 
