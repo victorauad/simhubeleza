@@ -1,9 +1,10 @@
 """Empacota build/iRacing_Dashboard_00 num .simhubdash importavel pelo SimHub.
 
 O SimHub nao le dashboards soltos numa pasta: importa um arquivo unico
-.simhubdash (zip com extensao trocada). Os arquivos vao na raiz do zip, sem
-uma pasta-mae por cima, preservando subpastas como _SHFonts/ e
-JavascriptExtensions/.
+.simhubdash (zip com extensao trocada). Primeira tentativa (arquivos soltos
+na raiz do zip) travou na tela de import sem nome/thumbnail, entao os
+arquivos vao dentro de uma pasta com o nome do dashboard dentro do zip,
+espelhando a estrutura de DashTemplates.
 
 Uso:  python3 tools/package.py
 """
@@ -12,8 +13,9 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "build" / "iRacing_Dashboard_00"
-OUT = ROOT / "build" / "iRacing_Dashboard_00.simhubdash"
+NAME = "iRacing_Dashboard_00"
+SRC = ROOT / "build" / NAME
+OUT = ROOT / "build" / f"{NAME}.simhubdash"
 
 
 def main():
@@ -23,7 +25,7 @@ def main():
     with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(SRC.rglob("*")):
             if path.is_file():
-                zf.write(path, path.relative_to(SRC))
+                zf.write(path, Path(NAME) / path.relative_to(SRC))
 
     print(f"gerado {OUT}")
 
