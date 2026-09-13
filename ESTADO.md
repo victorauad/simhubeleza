@@ -162,23 +162,36 @@ Resolveu quase tudo que estava pendente.
   solo (`'Offline Testing'`) segue sem confirmação — nenhum dos dois dumps
   era desse tipo de sessão (eram fins de semana com practice/qualy/race).
 
-**Ainda sem confirmação** (nenhum dos dumps cobre plugins, só telemetria
-bruta e dados de sessão):
+**Confirmada — o maior risco da lista, resolvido:**
+
+- O usuário mandou `PluginsData\PluginsActivation.json`. O plugin de
+  histórico de volta está **instalado e ativo** (`IsEnabled: true`,
+  aparece 3× — uma cópia por perfil de jogo). A classe interna é
+  `SimHub.Plugins.DataPlugins.PersistantTracker.LapHitoryPlugin` (o "Hitory"
+  sem o "s" é erro de digitação do próprio SimHub, não afeta nada) —
+  irrelevante para nós, porque o prefixo de propriedade
+  `PersistantTrackerPlugin.PreviousLap_XX_*` já vinha confirmado pelo uso no
+  dashboard original. `IRacingExtraProperties` também está `IsEnabled: true`.
+  Isso remove o risco de o lap log inteiro não resolver nada em tela.
+
+**Ainda sem confirmação:**
 
 - `[Flag_Black]` e `[Flag_Blue]` — mesma categoria de `Flag_Green`, sem
   confirmação direta ainda.
-- `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — combustível da
-  volta `n` no lap log. Continua palpite.
-- **O maior risco**: nada confirma que o `PersistantTrackerPlugin` está
-  instalado. Sem ele, as 3 colunas novas do lap log (temperatura, delta e
-  combustível por volta) não resolvem nada em tela. Falta
-  `PluginsData\PluginsActivation.json` para fechar isso.
+- `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — o plugin existe
+  e está ativo, mas o **nome exato desta propriedade específica** ainda é
+  palpite (segue o padrão de `_DeltaToSessionBest`, mas pode não existir com
+  esse sufixo). Só um dump do próprio `PersistantTrackerPlugin` confirma.
 - Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
   propriedade clara para eles.
 - **Temperatura da pista por volta**: não há (que se saiba) um histórico
   indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
   mostra a leitura *atual* só na linha da volta mais recente, em vez de
   repetir um valor errado nas voltas anteriores.
+- A string exata de uma sessão de treino livre solo (`'Offline Testing'`,
+  usada para o modo Practice em `right.py`) segue sem confirmação — os dumps
+  recebidos eram sempre de fins de semana com practice/qualy/race, nunca de
+  uma sessão avulsa de treino.
 
 ## Modos automáticos da coluna direita
 
