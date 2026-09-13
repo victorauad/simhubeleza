@@ -19,7 +19,7 @@ O pedal enche do centro para fora: no estado de 75% do Figma sao os segmentos
 do lado de dentro que estao acesos.
 """
 
-from simhub.bindings import ncalc
+from simhub.bindings import formatted, ncalc
 from simhub.model import Layer, LinearGaugeItem, RectangleItem, WidgetItem
 from simhub.theme import (
     BRAKE, FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN,
@@ -144,11 +144,16 @@ def pedal(side, label, prop, color):
                        gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
                        name=f"{label} Bar", reverse=(side is LEFT)),
         # Sem binding de Visible: o Figma mostra "00" tambem com o pedal solto.
+        #
+        # O original trocava 100 por "00" porque a caixa dele nao cabia tres
+        # digitos; esta cabe (113 unidades de desenho contra 30 por glifo),
+        # entao o valor vai inteiro, com duas casas de piso -- o freio
+        # aparecia com um digito so enquanto o acelerador aparecia com dois.
         text(value.x, value.y, value.width, value.height, "00",
              name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
              weight="Bold", align=CENTER, mono=True,
              char_width=grid.scaled(30.0),
-             bindings={"Text": ncalc(f"if([{prop}]=100,'00',[{prop}])")}),
+             bindings={"Text": formatted(f"[{prop}]", "00")}),
     ]
 
 

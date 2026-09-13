@@ -29,7 +29,7 @@ from simhub.theme import (
 from . import layout as grid
 from . import leaderboard
 from .generated.formulas import FORMULAS, binding as original
-from .widgets import CENTER, LEFT, RIGHT, caption, text, tile
+from .widgets import CENTER, LEFT, RIGHT, caption, text, tile, value_unit
 
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
@@ -105,11 +105,28 @@ def rel_top(index):
 ME_INDEX = 3
 
 
-def rel_text(name, left, width, sample, *, align, size=SIZE_LABEL + 5.0,
+#: Formato unico do tempo de volta no relative. O original tinha um por
+#: linha -- vazio nos carros a frente, `m\.ss\.ff` nos de tras e
+#: `mm\:ss\.fff` na do jogador -- e cada linha aparecia diferente.
+REL_LAP_FORMAT = "m\\:ss\\.fff"
+
+#: Os digitos ficam monoespacados (colunas de numero nao "dancam" a cada
+#: atualizacao), mas a largura sai do tamanho da fonte em vez de um 14.0
+#: fixo, que a espalhava. Ponto e dois-pontos ocupam menos que um digito.
+REL_TEXT_SIZE = SIZE_LABEL + 5.0
+REL_CHAR_WIDTH = REL_TEXT_SIZE * 0.58
+REL_SPECIAL_CHARS = ".:,"
+REL_SPECIAL_WIDTH = REL_TEXT_SIZE * 0.32
+
+
+def rel_text(name, left, width, sample, *, align, size=REL_TEXT_SIZE,
              color=TEXT_SECONDARY, top, bindings=None, mono=False):
     return text(left, top, width, REL_ROW, sample, name=name, size=size,
                 color=color, align=align, mono=mono,
-                char_width=14.0 if mono else None, bindings=bindings)
+                char_width=size * 0.58 if mono else None,
+                special_chars=REL_SPECIAL_CHARS if mono else None,
+                special_chars_width=REL_SPECIAL_WIDTH if mono else None,
+                bindings=bindings)
 
 
 def rel_row(prefix, name, top, *, repetitions=None, offset=None,
@@ -139,25 +156,34 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
             RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
         ),
         rel_text("Position", POS_X, POS_W, "18.", align=RIGHT, top=top,
-                 color=accent,
+                 color=accent, mono=True,
                  bindings={"Text": at("Position", "Text"),
                            "Visible": at("Position", "Visible")}),
         rel_text("Car Number", NUM_X, NUM_W, "28", align=CENTER, top=top,
-                 color=accent,
-                 bindings={"Text": at("Car Number", "Text")}
-                 if not me else {"Text": at("Car Number", "Text")}),
-        rel_text("Name", NAME_X, NAME_W, "Lorem ipsum", align=LEFT, top=top,
+                 color=accent, mono=True,
+                 bindings={"Text": at("Car Number", "Text")}),
+        # O nome fica com espacamento proporcional: monoespacado, nome de
+        # piloto vira uma fileira de letras esparramadas.
+        rel_text("Name", NAME_X, NAME_W, "Player Name", align=LEFT, top=top,
                  color=TEXT if me else TEXT_SECONDARY,
-                 bindings={"Text": at("Name", "Text")} if not me else None),
-        rel_text("Last Lap", LAP_X, LAP_W, "0:00.00", align=RIGHT, top=top,
+                 bindings={"Text": at("Name", "Text")} if not me
+                 else {"Text": ncalc("[DataCorePlugin.GameData.PlayerName]")}),
+        # A linha do jogador vinha de `toshorttime()`, que ja devolve texto
+        # pronto e ignorava o formato -- lendo `[LastLapTime]` cru as tres
+        # variacoes de linha passam pelo mesmo `REL_LAP_FORMAT`.
+        rel_text("Last Lap", LAP_X, LAP_W, "0:00.000", align=RIGHT, top=top,
                  mono=True,
-                 bindings={"Text": at("Last Lap", "Text"),
-                           "Visible": at("Last Lap", "Visible")}),
+                 bindings={
+                     "Text": formatted("[LastLapTime]", REL_LAP_FORMAT) if me
+                     else at("Last Lap", "Text", format_string=REL_LAP_FORMAT),
+                     "Visible": at("Last Lap", "Visible"),
+                 }),
     ]
 
     if me:
         items.append(
             rel_text("Name2", GAP_X, GAP_W, "-180", align=RIGHT, top=top,
+                     mono=True,
                      bindings={"Text": at("Name2", "Text"),
                                "TextColor": at("Name2", "TextColor")}))
     else:
@@ -354,18 +380,36 @@ def practice():
     )
 
 
-#: `SessionTrackRubberState` chega como texto (a enum do iRacing) e cortava
-#: no card do rodape -- vira um codigo numerico 1..6, do mais grip (Optimum)
-#: ao menos (Extremely Low). Os nomes exatos ainda pendem de confirmacao
-#: contra o texto real que o SimHub expoe -- ver ESTADO.md.
+#: `SessionTrackRubberState` chega como frase do iRacing -- "moderately low
+#: usage", "carry over" (confirmado nos dumps de propriedades do usuario) --
+#: e cortava no card do rodape. Vira um codigo 1..6, do mais emborrachado
+#: (mais grip) ao mais limpo; "carry over" nao e um nivel, e heranca da
+#: sessao anterior, entao mostra "CO".
+#:
+#: O casamento e por palavra-chave, em JS: NCalc nao tem funcoes de string, e
+#: a ordem importa -- "moderately low usage" tambem contem "low usage", entao
+#: o teste mais especifico vem primeiro. String desconhecida cai em "--", o
+#: que deixa visivel no teste ao vivo que faltou um valor na tabela.
 GRIP_PROP = "GameRawData.CurrentSessionInfo.SessionTrackRubberState"
 GRIP_LEVELS = [
-    ("Optimum", 1), ("High", 2), ("Medium", 3),
-    ("Low", 4), ("Very Low", 5), ("Extremely Low", 6),
+    ("carry over", "'CO'"),
+    ("maximum", "'1'"),
+    ("extensive", "'2'"),
+    ("moderately low", "'4'"),
+    ("moderate", "'3'"),
+    ("high usage", "'2'"),
+    ("very low", "'5'"),
+    ("low usage", "'5'"),
+    ("clean", "'6'"),
 ]
-GRIP_EXPRESSION = "".join(
-    f"if([{GRIP_PROP}]='{label}',{code}," for label, code in GRIP_LEVELS
-) + "0" + ")" * len(GRIP_LEVELS)
+GRIP_EXPRESSION_JS = (
+    f"\tvar state = ($prop('{GRIP_PROP}') + '').toLowerCase();\r\n"
+    + "".join(
+        f"\tif (state.indexOf('{needle}') >= 0) return {code};\r\n"
+        for needle, code in GRIP_LEVELS
+    )
+    + "\treturn '--';"
+)
 
 #: A chuva usava `'NA'` como *format string* do NCalc (que espera um padrao
 #: numerico como `'00'`), entao sempre imprimia o literal "NA" em vez do
@@ -385,27 +429,37 @@ def footer():
     # Hour e o unico campo de cinco glifos da fileira -- ver FOOTER_WEIGHTS
     # na coluna esquerda, que resolve o mesmo problema do outro lado.
     cells = inner.columns(5, gutter=GUTTER, weights=(1.4, 1.0, 1.0, 1.0, 1.0))
+    #: (nome, rotulo, amostra, expressao, formato, cor, unidade). A unidade
+    #: entra pelo mesmo `value_unit()` da coluna esquerda, entao a distancia
+    #: do numero ate ela e a mesma dos dois lados do dash.
     fields = [
-        ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
-        ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
-        ("Air", "Air", "00", "[AirTemperature]", "00", None),
-        ("Grip", "Grip", "0", GRIP_EXPRESSION, None, None),
-        ("Rain", "Rain", "00", RAIN_EXPRESSION, None, None),
+        ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm",
+         CYAN, ""),
+        ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00",
+         None, "°C"),
+        ("Air", "Air", "00", "[AirTemperature]", "00", None, "°C"),
+        ("Grip", "Grip", "0", GRIP_EXPRESSION_JS, None, None, ""),
+        ("Rain", "Rain", "00", RAIN_EXPRESSION, None, None, "%"),
     ]
     items = [tile(region, name="Footer Tile")]
-    for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
+    for cell, spec in zip(cells, fields):
+        name, label, sample, expression, fmt, color, unit = spec
         cell_inner = cell.inset(left=PADDING, right=PADDING)
         label_height = SIZE_LABEL + 6.0
         body = grid.Region(cell_inner.x, cell_inner.y + label_height + 2.0,
                            cell_inner.width, cell_inner.height - label_height - 8.0)
+        if name == "Grip":
+            binding = js(expression, jsext=3)
+        elif fmt:
+            binding = formatted(expression, fmt)
+        else:
+            binding = ncalc(expression)
         items += [
             caption(cell_inner.x, cell_inner.y + PADDING * 0.75,
                     cell_inner.width, label, name=f"{name} Label"),
-            text(body.x, body.y, body.width, body.height, sample, name=name,
-                 size=SIZE_VALUE_SM, color=color or TEXT, weight=WEIGHT_VALUE,
-                 align=LEFT,
-                 bindings={"Text": formatted(expression, fmt) if fmt
-                           else ncalc(expression)}),
+            *value_unit(body, sample, unit, name=name,
+                        value_size=SIZE_VALUE_SM, color=color or TEXT,
+                        align=LEFT, value_bindings={"Text": binding}),
         ]
     return Layer(
         *items,

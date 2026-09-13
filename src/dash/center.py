@@ -41,9 +41,14 @@ def header(region):
     speed = grid.Region(inner.x, inner.y, width, inner.height)
     rpm = grid.Region(inner.right - width, inner.y, width, inner.height)
     return [
-        *readout(speed, "Spd", "000", "[SpeedKmh]", "000",
+        # A unidade entra no rotulo, nao ao lado do numero: os dois valores
+        # sao monoespacados e alinhados nas bordas opostas da coluna, entao
+        # uma unidade colada neles brigaria com a marcha logo abaixo. O RPM
+        # segue dividido por 10 como no original -- o rotulo e que passa a
+        # dizer isso.
+        *readout(speed, "Spd km/h", "000", "[SpeedKmh]", "000",
                  name="Speed", align=LEFT),
-        *readout(rpm, "Rpm", "000", "[Rpms]/10", "000",
+        *readout(rpm, "Rpm x10", "000", "[Rpms]/10", "000",
                  name="Rpm", align=RIGHT),
     ]
 

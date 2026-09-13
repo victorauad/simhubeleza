@@ -101,13 +101,18 @@ def value_unit(region, value, unit, *, name="Value", unit_width=None,
     unit_width = unit_width if unit_width is not None else len(unit) * unit_size * 0.62
 
     baseline = region.y + (region.height - value_size) * 0.5
-    unit_drop = (value_size - unit_size) * 0.62
+    #: A unidade desce ate a linha de base do numero, nao ate embaixo dele:
+    #: com 0.62 o "%" do brake bias (que usa a fonte grande) ficava solto
+    #: abaixo do valor, parecendo um indice.
+    unit_drop = (value_size - unit_size) * 0.45
 
     if align is LEFT:
         # A largura do valor sai do texto de amostra (`value`), nao da
         # unidade -- a unidade fica a `VALUE_UNIT_GAP` do fim do numero, em
-        # vez de no fim de uma caixa larga e vazia.
-        value_width = len(value) * value_size * 0.62
+        # vez de no fim de uma caixa larga e vazia. Sem unidade nenhuma, o
+        # valor fica com a regiao inteira: nada precisa caber depois dele.
+        value_width = (len(value) * value_size * 0.62 if unit
+                       else region.width)
         return [
             text(region.x, region.y, value_width, region.height, value,
                  name=name, size=value_size, color=color, weight=WEIGHT_VALUE,

@@ -12,7 +12,8 @@ do jogador como propriedades numeradas (Driver_00_Name, Driver_01_Name, ...).
 from simhub.bindings import js
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    FONT, PLAYER, SIZE_LABEL, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
+    FONT, PADDING, PLAYER, SIZE_LABEL, TEXT, TEXT_SECONDARY, TEXT_TERTIARY,
+    TILE_RAISED,
 )
 from . import layout as grid
 from .generated.formulas import binding as original
@@ -71,7 +72,9 @@ COLUMN_GAP = 8.0
 
 POSITION_X = BODY.x
 NAME_X = POSITION_X + POSITION_WIDTH + COLUMN_GAP
-GAP_X = BODY.right - GAP_WIDTH
+#: A ultima coluna fica afastada da borda do painel pelo mesmo respiro que
+#: as outras usam por dentro.
+GAP_X = BODY.right - GAP_WIDTH - PADDING
 DIFF_X = GAP_X - DIFF_WIDTH - COLUMN_GAP
 NAME_WIDTH = DIFF_X - NAME_X - COLUMN_GAP
 
@@ -80,6 +83,12 @@ NAME_WIDTH = DIFF_X - NAME_X - COLUMN_GAP
 #: sempre que a linha ficava mais baixa que o desenhado originalmente.
 ROW_TEXT_SIZE = min(17.0, ROW_HEIGHT * 0.72)
 ROW_INSET = 3.0
+
+#: Largura de glifo das colunas numericas. Sai do tamanho da fonte: com o
+#: 14.0 fixo de antes, a fonte menor deixava os digitos esparramados
+#: ("1 0 . 1"). Ponto e virgula ocupam menos que um digito.
+ROW_CHAR_WIDTH = ROW_TEXT_SIZE * 0.62
+ROW_SPECIAL_WIDTH = ROW_TEXT_SIZE * 0.36
 
 TEXT_GRAY = TEXT_SECONDARY
 ROW_BG = TILE_RAISED
@@ -244,8 +253,8 @@ def last_lap_difference():
         "LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE, "-0.00", align=2,
         color=FASTER,
         UseMonospacedText=True,
-        char_width=14.0,
-        SpecialCharsWidth=8.0,
+        char_width=ROW_CHAR_WIDTH,
+        SpecialCharsWidth=ROW_SPECIAL_WIDTH,
         special_chars=".,",
         BorderStyle={
             "RadiusTopLeft": 5, "RadiusTopRight": 5,
@@ -337,8 +346,8 @@ def gap():
         "Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
         color=FASTER,
         UseMonospacedText=True,
-        char_width=14.0,
-        SpecialCharsWidth=8.0,
+        char_width=ROW_CHAR_WIDTH,
+        SpecialCharsWidth=ROW_SPECIAL_WIDTH,
         special_chars=".,",
         bindings={
             "Text": js(f"""if ($prop('SessionTypeName') == 'Race') {{
@@ -468,8 +477,8 @@ def overflow_layer():
                  }),
         row_text("LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE,
                  "-0.00", align=2, top=top, color=FASTER,
-                 UseMonospacedText=True, char_width=14.0,
-                 SpecialCharsWidth=8.0, special_chars=".,",
+                 UseMonospacedText=True, char_width=ROW_CHAR_WIDTH,
+                 SpecialCharsWidth=ROW_SPECIAL_WIDTH, special_chars=".,",
                  bindings={
                      "Text": at("LastLapDifference", "Text"),
                      "Visible": at("LastLapDifference", "Visible"),
@@ -477,8 +486,8 @@ def overflow_layer():
                  }),
         row_text("Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
                  top=top, color=FASTER,
-                 UseMonospacedText=True, char_width=14.0,
-                 SpecialCharsWidth=8.0, special_chars=".,",
+                 UseMonospacedText=True, char_width=ROW_CHAR_WIDTH,
+                 SpecialCharsWidth=ROW_SPECIAL_WIDTH, special_chars=".,",
                  bindings={
                      "Text": at("Gap", "Text"),
                      "TextColor": at("Gap", "TextColor"),

@@ -160,20 +160,25 @@ def footer_row(region):
     inner = region.inset(left=PADDING, right=PADDING)
     cells = inner.columns(5, gutter=GUTTER, weights=FOOTER_WEIGHTS)
     fields = [
-        ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
-        ("Left", "Left", "00", "[RemainingLaps]", "00", None),
+        ("Laps", "Laps", "00", "[CompletedLaps]", "00", None, None),
+        ("Left", "Left", "00", "[RemainingLaps]", "00", None, None),
         ("Inc", "Inc", "00",
-         "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
+         "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE, None),
         ("SoF", "SoF", "34",
-         "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
-        # Minutos restantes como numero inteiro simples -- o formato
-        # "mm\.ss" mostrava a hora atual em vez do total de minutos.
-        ("Time", "Time", "90",
-         "floor(timespantoseconds([SessionTimeLeft])/60)", "0", CYAN),
+         "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None, None),
+        # Minutos restantes como numero inteiro simples. O formato "0" ja
+        # arredonda, entao nao ha chamada de funcao alem de
+        # `timespantoseconds` -- `floor()` nao existe no NCalc do SimHub e
+        # derrubava a formula, deixando o TimeSpan cru cortado na caixa.
+        # Amostra de tres digitos: a caixa do valor e dimensionada por ela, e
+        # uma sessao de duas horas mostra "120".
+        ("Time", "Time", "120",
+         "timespantoseconds([SessionTimeLeft])/60", "0", CYAN, "min"),
     ]
     items = [tile(region, name="Footer Tile")]
-    for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
-        items += stat(cell, label, sample, expression, name=name,
+    for cell, spec in zip(cells, fields):
+        name, label, sample, expression, fmt, color, unit = spec
+        items += stat(cell, label, sample, expression, unit, name=name,
                       format_string=fmt, value_size=SIZE_VALUE_SM,
                       color=color or TEXT, envelope=False)
     return items
