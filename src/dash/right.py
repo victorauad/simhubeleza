@@ -34,21 +34,52 @@ from .widgets import CENTER, LEFT, RIGHT, caption, text, tile
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
 
-#: Condicoes que decidem qual modo aparece. So [SessionTypeName],
-#: [GameRawData.Telemetry.IsOnTrack] e [GameRawData.Telemetry.LapCurrentLapTime]
-#: nao tem uso confirmado em nenhum outro lugar do projeto -- sao os nomes
-#: padrao do SDK do iRacing, mas precisam de validacao no SimHub real (ver
-#: pendencia em ESTADO.md). Todo o resto do projeto ja usa [SessionTypeName]
-#: e [DataCorePlugin.GameRunning].
-IN_PRACTICE = "[SessionTypeName]='Offline Testing'"
+#: Condicoes que decidem qual modo aparece.
+#:
+#: `[SessionTypeName]` nao existe -- nao aparece no dump de
+#: `SampleSessionData.json` nem em `SampleTelemetry.json`, nem foi usada uma
+#: vez sequer no dashboard original. O caminho real, confirmado no dump:
+#: `SessionInfo.CurrentSessionNum` (indice da sessao atual) mais
+#: `SessionInfo.Sessions0<n>.SessionType` (o texto, por sessao do fim de
+#: semana). NCalc nao indexa propriedade dinamicamente, entao a checagem so
+#: existe em JS -- por tabela, os dois formulas que a incorporam tambem.
+#: A string exata de uma sessao de treino livre solo ("Offline Testing")
+#: segue sem confirmacao: nenhum dos dois dumps recebidos era desse tipo de
+#: sessao.
+#:
+#: `[GameRawData.Telemetry.IsOnTrack]` e `[...LapCurrentLapTime]` estao
+#: confirmados no dump de telemetria (existem, tipos batem).
+#:
+#: Preambulo comum: calcula `inPractice` a partir da sessao atual. Os tres
+#: formulas que precisam da condicao (o proprio modo Practice, e as duas
+#: negacoes em Standings/Relative) prefixam este texto e so trocam o
+#: `return` final.
+_SESSION_TYPE_LOOKUP = (
+    "\tvar n = $prop('SessionInfo.CurrentSessionNum') + 1;\r\n"
+    "\tvar inPractice = $prop('SessionInfo.Sessions0' + n + '.SessionType') "
+    "== 'Offline Testing';\r\n"
+)
+IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
+
 NOT_ON_TRACK = ("!([DataCorePlugin.GameRunning] && "
                "[GameRawData.Telemetry.IsOnTrack]='TRUE')")
+NOT_ON_TRACK_JS = ("!($prop('DataCorePlugin.GameRunning') && "
+                   "$prop('GameRawData.Telemetry.IsOnTrack') == 'TRUE')")
 #: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
 #: acabou de ser completada.
-JUST_COMPLETED_LAP = ("[GameRawData.Telemetry.LapCurrentLapTime] >= 0 && "
-                      "[GameRawData.Telemetry.LapCurrentLapTime] < 4")
-SHOW_STANDINGS = f"!({IN_PRACTICE}) && (({NOT_ON_TRACK}) || ({JUST_COMPLETED_LAP}))"
-SHOW_RELATIVE = f"!({IN_PRACTICE}) && !(({NOT_ON_TRACK}) || ({JUST_COMPLETED_LAP}))"
+JUST_COMPLETED_LAP_JS = (
+    "$prop('GameRawData.Telemetry.LapCurrentLapTime') >= 0 && "
+    "$prop('GameRawData.Telemetry.LapCurrentLapTime') < 4"
+)
+_STANDINGS_OR_JUST_LAPPED = f"(({NOT_ON_TRACK_JS}) || ({JUST_COMPLETED_LAP_JS}))"
+SHOW_STANDINGS_JS = (
+    _SESSION_TYPE_LOOKUP
+    + f"\treturn !inPractice && {_STANDINGS_OR_JUST_LAPPED};"
+)
+SHOW_RELATIVE_JS = (
+    _SESSION_TYPE_LOOKUP
+    + f"\treturn !inPractice && !{_STANDINGS_OR_JUST_LAPPED};"
+)
 
 #: Altura de linha do relative -- sete linhas (3 a frente, eu, 3 atras) no
 #: mesmo corpo que antes cabia cinco (2+1+2), com folga de sobra.
@@ -193,7 +224,7 @@ def relative():
         Group=True, Repetitions=0, Visible=True,
         BlinkPhasisInverted=False, RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
-        bindings={"Visible": ncalc(SHOW_RELATIVE)},
+        bindings={"Visible": js(SHOW_RELATIVE_JS)},
     )
 
 
@@ -319,7 +350,7 @@ def practice():
         Group=True, Repetitions=0, Visible=False,
         BlinkPhasisInverted=False, RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
-        bindings={"Visible": ncalc(IN_PRACTICE)},
+        bindings={"Visible": js(IN_PRACTICE_JS)},
     )
 
 
@@ -370,7 +401,7 @@ def layer():
     return Layer(
         tile(PANEL, name="Background", color=TILE),
         footer(),
-        leaderboard.standings(visible=ncalc(SHOW_STANDINGS)),
+        leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),
         practice(),
         name="Right Component",

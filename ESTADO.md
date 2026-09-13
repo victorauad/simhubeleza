@@ -128,34 +128,57 @@ O que merece olhar primeiro, por ordem de risco:
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
 
-### Propriedades do SimHub ainda não confirmadas (precisam de validação real)
+### Propriedades do SimHub — validadas com dumps reais do usuário
 
-Usadas nas fórmulas dos modos automáticos da coluna direita (`src/dash/right.py`)
-e no lap log redesenhado. Todas seguem nomes padrão do SDK do iRacing/SimHub,
-mas nenhuma tinha uso anterior neste projeto — se você puder mandar o
-mapeamento de propriedades do SimHub (a lista completa, ou um export do
-próprio SimHub), eu confirmo ou corrijo:
+O usuário mandou dois dumps da própria instalação: `SampleTelemetry.json`
+(4954 propriedades de `GameRawData.Telemetry.*`) e `SampleSessionData.json`.
+Resolveu quase tudo que estava pendente.
 
-- `[GameRawData.Telemetry.IsOnTrack]` — usado para decidir "fora de pista"
-  (Standings aparece quando `false`).
-- `[GameRawData.Telemetry.LapCurrentLapTime]` — tempo decorrido da volta
-  atual; usado como proxy de "acabou de completar uma volta" (`< 4` segundos).
+**Confirmadas, sem mudança de código:**
+
+- `[GameRawData.Telemetry.IsOnTrack]` — existe, booleano nativo.
+- `[GameRawData.Telemetry.LapCurrentLapTime]` — existe, numérico, em segundos.
+- `[GameRawData.Telemetry.CarLeftRight]` — existe. Os valores batem com o
+  enum público do SDK do iRacing (`irsdk_CarLeftRight`): 2/4/5 à esquerda,
+  3/4/6 à direita — exatamente o que os chips LEFT/RIGHT já assumiam.
+- `[Flag_Green]`, `[Flag_Yellow]`, `[Flag_White]` — não aparecem no dump (são
+  computadas por outro plugin, não telemetria bruta), mas o dashboard
+  original já as usa sem prefixo — confirmação indireta e sólida.
+
+**Corrigida — nome estava errado:**
+
+- `[SessionTypeName]`, usada para decidir o modo Practice, **não existe** —
+  não apareceu em nenhum dos dois dumps nem no dashboard original; era
+  invenção sem base, ao contrário de `CarLeftRight`, que acertou por
+  coincidir com o SDK. O caminho real, confirmado no dump:
+  `SessionInfo.CurrentSessionNum` (índice da sessão atual) mais
+  `SessionInfo.Sessions0<n>.SessionType` (o texto, indexado por sessão do
+  fim de semana). NCalc não indexa propriedade dinamicamente, então a
+  condição de "está em treino" (`IN_PRACTICE_JS` em `right.py`) agora é
+  JavaScript com `$prop()` e concatenação — mesmo padrão que o lap log já
+  usava para `PreviousLap_0<n>_*`. Os dois formulas que a incorporavam
+  (Standings, Relative) viraram JS também, pelo mesmo motivo.
+  **Ressalva que continua**: a string exata de uma sessão de treino livre
+  solo (`'Offline Testing'`) segue sem confirmação — nenhum dos dois dumps
+  era desse tipo de sessão (eram fins de semana com practice/qualy/race).
+
+**Ainda sem confirmação** (nenhum dos dumps cobre plugins, só telemetria
+bruta e dados de sessão):
+
+- `[Flag_Black]` e `[Flag_Blue]` — mesma categoria de `Flag_Green`, sem
+  confirmação direta ainda.
 - `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — combustível da
-  volta `n` no lap log. É um palpite seguindo o padrão de
-  `PreviousLap_0<n>_DeltaToSessionBest` (essa sim confirmada, já usada no
-  dashboard original); a propriedade de combustível por volta pode ter outro
-  nome ou não existir.
-- `[Flag_Black]` e `[Flag_Blue]` — chips de bandeira novos da barra superior.
-- `[GameRawData.Telemetry.CarLeftRight]` — spotter do iRacing, usado nos chips
-  LEFT/RIGHT (valores 2/4/5 à esquerda, 3/4/6 à direita).
+  volta `n` no lap log. Continua palpite.
+- **O maior risco**: nada confirma que o `PersistantTrackerPlugin` está
+  instalado. Sem ele, as 3 colunas novas do lap log (temperatura, delta e
+  combustível por volta) não resolvem nada em tela. Falta
+  `PluginsData\PluginsActivation.json` para fechar isso.
 - Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
   propriedade clara para eles.
 - **Temperatura da pista por volta**: não há (que se saiba) um histórico
   indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
   mostra a leitura *atual* só na linha da volta mais recente, em vez de
-  repetir um valor errado nas voltas anteriores. Se o `PersistantTrackerPlugin`
-  expuser algo como `PreviousLap_0<n>_TrackTemp`, dá para preencher a coluna
-  inteira.
+  repetir um valor errado nas voltas anteriores.
 
 ## Modos automáticos da coluna direita
 
@@ -165,10 +188,11 @@ os modos manualmente; agora são fórmulas reais):
 - **Standings**: fora de pista, ou nos 4s seguintes a cada volta completada.
 - **Relative**: nos demais casos (o modo padrão de corrida). Agora com 3
   pilotos à frente + o jogador + 3 atrás (antes eram 2+1+2).
-- **Practice** (lap log): só em `SessionTypeName = 'Offline Testing'`. Ocupa
-  a seção inteira (não divide mais espaço com o relative) e ganhou 3 colunas
-  novas por volta — temperatura da pista, delta para a melhor volta e
-  combustível consumido (ver pendências de propriedades acima).
+- **Practice** (lap log): só quando a sessão atual é `'Offline Testing'`
+  (ver como isso é resolvido nas pendências de propriedades acima — é JS,
+  não NCalc simples). Ocupa a seção inteira (não divide mais espaço com o
+  relative) e ganhou 3 colunas novas por volta — temperatura da pista, delta
+  para a melhor volta e combustível consumido (ver pendências acima).
 
 ## Verificação visual da barra superior — feita
 
