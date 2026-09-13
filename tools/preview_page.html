@@ -1,0 +1,333 @@
+<title>Painel SF23</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Funnel+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #08090b;
+    --surface: #131519;
+    --raised: #1b1f25;
+    --hairline: #232830;
+    --text: #e9ecf0;
+    --muted: #868d98;
+    --dim: #5b626c;
+    --accent: #64d2ff;
+    --warn: #ff9f0a;
+    --sans: "Funnel Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding-block: 40px 64px;
+  }
+
+  .page { width: 100%; max-width: 1312px; margin: 0 auto; padding-inline: 16px; }
+
+  header { border-bottom: 1px solid var(--hairline); padding-bottom: 20px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+
+  .lede { margin: 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
+
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 20px;
+    padding: 0;
+    list-style: none;
+  }
+  .specs div { display: flex; flex-direction: column; gap: 2px; }
+  .specs dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .specs dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 28px 0 16px;
+  }
+
+  .tab {
+    appearance: none;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .tab:hover { color: var(--text); border-color: #313841; }
+  .tab[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #04202c;
+  }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stage-inner { position: relative; width: 100%; }
+  .stage iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1280px;
+    height: 517px;
+    border: 0;
+    transform-origin: top left;
+    display: block;
+  }
+  .stage iframe[hidden] { display: none; }
+
+  .note {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    margin-top: 18px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+  }
+  .note h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: .01em;
+  }
+  .note p { margin: 0; color: var(--muted); font-size: 14px; max-width: 72ch; }
+  .note code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--raised);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .caveats { margin-top: 40px; border-top: 1px solid var(--hairline); padding-top: 24px; }
+  .caveats h2 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--warn);
+    margin: 0 0 14px;
+    font-weight: 500;
+  }
+  .caveats ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+  .caveats li { margin-bottom: 8px; max-width: 74ch; }
+  .caveats li::marker { color: var(--dim); }
+  .caveats strong { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 560px) {
+    body { padding-block: 28px 48px; }
+    .specs { gap: 8px 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">Super Formula SF23 · iRacing · 1280×517</p>
+    <h1>Painel SF23</h1>
+    <p class="lede">
+      Render estático do dashboard gerado por código. É o HTML lendo o mesmo
+      <code style="font-family:var(--mono);font-size:13px">.djson</code> que o SimHub lê — posição, cor e tipografia são as reais.
+      As fórmulas não são avaliadas, então os números são os valores de projeto.
+      Das 103 fórmulas do dashboard original, 101 seguem intactas: as duas que
+      saíram escondiam o número do pedal em repouso, e o Figma pede que o
+      <code style="font-family:var(--mono);font-size:13px">00</code> fique visível.
+    </p>
+    <dl class="specs">
+      <div><dt>Controles</dt><dd>224</dd></div>
+      <div><dt>Bindings</dt><dd>189</dd></div>
+      <div><dt>Fórmulas preservadas</dt><dd>101 / 103</dd></div>
+      <div><dt>Módulos</dt><dd>10</dd></div>
+      <div><dt>Esforço manual no editor</dt><dd>0</dd></div>
+    </dl>
+  </header>
+
+  <nav role="tablist" aria-label="Modos da coluna direita">
+    <button class="tab" role="tab" id="tab-relative" aria-controls="view-relative" aria-selected="true">Relative</button>
+    <button class="tab" role="tab" id="tab-standings" aria-controls="view-standings" aria-selected="false">Standings</button>
+    <button class="tab" role="tab" id="tab-window" aria-controls="view-window" aria-selected="false">Janela</button>
+    <button class="tab" role="tab" id="tab-practice" aria-controls="view-practice" aria-selected="false">Lap log</button>
+  </nav>
+
+  <nav role="tablist" aria-label="Bandeiras e avisos da barra superior">
+    <button class="tab" role="tab" id="tab-flag-green" aria-controls="view-flag-green" aria-selected="false">Green</button>
+    <button class="tab" role="tab" id="tab-flag-yellow" aria-controls="view-flag-yellow" aria-selected="false">Yellow</button>
+    <button class="tab" role="tab" id="tab-flag-white" aria-controls="view-flag-white" aria-selected="false">White</button>
+    <button class="tab" role="tab" id="tab-flag-black" aria-controls="view-flag-black" aria-selected="false">Black</button>
+    <button class="tab" role="tab" id="tab-flag-blue" aria-controls="view-flag-blue" aria-selected="false">Blue</button>
+    <button class="tab" role="tab" id="tab-flag-car-left" aria-controls="view-flag-car-left" aria-selected="false">Left</button>
+    <button class="tab" role="tab" id="tab-flag-car-right" aria-controls="view-flag-car-right" aria-selected="false">Right</button>
+    <button class="tab" role="tab" id="tab-flag-overlap" aria-controls="view-flag-overlap" aria-selected="false">Overlap</button>
+    <button class="tab" role="tab" id="tab-flag-dirt" aria-controls="view-flag-dirt" aria-selected="false">Dirt</button>
+    <button class="tab" role="tab" id="tab-flag-incident" aria-controls="view-flag-incident" aria-selected="false">Incident</button>
+  </nav>
+
+  <nav role="tablist" aria-label="Estados do RPMLed">
+    <button class="tab" role="tab" id="tab-shift-light" aria-controls="view-shift-light" aria-selected="false">Shift light</button>
+    <button class="tab" role="tab" id="tab-pit-limiter" aria-controls="view-pit-limiter" aria-selected="false">Pit limiter</button>
+  </nav>
+
+  <div class="stage">
+    <div class="stage-inner" id="stage-inner">
+      <iframe id="view-relative" src="relative.html" title="Modo relative" loading="eager"></iframe>
+      <iframe id="view-standings" src="standings.html" title="Modo standings" hidden></iframe>
+      <iframe id="view-window" src="window.html" title="Modo janela" hidden></iframe>
+      <iframe id="view-practice" src="practice.html" title="Modo lap log" hidden></iframe>
+      <iframe id="view-flag-green" src="flag-green.html" title="Bandeira verde" hidden></iframe>
+      <iframe id="view-flag-yellow" src="flag-yellow.html" title="Bandeira amarela" hidden></iframe>
+      <iframe id="view-flag-white" src="flag-white.html" title="Bandeira branca" hidden></iframe>
+      <iframe id="view-flag-black" src="flag-black.html" title="Bandeira preta" hidden></iframe>
+      <iframe id="view-flag-blue" src="flag-blue.html" title="Bandeira azul" hidden></iframe>
+      <iframe id="view-flag-car-left" src="flag-car-left.html" title="Carro a esquerda" hidden></iframe>
+      <iframe id="view-flag-car-right" src="flag-car-right.html" title="Carro a direita" hidden></iframe>
+      <iframe id="view-flag-overlap" src="flag-overlap.html" title="Input overlap" hidden></iframe>
+      <iframe id="view-flag-dirt" src="flag-dirt.html" title="Pneu sujo" hidden></iframe>
+      <iframe id="view-flag-incident" src="flag-incident.html" title="Incidente" hidden></iframe>
+      <iframe id="view-shift-light" src="shift-light.html" title="Shift light" hidden></iframe>
+      <iframe id="view-pit-limiter" src="pit-limiter.html" title="Pit limiter" hidden></iframe>
+    </div>
+  </div>
+
+  <div class="note">
+    <h2 id="note-title">Relative</h2>
+    <p id="note-body"></p>
+  </div>
+
+  <section class="caveats">
+    <h2>O que o preview não prova</h2>
+    <ul>
+      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto gravados no arquivo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
+      <li><strong>As cores em fórmula do OTS usam nomes CSS</strong> (<code>limegreen</code>, <code>gold</code>, <code>orange</code>), não hex — são os que o SimHub resolve com certeza em fórmula de cor. Ficam a menos de 1% da paleta.</li>
+      <li><strong>O widget de telemetria</strong> aparece só como moldura: ele é outro <code>.djson</code>, com gráfico desenhado em tempo de execução.</li>
+      <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
+      <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; nenhuma mostra o estado "todos desligados", que é o padrão em corrida.</li>
+      <li><strong>Quatro dos dez avisos dependem de propriedades não confirmadas</strong> — <code>Flag_Black</code>, <code>Flag_Blue</code> e <code>CarLeftRight</code> (esta com os valores do spotter ainda por conferir). <code>Dirt</code> e <code>Incident</code> existem como chip mas não têm fórmula que os acione.</li>
+      <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
+      <li><strong>Os pedais aparecem cheios</strong> nas duas pontas porque o preview não avalia fórmula: em repouso os segmentos ficam apagados e só o <code>00</code> permanece.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const NOTES = {
+    relative: ["Relative",
+      "Os dois carros à frente, você, e os dois atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador some do cinza para o laranja. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
+    standings: ["Standings · tabela cheia",
+      "As 13 linhas cabem exatas no corpo da coluna — a altura de linha sai da divisão, não de um número escolhido. Aparece quando o grid é pequeno ou o jogador está entre os 11 primeiros."],
+    window: ["Standings · janela",
+      "Quando o jogador está longe do topo: o trio da frente, e daí a janela de 7 linhas centrada nele. Mesma grade de colunas da tabela cheia, então a leitura não se desloca quando o SimHub troca de um para o outro."],
+    practice: ["Lap log",
+      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido."],
+    "flag-green": ["Bandeira verde",
+      "Largada ou relargada. Ligada a <code>[Flag_Green]</code>, propriedade que o dashboard original ja usava."],
+    "flag-yellow": ["Bandeira amarela",
+      "Incidente a frente. Ligada a <code>[Flag_Yellow]</code>, tambem herdada do original."],
+    "flag-white": ["Bandeira branca",
+      "Ultima volta. Ligada a <code>[Flag_White]</code>, tambem herdada do original."],
+    "flag-black": ["Bandeira preta",
+      "Penalidade. Ligada a <code>[Flag_Black]</code> &mdash; propriedade ainda nao confirmada no SimHub."],
+    "flag-blue": ["Bandeira azul",
+      "Carro mais rapido chegando. Ligada a <code>[Flag_Blue]</code> &mdash; propriedade ainda nao confirmada."],
+    "flag-car-left": ["Carro a esquerda",
+      "Spotter: <code>CarLeftRight</code> nos valores 2, 4 e 5. Os valores exatos ainda precisam ser conferidos no SimHub."],
+    "flag-car-right": ["Carro a direita",
+      "Spotter: <code>CarLeftRight</code> nos valores 3, 4 e 6. Mesma pendencia de validacao."],
+    "flag-overlap": ["Input overlap",
+      "Acelerador e freio pressionados juntos: <code>if([Throttle]&gt;5 &amp;&amp; [Brake]&gt;5,1,0)</code>. Nao depende de propriedade nova."],
+    "flag-dirt": ["Pneu sujo",
+      "Desenhado no Figma, declarado no codigo e <strong>desligado</strong>: nao ha propriedade clara para carro sujo."],
+    "flag-incident": ["Incidente",
+      "Mesma situacao do Dirt: existe como chip, sem formula que o acione."],
+    "shift-light": ["Shift light",
+      "Os quatro quadrados do RPM viram magenta na faixa de troca. O vermelho aponta para fora nos dois lados, seguindo o Figma."],
+    "pit-limiter": ["Pit limiter",
+      "Limitador ligado: os quadrados piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."]
+  };
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  const frames = [...document.querySelectorAll('.stage iframe')];
+  const title = document.getElementById('note-title');
+  const body = document.getElementById('note-body');
+
+  function select(id) {
+    tabs.forEach(tab => {
+      const on = tab.id === 'tab-' + id;
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    frames.forEach(frame => { frame.hidden = frame.id !== 'view-' + id; });
+    const [heading, text] = NOTES[id];
+    title.textContent = heading;
+    body.innerHTML = text;
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => select(tab.id.replace('tab-', '')));
+  });
+
+  // O painel tem largura fixa de 1280; encolhe proporcional ao espaco disponivel.
+  function fit() {
+    const inner = document.getElementById('stage-inner');
+    const scale = Math.min(1, inner.clientWidth / 1280);
+    frames.forEach(frame => { frame.style.transform = 'scale(' + scale + ')'; });
+    inner.style.height = (517 * scale) + 'px';
+  }
+  addEventListener('resize', fit);
+  select('relative');
+  fit();
+</script>
