@@ -77,6 +77,13 @@ def caption(x, y, width, content, *, name=None, color=TEXT_SECONDARY,
                 bindings=bindings)
 
 
+#: Distancia fixa entre o fim do valor e o inicio da unidade, nos dois
+#: alinhamentos -- antes o lado LEFT deixava a unidade "flutuando" longe do
+#: numero porque `value_width` usava uma largura generosa (baseada so na
+#: unidade) em vez do texto do valor.
+VALUE_UNIT_GAP = 4.0
+
+
 def value_unit(region, value, unit, *, name="Value", unit_width=None,
                value_size=SIZE_VALUE, unit_size=SIZE_UNIT, color=TEXT,
                unit_color=TEXT_SECONDARY, mono=False, align=RIGHT,
@@ -92,31 +99,32 @@ def value_unit(region, value, unit, *, name="Value", unit_width=None,
     rotulo, nunca "flutuando" pra direita conforme o numero de digitos muda).
     """
     unit_width = unit_width if unit_width is not None else len(unit) * unit_size * 0.62
-    value_width = region.width - unit_width
 
     baseline = region.y + (region.height - value_size) * 0.5
     unit_drop = (value_size - unit_size) * 0.62
 
     if align is LEFT:
-        # O valor cola na esquerda; a unidade, sem como saber a largura real
-        # do numero (o SimHub nao mede texto), fica ancorada logo depois de
-        # uma largura de valor generosa o bastante para o maior caso comum.
+        # A largura do valor sai do texto de amostra (`value`), nao da
+        # unidade -- a unidade fica a `VALUE_UNIT_GAP` do fim do numero, em
+        # vez de no fim de uma caixa larga e vazia.
+        value_width = len(value) * value_size * 0.62
         return [
             text(region.x, region.y, value_width, region.height, value,
                  name=name, size=value_size, color=color, weight=WEIGHT_VALUE,
                  align=LEFT, mono=mono, bindings=value_bindings),
-            text(region.x + value_width, baseline + unit_drop,
+            text(region.x + value_width + VALUE_UNIT_GAP, baseline + unit_drop,
                  unit_width, unit_size * 1.4, unit,
                  name=f"{name} Unit", size=unit_size, color=unit_color,
                  weight=WEIGHT_UNIT, align=LEFT, valign=CENTER,
                  bindings=unit_bindings),
         ]
 
+    value_width = region.width - unit_width
     return [
         text(region.x, region.y, value_width, region.height, value,
              name=name, size=value_size, color=color, weight=WEIGHT_VALUE,
              align=RIGHT, mono=mono, bindings=value_bindings),
-        text(region.x + value_width + 2.0, baseline + unit_drop,
+        text(region.x + value_width + VALUE_UNIT_GAP, baseline + unit_drop,
              unit_width, unit_size * 1.4, unit,
              name=f"{name} Unit", size=unit_size, color=unit_color,
              weight=WEIGHT_UNIT, align=LEFT, valign=CENTER,

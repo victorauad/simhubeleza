@@ -73,22 +73,25 @@ CHIP_TEXT_INSET = 4.0
 CHIP_TEXT_SIZE = grid.scaled(19.0)
 CHIP_RADIUS = 3
 
-CARD = (527.0, 28.0, 289.0, 89.0)
+#: O cartao fica centralizado no vao entre os dois pedais (511 a 818, 307 de
+#: largura) -- o Figma original o desenhava 7 unidades deslocado para a
+#: direita desse centro.
+CARD = (520.0, 28.0, 289.0, 89.0)
 CARD_RADIUS = 7
-DELTA_LABEL = (511.0, 56.0, 113.0, 21.0)
-BEST_LABEL = (721.0, 56.0, 113.0, 21.0)
-DELTA_HERO = (589.0, 24.0, 165.0, 62.0)
+DELTA_LABEL = (504.0, 56.0, 113.0, 21.0)
+BEST_LABEL = (714.0, 56.0, 113.0, 21.0)
+DELTA_HERO = (582.0, 24.0, 165.0, 62.0)
 DELTA_HERO_SIZE = grid.scaled(40.0)
 
 #: As duas metades da barra do delta e as duas da barra de consistencia. O
-#: ponto de corte (672.06) e o centro do cartao.
-DELTA_BAR_LEFT = (533.0, 80.0, 135.72, 18.13)
-DELTA_BAR_RIGHT = (672.06, 80.0, 137.94, 18.13)
-PROGRESS_LEFT = (533.0, 103.47, 135.72, 8.53)
-PROGRESS_RIGHT = (672.06, 103.47, 137.94, 8.53)
+#: ponto de corte (665.06) e o centro do cartao.
+DELTA_BAR_LEFT = (526.0, 80.0, 135.72, 18.13)
+DELTA_BAR_RIGHT = (665.06, 80.0, 137.94, 18.13)
+PROGRESS_LEFT = (526.0, 103.47, 135.72, 8.53)
+PROGRESS_RIGHT = (665.06, 103.47, 137.94, 8.53)
 
-TICK_LEFT = (533.0, 35.0, 9.0, 40.0)
-TICK_RIGHT = (800.0, 35.0, 9.0, 40.0)
+TICK_LEFT = (526.0, 35.0, 9.0, 40.0)
+TICK_RIGHT = (793.0, 35.0, 9.0, 40.0)
 
 
 def leds(side):
@@ -178,7 +181,8 @@ CHIPS = [
     ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT_ON_LIGHT, None),
     ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, None),
     ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT_ON_LIGHT,
-     "if([Throttle]>5 && [Brake]>5,1,0)"),
+     "if([DataCorePlugin.GameData.NewData.Throttle]>5 && "
+     "[DataCorePlugin.GameData.NewData.Brake]>5,1,0)"),
     ("Flag Car Left", "LEFT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
      f"if({proximity(2, 4, 5)},1,0)"),
     ("Flag Car Right", "RIGHT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
@@ -359,8 +363,9 @@ def layer():
             MinimumRefreshIntervalMS=0.0,
         ),
         Layer(
-            *pedal(LEFT, "Brake", "Brake", BRAKE),
-            *pedal(RIGHT, "Throttle", "Throttle", THROTTLE),
+            *pedal(LEFT, "Brake", "DataCorePlugin.GameData.NewData.Brake", BRAKE),
+            *pedal(RIGHT, "Throttle", "DataCorePlugin.GameData.NewData.Throttle",
+                   THROTTLE),
             name="Gas & Brake",
             Group=True, Repetitions=0, Visible=True,
             BlinkPhasisInverted=False, RenderingSkip=0,

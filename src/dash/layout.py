@@ -115,8 +115,15 @@ BODY_HEIGHT = BODY_BOTTOM - BODY_TOP
 #: mudanca de altura da barra superior.
 BOTTOM_BAR_HEIGHT = 86.1
 
-LEFT = Region(0.0, BODY_TOP, 484.0, BODY_HEIGHT)
-RIGHT = Region(796.0, BODY_TOP, 484.0, BODY_HEIGHT)
-OTS = Region(484.0, BODY_BOTTOM - BOTTOM_BAR_HEIGHT - MARGIN,
-             312.1, BOTTOM_BAR_HEIGHT + MARGIN)
-CENTER = Region(484.0, BODY_TOP, 312.1, OTS.y - BODY_TOP)
+#: CENTER e OTS usam a largura real do cartao do delta na barra superior --
+#: a mesma conversao de unidades do Figma (`SCALE`) aplicada a `top_bar.CARD`
+#: -- entao os tres ficam visualmente do mesmo tamanho. LEFT e RIGHT dividem
+#: o que sobra da largura total.
+_CENTER_WIDTH = 289.0 * SCALE
+_SIDE_WIDTH = (WIDTH - _CENTER_WIDTH) / 2.0
+
+LEFT = Region(0.0, BODY_TOP, _SIDE_WIDTH, BODY_HEIGHT)
+RIGHT = Region(_SIDE_WIDTH + _CENTER_WIDTH, BODY_TOP, _SIDE_WIDTH, BODY_HEIGHT)
+OTS = Region(_SIDE_WIDTH, BODY_BOTTOM - BOTTOM_BAR_HEIGHT - MARGIN,
+             _CENTER_WIDTH, BOTTOM_BAR_HEIGHT + MARGIN)
+CENTER = Region(_SIDE_WIDTH, BODY_TOP, _CENTER_WIDTH, OTS.y - BODY_TOP)

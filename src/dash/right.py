@@ -354,6 +354,28 @@ def practice():
     )
 
 
+#: `SessionTrackRubberState` chega como texto (a enum do iRacing) e cortava
+#: no card do rodape -- vira um codigo numerico 1..6, do mais grip (Optimum)
+#: ao menos (Extremely Low). Os nomes exatos ainda pendem de confirmacao
+#: contra o texto real que o SimHub expoe -- ver ESTADO.md.
+GRIP_PROP = "GameRawData.CurrentSessionInfo.SessionTrackRubberState"
+GRIP_LEVELS = [
+    ("Optimum", 1), ("High", 2), ("Medium", 3),
+    ("Low", 4), ("Very Low", 5), ("Extremely Low", 6),
+]
+GRIP_EXPRESSION = "".join(
+    f"if([{GRIP_PROP}]='{label}',{code}," for label, code in GRIP_LEVELS
+) + "0" + ")" * len(GRIP_LEVELS)
+
+#: A chuva usava `'NA'` como *format string* do NCalc (que espera um padrao
+#: numerico como `'00'`), entao sempre imprimia o literal "NA" em vez do
+#: valor real. Sem dado de chuva (`Precipitation` negativo) mostra "--".
+RAIN_PROP = "[GameRawData.Telemetry.Precipitation]"
+RAIN_EXPRESSION = (
+    f"if({RAIN_PROP} < 0, '--', format({RAIN_PROP} * 100, '00'))"
+)
+
+
 def footer():
     """Condicoes da pista. Um unico cartao, igual ao rodape da esquerda e ao
     OTS -- as tres faixas formam uma barra inferior continua."""
@@ -367,10 +389,8 @@ def footer():
         ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
         ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
         ("Air", "Air", "00", "[AirTemperature]", "00", None),
-        ("Grip", "Grip", "00",
-         "[GameRawData.CurrentSessionInfo.SessionTrackRubberState]", None, None),
-        ("Rain", "Rain", "00",
-         "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, None),
+        ("Grip", "Grip", "0", GRIP_EXPRESSION, None, None),
+        ("Rain", "Rain", "00", RAIN_EXPRESSION, None, None),
     ]
     items = [tile(region, name="Footer Tile")]
     for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):

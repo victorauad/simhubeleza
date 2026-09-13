@@ -166,7 +166,10 @@ def footer_row(region):
          "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
         ("SoF", "SoF", "34",
          "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
-        ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
+        # Minutos restantes como numero inteiro simples -- o formato
+        # "mm\.ss" mostrava a hora atual em vez do total de minutos.
+        ("Time", "Time", "90",
+         "floor(timespantoseconds([SessionTimeLeft])/60)", "0", CYAN),
     ]
     items = [tile(region, name="Footer Tile")]
     for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):

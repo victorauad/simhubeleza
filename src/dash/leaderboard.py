@@ -65,8 +65,8 @@ if ({FIELD_SIZE} <= 13 || index < 0 || {PLAYER_POSITION} <= 11) {{
 #: Colunas da linha. Posicao e nome a esquerda, os dois numeros a direita --
 #: e a ordem em que se le: quem e, depois quao longe esta.
 POSITION_WIDTH = 30.0
-GAP_WIDTH = 64.0
-DIFF_WIDTH = 78.0
+GAP_WIDTH = 56.0
+DIFF_WIDTH = 70.0
 COLUMN_GAP = 8.0
 
 POSITION_X = BODY.x
@@ -75,7 +75,10 @@ GAP_X = BODY.right - GAP_WIDTH
 DIFF_X = GAP_X - DIFF_WIDTH - COLUMN_GAP
 NAME_WIDTH = DIFF_X - NAME_X - COLUMN_GAP
 
-ROW_TEXT_SIZE = 17.0
+#: A fonte acompanha a altura da linha (que depende de quantas cabem no
+#: corpo da coluna) em vez de um tamanho fixo -- 17px estourava a caixa
+#: sempre que a linha ficava mais baixa que o desenhado originalmente.
+ROW_TEXT_SIZE = min(17.0, ROW_HEIGHT * 0.72)
 ROW_INSET = 3.0
 
 TEXT_GRAY = TEXT_SECONDARY
