@@ -3,6 +3,29 @@
 Retomada rápida para uma sessão nova. O plano completo está em
 `/root/.claude/plans/vamos-construir-um-dashboard-hazy-crescent.md`.
 
+## Nova frente: coaching ao vivo do AuaDriving (20/09/2026)
+
+Plano de especificação em `/root/.claude/plans/quero-montar-um-plano-foamy-hanrahan.md`.
+Objetivo: levar o motor de análise do AuaDriving (delta por fase de curva vs. referência,
+hoje pós-sessão em Python) para dentro do dash, em tempo real, enquanto o piloto está na pista —
+delta ao vivo, antecipação de próxima curva/reta, e instrução curta estilo coach.
+
+Decisão de arquitetura: como o SimHub é uma app C#/.NET e este repo hoje só **gera** o `.simdash`
+(sem nenhum plugin, sem C#), essa lógica não cabe em NCalc/JS do dash. Vai exigir um **plugin
+C#/.NET novo** (`IDataPlugin`), que:
+- carrega, no início da sessão, um pacote de referência pré-processado pelo AuaDriving
+  (`scripts/export_live_reference.py`, ver `requirements.md`/`design.md` de lá) — curvas
+  detectadas automaticamente (não mais hardcoded por pista) + tabela de referência por
+  `LapDistPct` + mensagens de coach pré-geradas por curva/fase;
+- a cada tick de telemetria, interpola contra essa tabela e expõe propriedades customizadas
+  (ex. `AuaDriving.DeltaLive`, `AuaDriving.NextCornerId`, `AuaDriving.NextCornerDistanceM`,
+  `AuaDriving.CoachMessage`) que o dash consome via NCalc, como já faz hoje com
+  DahlDesign/IRacingExtraProperties/PersistantTrackerPlugin.
+
+Ainda não iniciado — próximo passo é criar `requirements.md`/`design.md`/`TASKS.md` deste repo
+(hoje só existe `ESTADO.md`) cobrindo o plugin e os novos widgets do dash, e prototipar a
+detecção de curvas generalizada do lado do AuaDriving antes de portar para C#.
+
 ## O que é
 
 Dashboard SimHub para **Super Formula SF23 / iRacing**, 1280×517, gerado 100%
