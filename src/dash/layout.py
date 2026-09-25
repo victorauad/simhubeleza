@@ -93,6 +93,18 @@ TOP_BAR_PANEL_HEIGHT = DESIGN_HEIGHT * SCALE
 TOP_BAR_GAP = 4.0
 
 
+def repetitions(rows):
+    """`Repetitions` que o SimHub precisa para desenhar `rows` linhas.
+
+    A camada repetidora desenha a linha-template *mais* `Repetitions`
+    copias, entao o numero que vai no arquivo e sempre um a menos que o
+    numero de linhas. Confirmado ao vivo: com `Repetitions=3` o relative
+    mostrava quatro carros atras, e o leaderboard com 13 jogava uma 14a
+    linha por cima do rodape.
+    """
+    return max(0, int(rows) - 1)
+
+
 def scaled(*values):
     """Converte medidas do Figma (frame de 1329x132) para pixels do dash."""
     out = tuple(value * SCALE for value in values)

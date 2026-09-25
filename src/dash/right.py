@@ -115,6 +115,10 @@ SHOW_RELATIVE_JS = (
 REL_ROWS = 7
 REL_ROW = BODY.height / REL_ROWS
 
+#: Quantos carros por lado do jogador -- 3 a frente e 3 atras fecham as
+#: sete linhas.
+REL_SIDE_ROWS = 3
+
 #: Colunas, da esquerda para a direita.
 POS_X, POS_W = BODY.x, 40.0
 NUM_X, NUM_W = BODY.x + 44.0, 40.0
@@ -158,8 +162,7 @@ def rel_text(name, left, width, sample, *, align, size=REL_TEXT_SIZE,
                 bindings=bindings)
 
 
-def rel_row(prefix, name, top, *, repetitions=None, offset=None,
-            visible_from=None, me=False):
+def rel_row(prefix, name, top, *, rows=None, offset=None, me=False):
     """Uma linha do relative -- repetida para frente e para tras do jogador.
 
     `prefix` e o caminho da formula no original; `me` marca a linha do proprio
@@ -169,6 +172,10 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         return original(f"{prefix}/{node}", target, **extra)
 
     accent = PLAYER if me else TEXT_SECONDARY
+    # A faixa de fundo tambem some quando nao ha carro naquela posicao: com
+    # menos de tres carros a frente (ou atras) sobrava a faixa vazia, sem
+    # nada escrito em cima. A linha do jogador existe sempre.
+    row_visible = None if me else {"Visible": original(prefix, "Visible")}
     items = [
         RectangleItem(
             name="Row",
@@ -183,6 +190,7 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
             Width=BODY.width, Height=REL_ROW - 6.0,
             Visible=True, BlinkPhasisInverted=False,
             RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
+            bindings=row_visible,
         ),
         rel_text("Position", POS_X, POS_W, "18.", align=RIGHT, top=top,
                  color=accent, mono=True,
@@ -258,8 +266,8 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         *items,
         name=name,
         Group=True,
-        Repetitions=repetitions if repetitions is not None else 0,
-        PrepareRepetitions=True if repetitions else OFF,
+        Repetitions=grid.repetitions(rows) if rows else 0,
+        PrepareRepetitions=True if rows else OFF,
         RepeatTopOffset=offset if offset is not None else 0.0,
         Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
@@ -271,10 +279,10 @@ def relative():
     """Os tres carros a frente, o jogador, e os tres atras."""
     return Layer(
         rel_row("Relative/Driver Ahead Repeat", "Driver Ahead Repeat",
-                rel_top(ME_INDEX - 1), repetitions=3, offset=-REL_ROW),
+                rel_top(ME_INDEX - 1), rows=REL_SIDE_ROWS, offset=-REL_ROW),
         rel_row("Relative/Me", "Me", rel_top(ME_INDEX), me=True),
         rel_row("Relative/Driver Behind Repeat", "Driver Behind Repeat",
-                rel_top(ME_INDEX + 1), repetitions=3, offset=REL_ROW),
+                rel_top(ME_INDEX + 1), rows=REL_SIDE_ROWS, offset=REL_ROW),
         name="Relative",
         Group=True, Repetitions=0, Visible=True,
         BlinkPhasisInverted=False, RenderingSkip=0,
@@ -396,7 +404,8 @@ def practice():
                  color=TEXT_SECONDARY,
                  bindings={"Text": lap_js(fuel_body, "0.00")}),
             name="Lap Data",
-            Group=True, Repetitions=LOG_ROWS, PrepareRepetitions=True,
+            Group=True, Repetitions=grid.repetitions(LOG_ROWS),
+            PrepareRepetitions=True,
             RepeatTopOffset=LOG_ROW,
             Visible=True, BlinkPhasisInverted=False,
             RenderingSkip=0, MinimumRefreshIntervalMS=0.0,

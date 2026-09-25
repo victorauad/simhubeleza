@@ -144,15 +144,26 @@ def leds(side):
 
 
 def pedal_text(prop):
-    """Valor do pedal como texto, sempre com dois digitos no minimo."""
+    """Valor do pedal como texto: dois digitos, e "00" tambem em 100.
+
+    Sao tres digitos que nao cabem no ritmo do desenho, e o "1" do 100 ja
+    esta dito pela fileira de segmentos toda acesa -- e o que o dashboard
+    original fazia.
+    """
     return (
         f"\tvar v = $prop('{prop}');\r\n"
         "\tif (v == null || v === '') v = 0;\r\n"
         "\tv = Math.round(v);\r\n"
         "\tif (v < 0) v = 0;\r\n"
+        "\tif (v >= 100) return '00';\r\n"
         "\tif (v < 10) return '0' + v;\r\n"
         "\treturn '' + v;"
     )
+
+
+def pedal_visible(prop):
+    """Com o pedal solto o numero some -- so a fileira de segmentos fica."""
+    return f"if([{prop}] < 1, 0, 1)"
 
 
 def pedal(side, label, prop, color):
@@ -169,20 +180,17 @@ def pedal(side, label, prop, color):
         *segmented_bar(bar, f"[{prop}]", count=PEDAL_SEGMENTS, color=color,
                        gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
                        name=f"{label} Bar", reverse=(side is LEFT)),
-        # O numero tem que aparecer tambem com o pedal solto -- e o "00" do
-        # Figma. Nao ha binding de Visible (o original escondia o numero
-        # abaixo de 1), e o texto e montado em JS em vez de sair de uma
-        # FormatString: com o pedal em zero o valor formatado voltava vazio
-        # e o numero sumia da tela. Aqui o retorno e sempre uma string.
-        #
-        # O original tambem trocava 100 por "00", porque a caixa dele nao
-        # cabia tres digitos; esta cabe (113 unidades de desenho contra 30
-        # por glifo), entao 100 aparece inteiro.
+        # O texto e montado em JS em vez de sair de uma FormatString: com o
+        # pedal em zero o valor formatado voltava vazio, e o zero e
+        # justamente o caso que precisa de controle proprio.
         text(value.x, value.y, value.width, value.height, "00",
              name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
              weight="Bold", align=CENTER, mono=True,
              char_width=PEDAL_VALUE_CHAR,
-             bindings={"Text": js(pedal_text(prop), jsext=3, format_string="")}),
+             bindings={
+                 "Text": js(pedal_text(prop), jsext=3, format_string=""),
+                 "Visible": ncalc(pedal_visible(prop)),
+             }),
     ]
 
 
@@ -210,6 +218,12 @@ def flag(name):
 def proximity(*values):
     return " || ".join(f"[{FLAG_PROP}]={value}" for value in values)
 
+
+#: Lado em que cada aviso pode acender. Os de proximidade sao os unicos que
+#: tem lado: o carro esta a esquerda ou a direita, entao acender o chip nos
+#: dois lados ao mesmo tempo diz o contrario do que o aviso serve para dizer.
+#: Os demais valem para os dois lados.
+CHIP_SIDES = {"Flag Car Left": LEFT, "Flag Car Right": RIGHT}
 
 CHIPS = [
     ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT_ON_LIGHT, None),
@@ -264,9 +278,14 @@ def chip(side, name, label, background, color, formula):
 
 
 def chips(side):
-    """Os dez avisos empilhados no mesmo lugar, um visivel por vez."""
+    """Os avisos empilhados no mesmo lugar, um visivel por vez.
+
+    Os avisos com lado proprio (carro a esquerda / a direita) so entram na
+    pilha do lado deles.
+    """
+    stack = [spec for spec in CHIPS if CHIP_SIDES.get(spec[0], side) is side]
     return Layer(
-        *(item for spec in CHIPS for item in chip(side, *spec)),
+        *(item for spec in stack for item in chip(side, *spec)),
         name="Alerrts" if side is LEFT else "Alerrts2",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,

@@ -55,11 +55,11 @@ if ({FIELD_SIZE} - {PLAYER_POSITION} <= 5) {{
 
 if ({FIELD_SIZE} <= 13 || index < 0 || {PLAYER_POSITION} <= 11) {{
 
-\treturn {ROWS_FULL};
+\treturn {grid.repetitions(ROWS_FULL)};
 \t
 }} else {{
 
-\treturn {ROWS_WINDOW};
+\treturn {grid.repetitions(ROWS_WINDOW)};
 \t
 }}"""
 
@@ -495,7 +495,7 @@ def overflow_layer():
                  }),
         name="Leaderboard Overflow",
         Group=True,
-        Repetitions=OVERFLOW_ROWS,
+        Repetitions=grid.repetitions(OVERFLOW_ROWS),
         PrepareRepetitions=True,
         RepeatTopOffset=ROW_HEIGHT,
         Visible=True,

@@ -26,11 +26,16 @@ CAPACITY = 200.0
 BAR_HEIGHT = 8.0
 
 #: Cada estado do sistema, na ordem em que o original testa: box, pronto,
-#: ativo, esfriando, indisponivel.
+#: ativo, esfriando, indisponivel. As cores sao as do Figma -- pronto em
+#: verde, ativo em azul (piscando) e esfriando em vermelho.
 READY = "limegreen"
-ACTIVE = "gold"
-COOLDOWN = "orange"
+ACTIVE = "dodgerblue"
+COOLDOWN = "tomato"
 BLOCKED = "dimgray"
+
+#: O estado ativo pisca; os outros ficam fixos. `BlinkEnabled` liga o
+#: piscar do proprio SimHub, entao a formula so precisa dizer quando.
+IS_ACTIVE = "if([DahlDesign.SF23.OTActive], 1, 0)"
 
 
 def state_formula(box, ready, active, cooldown, blocked, fallback):
@@ -99,7 +104,8 @@ def layer():
                 name="OTS Caption", size=SIZE_LABEL),
         text(body.x, body.y + SIZE_LABEL, body.width * 0.55, body.height - SIZE_LABEL,
              "READY", name="Status", size=SIZE_VALUE, weight=WEIGHT_VALUE,
-             align=LEFT, bindings={"Text": ncalc(LABEL), "TextColor": ncalc(COLOR)}),
+             align=LEFT, bindings={"Text": ncalc(LABEL), "TextColor": ncalc(COLOR),
+                                   "BlinkEnabled": ncalc(IS_ACTIVE)}),
         text(body.x + body.width * 0.55, body.y + SIZE_LABEL,
              body.width * 0.45, body.height - SIZE_LABEL,
              "200", name="OTS Left", size=SIZE_VALUE, weight=WEIGHT_VALUE,
