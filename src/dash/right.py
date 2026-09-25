@@ -138,10 +138,54 @@ def rel_top(index):
 ME_INDEX = 3
 
 
-#: Formato unico do tempo de volta no relative. O original tinha um por
-#: linha -- vazio nos carros a frente, `m\.ss\.ff` nos de tras e
-#: `mm\:ss\.fff` na do jogador -- e cada linha aparecia diferente.
-REL_LAP_FORMAT = "m\\:ss\\.f"
+#: Tempo de volta do relative, montado em JS em vez de sair de uma
+#: FormatString.
+#:
+#: O original tinha um formato por linha (vazio nos carros a frente,
+#: `m\.ss\.ff` nos de tras, `mm\:ss\.fff` na do jogador) e cada linha
+#: aparecia diferente. Uniformizar a FormatString nao resolveu: as linhas
+#: do plugin RLB continuaram saindo como "00.047" e "1:43.607" enquanto a
+#: do jogador saia certa, porque o valor do plugin nem sempre e um TimeSpan
+#: -- quando chega como texto ja formatado, o SimHub ignora o formato e
+#: deixa passar o que veio.
+#:
+#: Calcular a partir dos segundos tira a duvida: toda linha passa pelo
+#: mesmo codigo e sai em m:ss.f.
+def rel_lap_text(prop_expression):
+    """Texto do tempo de volta a partir de `prop_expression` (JS)."""
+    return (
+        f"\tvar raw = {prop_expression};\r\n"
+        "\tif (raw == null || raw === '') return '';\r\n"
+        # TimeSpan resolve direto; texto cai no parse abaixo.
+        "\tvar total = timespantoseconds(raw);\r\n"
+        "\tif (total == null || isNaN(total) || total <= 0) {\r\n"
+        "\t\tvar parts = (raw + '').split(':');\r\n"
+        "\t\ttotal = 0;\r\n"
+        "\t\tfor (var i = 0; i < parts.length; i++) {\r\n"
+        "\t\t\ttotal = total * 60 + parseFloat(parts[i]);\r\n"
+        "\t\t}\r\n"
+        "\t}\r\n"
+        "\tif (total == null || isNaN(total) || total <= 0) return '';\r\n"
+        # Arredonda para uma casa antes de partir em minuto e segundo, para
+        # 59.97 virar 1:00.0 e nao 0:60.0.
+        "\tvar tenths = Math.round(total * 10);\r\n"
+        "\tvar m = Math.floor(tenths / 600);\r\n"
+        "\tvar rest = tenths - m * 600;\r\n"
+        "\tvar s = Math.floor(rest / 10);\r\n"
+        "\tvar f = rest - s * 10;\r\n"
+        "\treturn m + ':' + (s < 10 ? '0' + s : '' + s) + '.' + f;"
+    )
+
+
+#: Propriedade do tempo de volta de cada variacao de linha. As duas
+#: repetidas montam o nome com o indice da repeticao, como no original.
+REL_LAP_PROP = {
+    "Relative/Driver Ahead Repeat":
+        "$prop('IRacingExtraProperties.RLB_Ahead_LastLapTime_0' + repeatindex())",
+    "Relative/Driver Behind Repeat":
+        "$prop('IRacingExtraProperties.RLB_Behind_LastLapTime_0' + repeatindex())",
+    "Relative/Me": "$prop('LastLapTime')",
+}
 
 #: Os digitos ficam monoespacados (colunas de numero nao "dancam" a cada
 #: atualizacao), mas a largura sai do tamanho da fonte em vez de um 14.0
@@ -205,14 +249,15 @@ def rel_row(prefix, name, top, *, rows=None, offset=None, me=False):
                  color=TEXT if me else TEXT_SECONDARY,
                  bindings={"Text": at("Name", "Text")} if not me
                  else {"Text": ncalc("[DataCorePlugin.GameData.PlayerName]")}),
-        # A linha do jogador vinha de `toshorttime()`, que ja devolve texto
-        # pronto e ignorava o formato -- lendo `[LastLapTime]` cru as tres
-        # variacoes de linha passam pelo mesmo `REL_LAP_FORMAT`.
+        # As tres variacoes de linha passam pelo mesmo `rel_lap_text()`, que
+        # calcula o texto a partir dos segundos -- e o unico jeito de as
+        # linhas sairem iguais, ja que o formato do SimHub nao pega no valor
+        # que o plugin RLB entrega.
         rel_text("Last Lap", LAP_X, LAP_W, "0:00.0", align=RIGHT, top=top,
                  mono=True,
                  bindings={
-                     "Text": formatted("[LastLapTime]", REL_LAP_FORMAT) if me
-                     else at("Last Lap", "Text", format_string=REL_LAP_FORMAT),
+                     "Text": js(rel_lap_text(REL_LAP_PROP[prefix]), jsext=3,
+                                format_string=""),
                      "Visible": at("Last Lap", "Visible"),
                  }),
     ]
