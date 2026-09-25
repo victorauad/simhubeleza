@@ -1,25 +1,33 @@
 """Barra superior: pedais, RPM, delta e os avisos.
 
 Implementa a revisao desenhada no Figma (`LDY1mlry0kX59Nw6ueDj1h`, section
-`4317:567`), medida num frame de 1329x132. Toda coordenada aqui esta nas
+`4323:243`), medida num frame de 1329x132. Toda coordenada aqui esta nas
 unidades do desenho e passa por `grid.scaled()` na hora de virar pixel -- uma
 constante so (`layout.SCALE`) separa o desenho do painel.
 
-A ordem, em cada lado, do exterior para o centro:
+Duas fileiras por lado, do topo para baixo:
 
-    [4 quadrados de RPM]  [chip de aviso]  [numero do pedal]
+    [dez segmentos grossos do pedal          ]
+    [4 quadrados de RPM]  [chip de aviso]      [numero do pedal]
 
-e por cima de tudo isso a fileira fina de dez segmentos do pedal. No miolo,
-o cartao do delta. O lado direito e o espelho do esquerdo -- o Figma tem os
-dois lados desenhados, mas os numeros da direita escapam do container (os
-segmentos terminam em 1349 num frame de 1329) e ficam 18px mais baixos, entao
-espelhar a esquerda e o que reproduz a intencao.
+e no miolo o cartao do delta, agora ocupando quase toda a altura do painel.
+O lado direito e o espelho do esquerdo -- o Figma desenha os dois, mas o
+direito escapa do container (os segmentos terminam em 1364 num frame de
+1329), entao espelhar a esquerda e o que reproduz a intencao.
 
-O pedal enche do centro para fora: no estado de 75% do Figma sao os segmentos
-do lado de dentro que estao acesos.
+Nesta revisao os rotulos "BRAKE" e "THROTTLE" sairam: a fileira de
+segmentos subiu para o topo e ocupa o lugar deles.
+
+O pedal enche do centro para fora, entao o movimento e simetrico no canto
+do olho.
+
+As coordenadas foram medidas no PNG do proprio node (render 1:1 com o
+frame), nao so lidas dos metadados: os retangulos dos segmentos vem com um
+`y` deslocado nos metadados, e a medicao em pixel e que fecha com o
+desenho.
 """
 
-from simhub.bindings import formatted, ncalc
+from simhub.bindings import js, ncalc
 from simhub.model import Layer, LinearGaugeItem, RectangleItem, WidgetItem
 from simhub.theme import (
     BRAKE, FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN,
@@ -55,43 +63,54 @@ def side_box(side, x, y, width, height):
 
 # --- Medidas do Figma --------------------------------------------------------
 
-LABEL_SIZE = grid.scaled(13.0)
-LABEL = (6.0, 5.0, 113.0, 21.0)
-
-PEDAL_BAR = (40.0, 30.0, 471.0, 18.0)
+#: Fileira de cima: dez segmentos grossos por lado, 23..508 na esquerda.
+PEDAL_BAR = (23.0, 9.0, 485.0, 39.0)
 PEDAL_SEGMENTS = 10
 PEDAL_GAP = grid.scaled(4.0)
-PEDAL_RADIUS = 3
+PEDAL_RADIUS = 5
 
-PEDAL_VALUE = (424.0, 58.0, 113.0, 62.0)
-PEDAL_VALUE_SIZE = grid.scaled(50.0)
+#: O numero do pedal. A caixa do Figma (y=58, altura 62) e menor que a
+#: linha do proprio texto: os digitos do desenho tem 60 unidades de altura,
+#: o que pede uma fonte de ~82. O SimHub corta o que passa da caixa (o
+#: Figma nao), entao a caixa e alargada em volta do mesmo centro vertical
+#: dos digitos (88.5) ate caber a linha inteira.
+PEDAL_VALUE = (402.0, 45.0, 113.0, 87.0)
+PEDAL_VALUE_SIZE = grid.scaled(78.0)
+PEDAL_VALUE_CHAR = grid.scaled(50.0)
 
 LEDS = (40.0, 71.0, 229.0, 36.0)
 
-CHIP = (275.0, 71.0, 159.0, 36.0)
+CHIP = (275.0, 71.0, 113.0, 36.0)
 CHIP_TEXT_INSET = 4.0
 CHIP_TEXT_SIZE = grid.scaled(19.0)
 CHIP_RADIUS = 3
 
-#: O cartao fica centralizado no vao entre os dois pedais (511 a 818, 307 de
-#: largura) -- o Figma original o desenhava 7 unidades deslocado para a
-#: direita desse centro.
-CARD = (520.0, 28.0, 289.0, 89.0)
+#: O cartao fica centralizado no vao entre os dois pedais. Com os segmentos
+#: terminando em 508 e o espelho da direita comecando em 821, o vao tem 313
+#: e o cartao de 289 cai em 520 -- 7 a esquerda do 527 do Figma, que centra
+#: no vao assimetrico do desenho. Todas as medidas internas do cartao
+#: carregam o mesmo deslocamento de -7.
+CARD = (520.0, 9.0, 289.0, 108.0)
 CARD_RADIUS = 7
+LABEL_SIZE = grid.scaled(13.0)
 DELTA_LABEL = (504.0, 56.0, 113.0, 21.0)
 BEST_LABEL = (714.0, 56.0, 113.0, 21.0)
-DELTA_HERO = (582.0, 24.0, 165.0, 62.0)
-DELTA_HERO_SIZE = grid.scaled(40.0)
+#: Mesma historia da caixa do pedal: os digitos medem 45 de altura (fonte
+#: ~62) e a caixa do Figma tem 62, entao ela cresce em volta do centro (44).
+DELTA_HERO = (564.0, 8.0, 195.0, 72.0)
+DELTA_HERO_SIZE = grid.scaled(62.0)
+DELTA_HERO_CHAR = grid.scaled(37.0)
+DELTA_HERO_DOT = grid.scaled(18.0)
 
 #: As duas metades da barra do delta e as duas da barra de consistencia. O
 #: ponto de corte (665.06) e o centro do cartao.
-DELTA_BAR_LEFT = (526.0, 80.0, 135.72, 18.13)
-DELTA_BAR_RIGHT = (665.06, 80.0, 137.94, 18.13)
-PROGRESS_LEFT = (526.0, 103.47, 135.72, 8.53)
-PROGRESS_RIGHT = (665.06, 103.47, 137.94, 8.53)
+DELTA_BAR_LEFT = (526.0, 84.0, 135.72, 18.13)
+DELTA_BAR_RIGHT = (665.06, 84.0, 137.94, 18.13)
+PROGRESS_LEFT = (526.0, 106.47, 135.72, 6.0)
+PROGRESS_RIGHT = (665.06, 106.47, 137.94, 6.0)
 
-TICK_LEFT = (526.0, 35.0, 9.0, 40.0)
-TICK_RIGHT = (793.0, 35.0, 9.0, 40.0)
+TICK_LEFT = (526.0, 13.0, 9.0, 62.0)
+TICK_RIGHT = (795.0, 13.0, 9.0, 62.0)
 
 
 def leds(side):
@@ -124,36 +143,46 @@ def leds(side):
     )
 
 
+def pedal_text(prop):
+    """Valor do pedal como texto, sempre com dois digitos no minimo."""
+    return (
+        f"\tvar v = $prop('{prop}');\r\n"
+        "\tif (v == null || v === '') v = 0;\r\n"
+        "\tv = Math.round(v);\r\n"
+        "\tif (v < 0) v = 0;\r\n"
+        "\tif (v < 10) return '0' + v;\r\n"
+        "\treturn '' + v;"
+    )
+
+
 def pedal(side, label, prop, color):
-    """Entrada do piloto: rotulo na borda externa, fileira fina de dez
-    segmentos, e o numero grande encostado no cartao do delta.
+    """Entrada do piloto: fileira de dez segmentos no topo e o numero
+    grande encostado no cartao do delta.
 
     A barra enche do centro para fora nos dois lados, entao o movimento e
     simetrico no canto do olho.
     """
-    label_area = side_box(side, *LABEL)
     bar = side_box(side, *PEDAL_BAR)
     value = side_box(side, *PEDAL_VALUE)
 
     return [
-        text(label_area.x, label_area.y, label_area.width, label_area.height,
-             label.upper(), name=f"{label} Label", size=LABEL_SIZE,
-             color=TEXT_DIM, weight="Bold",
-             align=LEFT if side is LEFT else RIGHT),
         *segmented_bar(bar, f"[{prop}]", count=PEDAL_SEGMENTS, color=color,
                        gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
                        name=f"{label} Bar", reverse=(side is LEFT)),
-        # Sem binding de Visible: o Figma mostra "00" tambem com o pedal solto.
+        # O numero tem que aparecer tambem com o pedal solto -- e o "00" do
+        # Figma. Nao ha binding de Visible (o original escondia o numero
+        # abaixo de 1), e o texto e montado em JS em vez de sair de uma
+        # FormatString: com o pedal em zero o valor formatado voltava vazio
+        # e o numero sumia da tela. Aqui o retorno e sempre uma string.
         #
-        # O original trocava 100 por "00" porque a caixa dele nao cabia tres
-        # digitos; esta cabe (113 unidades de desenho contra 30 por glifo),
-        # entao o valor vai inteiro, com duas casas de piso -- o freio
-        # aparecia com um digito so enquanto o acelerador aparecia com dois.
+        # O original tambem trocava 100 por "00", porque a caixa dele nao
+        # cabia tres digitos; esta cabe (113 unidades de desenho contra 30
+        # por glifo), entao 100 aparece inteiro.
         text(value.x, value.y, value.width, value.height, "00",
              name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
              weight="Bold", align=CENTER, mono=True,
-             char_width=grid.scaled(30.0),
-             bindings={"Text": formatted(f"[{prop}]", "00")}),
+             char_width=PEDAL_VALUE_CHAR,
+             bindings={"Text": js(pedal_text(prop), jsext=3, format_string="")}),
     ]
 
 
@@ -327,8 +356,8 @@ def delta():
         text(hero.x, hero.y, hero.width, hero.height, "+0.00",
              name="Delta Value", size=DELTA_HERO_SIZE, color=TEXT,
              weight="Bold", align=CENTER, mono=True,
-             char_width=grid.scaled(24.0), special_chars=".",
-             special_chars_width=grid.scaled(11.0),
+             char_width=DELTA_HERO_CHAR, special_chars=".",
+             special_chars_width=DELTA_HERO_DOT,
              bindings={
                  "Text": ncalc(DELTA_TEXT),
                  "TextColor": ncalc(f"if({DELTA_PROP} < 0, 'SpringGreen', 'Tomato')"),

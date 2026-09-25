@@ -34,51 +34,80 @@ from .widgets import CENTER, LEFT, RIGHT, caption, text, tile, value_unit
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
 
-#: Condicoes que decidem qual modo aparece.
+#: Condicoes que decidem qual modo aparece:
 #:
-#: `[SessionTypeName]` nao existe -- nao aparece no dump de
-#: `SampleSessionData.json` nem em `SampleTelemetry.json`, nem foi usada uma
-#: vez sequer no dashboard original. O caminho real, confirmado no dump:
-#: `SessionInfo.CurrentSessionNum` (indice da sessao atual) mais
-#: `SessionInfo.Sessions0<n>.SessionType` (o texto, por sessao do fim de
-#: semana). NCalc nao indexa propriedade dinamicamente, entao a checagem so
-#: existe em JS -- por tabela, os dois formulas que a incorporam tambem.
-#: A string exata de uma sessao de treino livre solo ("Offline Testing")
-#: segue sem confirmacao: nenhum dos dois dumps recebidos era desse tipo de
-#: sessao.
+#:   Practice   sessao offline (sem servidor).
+#:   Standings  sessao publica, com o carro fora da pista (garagem) ou nos
+#:              4s seguintes a cruzar a linha.
+#:   Relative   o resto do tempo numa sessao publica -- o modo padrao.
 #:
-#: `[GameRawData.Telemetry.IsOnTrack]` e `[...LapCurrentLapTime]` estao
-#: confirmados no dump de telemetria (existem, tipos batem).
+#: A versao anterior comparava `IsOnTrack` com a *string* `'TRUE'`. A
+#: propriedade chega como booleano (o dump do usuario traz
+#: `IsOnTrack = false`), entao a comparacao nunca dava verdadeiro: o dash
+#: se achava permanentemente fora da pista e so mostrava o Standings.
+#: Por isso toda leitura aqui passa por `_truthy`/`_number`, que aceitam
+#: booleano, "True"/"true"/"TRUE" e nulo sem quebrar.
 #:
-#: Preambulo comum: calcula `inPractice` a partir da sessao atual. Os tres
-#: formulas que precisam da condicao (o proprio modo Practice, e as duas
-#: negacoes em Standings/Relative) prefixam este texto e so trocam o
-#: `return` final.
-_SESSION_TYPE_LOOKUP = (
-    "\tvar n = $prop('SessionInfo.CurrentSessionNum') + 1;\r\n"
-    "\tvar inPractice = $prop('SessionInfo.Sessions0' + n + '.SessionType') "
-    "== 'Offline Testing';\r\n"
+#: Os caminhos de propriedade tambem nao eram confiaveis: os dumps sao
+#: telemetria crua do iRacing, e o prefixo que o SimHub usa varia por
+#: secao. Cada leitura tenta os caminhos plausiveis em ordem e fica no
+#: primeiro que resolver -- `GameRawData.CurrentSessionInfo.*` e o unico
+#: confirmado ao vivo (e o que alimenta o campo Grip).
+#: Tudo aqui e escrito no estilo mais simples possivel -- so `var`, `if` e
+#: comparacao. Sem funcao aninhada, sem `arguments`: uma formula que falha
+#: no motor de JS do SimHub falha em silencio, e nao ha como testar isso
+#: sem o jogo aberto.
+#:
+#: Offline = sem sessao de servidor. O iRacing zera `SubSessionID` fora das
+#: sessoes publicas (o dump de uma corrida oficial traz 77570594), e o
+#: teste solo aparece como "Offline Testing" no tipo da sessao. Qualquer um
+#: dos dois basta; se nenhum caminho resolver, o dash assume publica --
+#: que e o caso comum e o que o usuario quer ver por padrao.
+_IN_PRACTICE = (
+    "\tvar sub = $prop('GameRawData.SessionInfo.WeekendInfo.SubSessionID');\r\n"
+    "\tif (sub == null) sub = $prop('GameRawData.WeekendInfo.SubSessionID');\r\n"
+    "\tif (sub == null) sub = $prop('WeekendInfo.SubSessionID');\r\n"
+    "\tvar type = $prop('GameRawData.CurrentSessionInfo.SessionType');\r\n"
+    "\tif (type == null) type = $prop('SessionTypeName');\r\n"
+    "\tvar offlineType = (type + '').toLowerCase().indexOf('offline') >= 0;\r\n"
+    "\tvar inPractice = offlineType || "
+    "(sub != null && (sub == 0 || sub == '0'));\r\n"
 )
-IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 
-NOT_ON_TRACK = ("!([DataCorePlugin.GameRunning] && "
-               "[GameRawData.Telemetry.IsOnTrack]='TRUE')")
-NOT_ON_TRACK_JS = ("!($prop('DataCorePlugin.GameRunning') && "
-                   "$prop('GameRawData.Telemetry.IsOnTrack') == 'TRUE')")
-#: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
-#: acabou de ser completada.
-JUST_COMPLETED_LAP_JS = (
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') >= 0 && "
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') < 4"
+#: Fora da pista: na garagem, no box de espera ou assistindo. `IsInGarage`
+#: e explicito; `IsOnTrack` cobre o resto. As duas chegam como booleano --
+#: a versao anterior comparava com a string 'TRUE', nunca dava verdadeiro,
+#: e o dash ficava preso no Standings.
+_NOT_ON_TRACK = (
+    "\tvar onTrackRaw = $prop('GameRawData.Telemetry.IsOnTrack');\r\n"
+    "\tif (onTrackRaw == null) onTrackRaw = $prop('IsOnTrack');\r\n"
+    "\tvar garageRaw = $prop('GameRawData.Telemetry.IsInGarage');\r\n"
+    "\tif (garageRaw == null) garageRaw = $prop('IsInGarage');\r\n"
+    "\tvar onTrack = (onTrackRaw + '').toLowerCase() == 'true';\r\n"
+    "\tvar inGarage = (garageRaw + '').toLowerCase() == 'true';\r\n"
+    # Se nenhum caminho de IsOnTrack resolver, o dash assume que esta na
+    # pista: o default errado aqui e justamente o bug relatado (Standings
+    # preso na tela), entao o lado seguro e cair no Relative.
+    "\tvar notOnTrack = inGarage;\r\n"
+    "\tif (onTrackRaw != null) notOnTrack = !onTrack || inGarage;\r\n"
 )
-_STANDINGS_OR_JUST_LAPPED = f"(({NOT_ON_TRACK_JS}) || ({JUST_COMPLETED_LAP_JS}))"
+
+#: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a
+#: anterior acabou de ser completada.
+_JUST_LAPPED = (
+    "\tvar lapTime = $prop('GameRawData.Telemetry.LapCurrentLapTime');\r\n"
+    "\tif (lapTime == null) lapTime = $prop('LapCurrentLapTime');\r\n"
+    "\tvar justLapped = lapTime != null && lapTime >= 0 && lapTime < 4;\r\n"
+)
+
+_MODE_PREAMBLE = _IN_PRACTICE + _NOT_ON_TRACK + _JUST_LAPPED
+
+IN_PRACTICE_JS = _MODE_PREAMBLE + "\treturn inPractice;"
 SHOW_STANDINGS_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && {_STANDINGS_OR_JUST_LAPPED};"
+    _MODE_PREAMBLE + "\treturn !inPractice && (notOnTrack || justLapped);"
 )
 SHOW_RELATIVE_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && !{_STANDINGS_OR_JUST_LAPPED};"
+    _MODE_PREAMBLE + "\treturn !inPractice && !(notOnTrack || justLapped);"
 )
 
 #: Altura de linha do relative -- sete linhas (3 a frente, eu, 3 atras) no
@@ -108,7 +137,7 @@ ME_INDEX = 3
 #: Formato unico do tempo de volta no relative. O original tinha um por
 #: linha -- vazio nos carros a frente, `m\.ss\.ff` nos de tras e
 #: `mm\:ss\.fff` na do jogador -- e cada linha aparecia diferente.
-REL_LAP_FORMAT = "m\\:ss\\.fff"
+REL_LAP_FORMAT = "m\\:ss\\.f"
 
 #: Os digitos ficam monoespacados (colunas de numero nao "dancam" a cada
 #: atualizacao), mas a largura sai do tamanho da fonte em vez de um 14.0
@@ -171,7 +200,7 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         # A linha do jogador vinha de `toshorttime()`, que ja devolve texto
         # pronto e ignorava o formato -- lendo `[LastLapTime]` cru as tres
         # variacoes de linha passam pelo mesmo `REL_LAP_FORMAT`.
-        rel_text("Last Lap", LAP_X, LAP_W, "0:00.000", align=RIGHT, top=top,
+        rel_text("Last Lap", LAP_X, LAP_W, "0:00.0", align=RIGHT, top=top,
                  mono=True,
                  bindings={
                      "Text": formatted("[LastLapTime]", REL_LAP_FORMAT) if me
