@@ -7,8 +7,8 @@ segmentada -- sao montados aqui uma vez e reusados pelas regioes.
 
 from simhub.model import OFF, RectangleItem, TextItem
 from simhub.theme import (
-    CORNER_RADIUS_TILE, FONT, SIZE_LABEL, SIZE_UNIT, SIZE_VALUE, TEXT,
-    TEXT_SECONDARY, TILE, TRACK, WEIGHT_LABEL, WEIGHT_UNIT, WEIGHT_VALUE,
+    CORNER_RADIUS_TILE, FONT_MONO, MONO_ADVANCE, SIZE_LABEL, SIZE_UNIT, SIZE_VALUE, TEXT,
+    SEPARATOR, TEXT_SECONDARY, TILE, TRACK, WEIGHT_LABEL, WEIGHT_UNIT, WEIGHT_VALUE,
     rounded,
 )
 
@@ -21,13 +21,13 @@ def optional(value):
 
 
 def tile(region, name=None, color=TILE, radius=CORNER_RADIUS_TILE,
-         border=None, opacity=None, bindings=None):
+         border=None, thickness=3, opacity=None, bindings=None):
     """Superficie de fundo de um bloco de dados."""
     return RectangleItem(
         name=name or "Tile",
         IsRectangleItem=True,
         BackgroundColor=color,
-        BorderStyle=rounded(border, radius=radius),
+        BorderStyle=rounded(border, thickness, radius=radius),
         Left=region.x, Top=region.y,
         Width=region.width, Height=region.height,
         Opacity=optional(opacity),
@@ -39,11 +39,38 @@ def tile(region, name=None, color=TILE, radius=CORNER_RADIUS_TILE,
     )
 
 
+def separators(cells, region, *, name="Separator", inset=12.0):
+    """Filetes verticais entre campos de um mesmo cartao: um na borda
+    esquerda de cada celula, menos a primeira."""
+    return [
+        RectangleItem(
+            name=f"{name} {index}",
+            IsRectangleItem=True,
+            BackgroundColor=SEPARATOR,
+            Left=cell.x - 0.5, Top=region.y + inset,
+            Width=1.0, Height=region.height - inset * 2,
+            Visible=True,
+            BlinkPhasisInverted=False,
+            RenderingSkip=0,
+            MinimumRefreshIntervalMS=0.0,
+        )
+        for index, cell in enumerate(cells[1:], start=1)
+    ]
+
+
 def text(x, y, width, height, content, *, name=None, size=SIZE_VALUE,
-         color=TEXT, weight=None, align=LEFT, valign=CENTER, font=FONT,
+         color=TEXT, weight=None, align=LEFT, valign=CENTER, font=FONT_MONO,
          mono=False, char_width=None, special_chars=None,
          special_chars_width=None, opacity=None, bindings=None):
-    """TextItem com os defaults do design system."""
+    """TextItem com os defaults do design system.
+
+    `mono` liga a largura fixa do SimHub (`CharWidth`). Na Arame Mono ela e
+    dispensada: a fonte ja tem todo glifo com a mesma largura, e um
+    CharWidth medido para outra fonte so encavalaria os digitos.
+    """
+    if font == FONT_MONO:
+        mono, char_width = False, None
+        special_chars = special_chars_width = None
     return TextItem(
         name=name or "Text",
         IsTextItem=True,
@@ -91,22 +118,28 @@ def value_unit(region, value, unit, *, name="Value", unit_width=None,
     acima dele -- e o padrao das referencias (valor sempre alinhado com o
     rotulo, nunca "flutuando" pra direita conforme o numero de digitos muda).
     """
-    unit_width = unit_width if unit_width is not None else len(unit) * unit_size * 0.62
+    unit_width = (unit_width if unit_width is not None
+                  else len(unit) * unit_size * MONO_ADVANCE + 4.0)
     value_width = region.width - unit_width
 
     baseline = region.y + (region.height - value_size) * 0.5
     unit_drop = (value_size - unit_size) * 0.62
 
     if align is LEFT:
-        # O valor cola na esquerda; a unidade, sem como saber a largura real
-        # do numero (o SimHub nao mede texto), fica ancorada logo depois de
-        # uma largura de valor generosa o bastante para o maior caso comum.
+        # O valor cola na esquerda. Na Arame Mono todo glifo mede 0.6 em,
+        # entao a largura do numero sai do proprio texto de exemplo (que tem
+        # o formato do valor real) e a unidade encosta logo depois dele, na
+        # mesma linha de base.
+        advance = len(value) * MONO_ADVANCE * value_size
+        center = region.y + region.height / 2
+        unit_center = center + 0.35 * (value_size - unit_size)
+        unit_height = unit_size * 1.4
         return [
             text(region.x, region.y, value_width, region.height, value,
                  name=name, size=value_size, color=color, weight=WEIGHT_VALUE,
                  align=LEFT, mono=mono, bindings=value_bindings),
-            text(region.x + value_width, baseline + unit_drop,
-                 unit_width, unit_size * 1.4, unit,
+            text(region.x + advance + 4.0, unit_center - unit_height / 2,
+                 unit_width, unit_height, unit,
                  name=f"{name} Unit", size=unit_size, color=unit_color,
                  weight=WEIGHT_UNIT, align=LEFT, valign=CENTER,
                  bindings=unit_bindings),

@@ -74,11 +74,38 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   0.5 s). Constantes renomeadas para `WIDE_BAR_*` / `THIN_BAR_*`.
 
 - **Pedais em pente**: freio e acelerador viraram um gauge continuo entre um
-  trilho e uma mascara PNG (100 dentes, 1 por ponto percentual, dezena mais
-  alta). As mascaras saem de `tools/make_pedal_comb.py` a partir de
-  `PEDAL_BAR` -- mudou a barra, rode o script. `top_bar.IMAGES` entra no
-  Images[] pelo `build.py`, com MD5 e tamanho lidos do arquivo. O preview
-  agora le `GaugeAlignment` 2 como "enche da direita" (antes tratava 1).
+  trilho e uma mascara PNG (100 dentes, 1 por ponto percentual). O dente de
+  cada dezena e pintado na mascara, mais baixo e escuro: nunca acende, so
+  demarca. `top_bar.IMAGES` e `ots.IMAGES` entram no Images[] pelo
+  `build.py`, com MD5 e tamanho lidos do arquivo. O preview le
+  `GaugeAlignment` 2 como "enche da direita" (antes tratava 1).
+
+- **Refino do canvas portado** (paleta Grafite, canvas
+  <https://claude.ai/artifact/AbajxTu5mfqDBn6uAcL1J4>):
+  - `theme.py`: paleta grafite, Arame Mono nos numeros/rotulos e na marcha,
+    Funnel Sans nos nomes, chanfro `(3, 14, 3, 14)` nos tiles (`rounded()`
+    aceita tupla de cantos). Na Arame Mono o `text()` ignora `mono`/CharWidth:
+    a fonte ja e monoespacada (0.6 em por glifo), e `value_unit` usa isso
+    para encostar a unidade no numero.
+  - Barra superior em pixels (sem a escala do Figma): painel de 108.92, duas
+    linhas de 38.16 da borda ao cartao do delta, cartao centrado como tile.
+    O delta progress tambem virou pente (`DeltaComb`). Margem de 6 em todas
+    as bordas, inclusive embaixo (`BODY_BOTTOM = 511`).
+  - RPM em rampa azul (`RPM_RAMP`), cada LED para fora mais claro e com halo
+    borrado maior.
+  - Marcha num disco, com brilho por estado (`center.GLOW_COLOR`): roxo no
+    limite de RPM > verde com OTS ativo > vermelho carregando > ciano no
+    limiter > ambar.
+  - OTS: verde pronto, roxo piscando ativo (`BlinkEnabled`), vermelho
+    carregando; barra em pente (`OtsComb`).
+  - Brake bias brilha verde ao subir e vermelho ao descer por 1.6 s: formula
+    JS que guarda o ultimo valor em `root` (`left.bias_flash`). **Nao testado
+    no SimHub** -- se `root` nao persistir entre avaliacoes, o numero so fica
+    ambar.
+  - Coluna esquerda/direita sem fundo de coluna: cada bloco e um tile, com
+    filetes entre campos. Linha do jogador em ambar.
+  - Mascaras: `python3 tools/make_combs.py` (substitui `make_pedal_comb.py`)
+    -- mudou a medida de uma barra, rode de novo.
 
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o

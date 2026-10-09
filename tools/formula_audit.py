@@ -36,7 +36,8 @@ def normalize(expression):
 #: Nomes de cor CSS e hex ARGB que aparecem em formulas de cor.
 COLOR_LITERAL = re.compile(
     r"'(#[0-9A-Fa-f]{6,8}|transparent|darkcyan|lawngreen|darkgray|dimgray|red|"
-    r"orange|gold|limegreen|yellow|white|black|green|cyan|magenta)'")
+    r"orange|gold|limegreen|yellow|white|black|green|cyan|magenta|springgreen|"
+    r"tomato|darkorange|gray)'", re.IGNORECASE)
 
 
 def colorless(expression):

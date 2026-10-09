@@ -9,15 +9,14 @@ A hierarquia e a das referencias: rotulo em caixa alta cinza em cima, numero
 grande embaixo, unidade pequena colada nele.
 """
 
-from simhub.bindings import formatted, ncalc
-from simhub.model import ImageItem, Layer, TextItem
+from simhub.bindings import formatted, js, ncalc
+from simhub.model import ImageItem, Layer, RectangleItem
 from simhub.theme import (
-    BACKGROUND, CORNER_RADIUS_TILE, CYAN, FONT_MONO, GUTTER, ORANGE, PADDING,
-    SIZE_LABEL, SIZE_LABEL_SM, SIZE_UNIT, SIZE_VALUE, SIZE_VALUE_SM, TEXT,
-    TEXT_SECONDARY, TILE, rounded,
+    BIAS, BIAS_DOWN, BIAS_UP, CYAN, GUTTER, ORANGE, PADDING, SIZE_LABEL,
+    SIZE_VALUE_SM, TEXT, TEXT_TERTIARY, TILE,
 )
 from . import layout as grid
-from .widgets import CENTER, LEFT, RIGHT, caption, optional, text, tile, value_unit
+from .widgets import LEFT, caption, separators, tile, value_unit
 
 PANEL = grid.LEFT.inset(left=grid.MARGIN, right=grid.MARGIN)
 
@@ -38,8 +37,56 @@ STATS_HEIGHT = PANEL.height - CHART_HEIGHT - FOOTER_HEIGHT - GUTTER * 2
 FOOTER_WEIGHTS = (1.0, 1.0, 1.0, 1.0, 1.4)
 
 #: A primeira coluna da linha de stats carrega o bias, que e o dado mais
-#: consultado ali, entao ganha mais largura que as outras tres.
-BIAS_WIDTH = 160.0
+#: consultado ali, entao ganha mais largura e um numero maior que as outras
+#: tres.
+BIAS_WIDTH = 148.0
+BIAS_SIZE = 38.0
+STAT_SIZE = 28.0
+
+#: Respiro interno dos cartoes da coluna (o mesmo dos cartoes do canvas).
+CARD_INSET = 12.0
+
+#: Brilho do brake bias quando o valor muda: verde se subiu, vermelho se
+#: desceu, segurando a cor por um quarto do tempo e voltando ao ambar.
+BIAS_FLASH_MS = 1600
+BIAS_HOLD = 0.25
+BIAS_FLASH_BG_ALPHA = 0x29     # ~16%: o fundo so tinge, o numero e que brilha
+
+
+def bias_flash(prefix, rest, up, down, alpha=None):
+    """Formula JS: a cor do brake bias, com o brilho de mudanca.
+
+    Guarda o ultimo valor em `root` (que o SimHub preserva entre avaliacoes)
+    e, quando ele muda, marca a hora e a direcao. Por `BIAS_FLASH_MS` a cor
+    sai do verde/vermelho e volta para `rest`. `alpha`, se dado, troca a
+    opacidade das cores de brilho (para o fundo); `rest` ja vem pronta.
+    `prefix` separa as chaves de cada formula em `root`.
+    """
+    def rgb(color):
+        return [int(color[i:i + 2], 16) for i in (3, 5, 7)]
+
+    a_flash = alpha if alpha is not None else 0xFF
+    a_rest = int(rest[1:3], 16)
+    return js(
+        f"var v = $prop('BrakeBias');\r\n"
+        f"var k = '{prefix}';\r\n"
+        f"if (root[k + 'v'] == null) {{ root[k + 'v'] = v; root[k + 't'] = 0; root[k + 'd'] = 0; }}\r\n"
+        f"if (v != root[k + 'v']) {{\r\n"
+        f"\troot[k + 'd'] = v > root[k + 'v'] ? 1 : -1;\r\n"
+        f"\troot[k + 't'] = Date.now();\r\n"
+        f"\troot[k + 'v'] = v;\r\n"
+        f"}}\r\n"
+        f"var t = (Date.now() - root[k + 't']) / {BIAS_FLASH_MS};\r\n"
+        f"if (root[k + 'd'] == 0 || t >= 1) {{ return '{rest}'; }}\r\n"
+        f"var f = t < {BIAS_HOLD} ? 1 : 1 - (t - {BIAS_HOLD}) / {1 - BIAS_HOLD};\r\n"
+        f"var from = root[k + 'd'] > 0 ? {rgb(up)} : {rgb(down)};\r\n"
+        f"var to = {rgb(rest)};\r\n"
+        f"var a = Math.round({a_rest} + ({a_flash} - {a_rest}) * f);\r\n"
+        f"var hex = function (n) {{ var s = Math.round(n).toString(16).toUpperCase(); return s.length < 2 ? '0' + s : s; }};\r\n"
+        f"var c = '#' + hex(a);\r\n"
+        f"for (var i = 0; i < 3; i++) {{ c += hex(to[i] + (from[i] - to[i]) * f); }}\r\n"
+        f"return c;"
+    )
 
 
 def chart():
@@ -67,31 +114,52 @@ def chart():
 
 
 def stat(region, label, value, expression, unit=None, *, name,
-         format_string=None, value_size=SIZE_VALUE, unit_color=TEXT_SECONDARY,
-         color=TEXT, extra=(), align=LEFT, envelope=True):
+         format_string=None, value_size=STAT_SIZE, unit_color=TEXT_TERTIARY,
+         color=TEXT, extra=(), align=LEFT, color_binding=None):
     """Rotulo em cima, valor grande embaixo -- alinhados na mesma borda.
 
-    `envelope=False` omite o tile de fundo individual: usado quando varios
-    `stat()` dividem um unico cartao de fundo (o rodape, ver `footer_row`),
-    em vez de cada campo ter o proprio tile.
+    Varios `stat()` dividem um unico cartao de fundo, separados por
+    filetes: o cartao e desenhado por quem monta a fileira.
     """
-    inner = region.inset(left=PADDING, right=PADDING)
     label_height = SIZE_LABEL + 6.0
-    body = grid.Region(inner.x, inner.y + label_height + 2.0,
-                       inner.width, inner.height - label_height - 8.0)
+    body = grid.Region(region.x, region.y + label_height,
+                       region.width, region.height - label_height)
     binding = (formatted(expression, format_string) if format_string
                else ncalc(expression))
-    items = [tile(region, name=f"{name} Tile")] if envelope else []
+    bindings = {"Text": binding}
+    if color_binding:
+        bindings["TextColor"] = color_binding
     return [
-        *items,
-        caption(inner.x, inner.y + PADDING * 0.75, inner.width, label,
+        caption(region.x, region.y, region.width, label,
                 name=f"{name} Label", size=SIZE_LABEL, align=align),
         *value_unit(body, value, unit or "", name=name,
                     value_size=value_size, unit_color=unit_color, color=color,
                     unit_width=0.0 if not unit else None, align=align,
-                    value_bindings={"Text": binding}),
+                    value_bindings=bindings),
         *extra,
     ]
+
+
+def cells(region, widths):
+    """Celulas de um cartao: `widths` fixa a largura das primeiras (None
+    reparte o resto por igual). Cada celula depois da primeira comeca
+    `CARD_INSET` depois do filete."""
+    inner = region.inset(top=CARD_INSET, bottom=CARD_INSET,
+                         left=CARD_INSET, right=CARD_INSET)
+    fixed = sum(w for w in widths if w is not None)
+    flexible = sum(1 for w in widths if w is None)
+    share = (inner.width - fixed) / flexible if flexible else 0.0
+    out, x = [], inner.x
+    for width in widths:
+        span = width if width is not None else share
+        out.append(grid.Region(x, inner.y, span, inner.height))
+        x += span
+    return out
+
+
+def padded(cell, first):
+    """O conteudo da celula, recuado do filete (menos na primeira)."""
+    return cell if first else cell.inset(left=CARD_INSET)
 
 
 def wind_arrow(region):
@@ -100,14 +168,14 @@ def wind_arrow(region):
     Fica na linha do rotulo, nao na do valor: a direcao qualifica o "WIND", e
     assim nao disputa espaco com o numero.
     """
-    size = 18.0
+    size = 14.0
     return ImageItem(
         name="Wind Arrow",
         Image="PositionGain",
         AutoSize=False,
         BackgroundColor="#00FFFFFF",
-        Left=region.right - size - PADDING,
-        Top=region.y + PADDING * 0.75 - 1.0,
+        Left=region.right - size,
+        Top=region.y - 2.0,
         Width=size, Height=size,
         Visible=True,
         BlinkPhasisInverted=False,
@@ -122,28 +190,43 @@ def wind_arrow(region):
 
 def stats_row(region):
     """Bias, combustivel e vento: o que muda ao longo da volta."""
-    rest = (region.width - BIAS_WIDTH - GUTTER * 3) / 3
-    columns = []
-    x = region.x
-    for width in (BIAS_WIDTH, rest, rest, rest):
-        columns.append(grid.Region(x, region.y, width, region.height))
-        x += width + GUTTER
-    bias, target, last, wind = columns
+    columns = cells(region, (BIAS_WIDTH, None, None, None))
+    bias, target, last, wind = (padded(c, i == 0) for i, c in enumerate(columns))
+    value_box = grid.Region(bias.x - 2.0, bias.bottom - BIAS_SIZE * 0.85,
+                            4 * BIAS_SIZE * 0.6 + 4.0, BIAS_SIZE * 0.85)
+    flash_bg = BIAS_FLASH_BG_ALPHA
 
     return [
+        tile(region, name="Car Tile"),
+        *separators(columns, region),
+        # Fundo do brilho, atras do numero: so tinge enquanto ele brilha.
+        RectangleItem(
+            name="Brake Bias Flash",
+            IsRectangleItem=True,
+            BackgroundColor="#00000000",
+            BorderStyle={"RadiusTopLeft": 3, "RadiusTopRight": 8,
+                         "RadiusBottomLeft": 8, "RadiusBottomRight": 3},
+            Left=value_box.x, Top=value_box.y,
+            Width=value_box.width, Height=value_box.height,
+            Visible=True,
+            BlinkPhasisInverted=False,
+            RenderingSkip=0,
+            MinimumRefreshIntervalMS=0.0,
+            bindings={"BackgroundColor": bias_flash(
+                "biasBg", "#00F4A73A", BIAS_UP, BIAS_DOWN, alpha=flash_bg)},
+        ),
         *stat(bias, "Brake bias", "55.6", "[BrakeBias]", "%",
-              name="Brake Bias", format_string="0.0"),
+              name="Brake Bias", format_string="0.0", value_size=BIAS_SIZE,
+              color=BIAS,
+              color_binding=bias_flash("biasText", BIAS, BIAS_UP, BIAS_DOWN)),
         *stat(target, "FPL target", "2.30",
               "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "L",
-              name="Fuel Target", format_string="0.00",
-              value_size=SIZE_VALUE_SM),
+              name="Fuel Target", format_string="0.00"),
         *stat(last, "FPL last", "2.30",
               "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "L",
-              name="Fuel Last", format_string="0.00",
-              value_size=SIZE_VALUE_SM),
+              name="Fuel Last", format_string="0.00"),
         *stat(wind, "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6",
-              "km/h", name="Wind", format_string="00",
-              value_size=SIZE_VALUE_SM,
+              "KM/H", name="Wind", format_string="00",
               extra=[wind_arrow(wind)]),
     ]
 
@@ -151,14 +234,13 @@ def stats_row(region):
 def footer_row(region):
     """Contexto da sessao: consultado entre voltas, nao dentro delas.
 
-    Um unico cartao por baixo dos cinco campos -- nao um tile por campo --
-    para o rodape ler como uma faixa continua, no mesmo tratamento que o
-    OTS ja usa e que o rodape da coluna direita passa a usar tambem. As tres
-    faixas inferiores (aqui, a direita e o OTS) formam assim uma barra
-    inferior unica.
+    Um unico cartao por baixo dos cinco campos, separados por filetes --
+    no mesmo tratamento do OTS e do rodape da direita. As tres faixas
+    inferiores formam assim uma barra inferior unica.
     """
-    inner = region.inset(left=PADDING, right=PADDING)
-    cells = inner.columns(5, gutter=GUTTER, weights=FOOTER_WEIGHTS)
+    total = sum(FOOTER_WEIGHTS)
+    inner_width = region.width - CARD_INSET * 2
+    columns = cells(region, tuple(inner_width * w / total for w in FOOTER_WEIGHTS))
     fields = [
         ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
         ("Left", "Left", "00", "[RemainingLaps]", "00", None),
@@ -168,11 +250,12 @@ def footer_row(region):
          "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
         ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
     ]
-    items = [tile(region, name="Footer Tile")]
-    for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
-        items += stat(cell, label, sample, expression, name=name,
-                      format_string=fmt, value_size=SIZE_VALUE_SM,
-                      color=color or TEXT, envelope=False)
+    items = [tile(region, name="Footer Tile"), *separators(columns, region)]
+    for index, (cell, (name, label, sample, expression, fmt, color)) in enumerate(
+            zip(columns, fields)):
+        items += stat(padded(cell, index == 0), label, sample, expression,
+                      name=name, format_string=fmt, value_size=SIZE_VALUE_SM,
+                      color=color or TEXT)
     return items
 
 
@@ -181,8 +264,10 @@ def layer():
     _, rest = PANEL.split_top(CHART_HEIGHT, gutter=GUTTER)
     stats, footer = rest.split_top(STATS_HEIGHT, gutter=GUTTER)
 
+    chart_area = grid.Region(PANEL.x, PANEL.y, PANEL.width, CHART_HEIGHT)
     return Layer(
-        tile(PANEL, name="Background", color=TILE, radius=CORNER_RADIUS_TILE),
+        # Tres cartoes, sem fundo de coluna: grafico, ajustes e sessao.
+        tile(chart_area, name="Chart Tile", color=TILE),
         chart(),
         Layer(
             *stats_row(stats),

@@ -12,7 +12,8 @@ do jogador como propriedades numeradas (Driver_00_Name, Driver_01_Name, ...).
 from simhub.bindings import js
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    FONT, PLAYER, SIZE_LABEL, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
+    FASTER as THEME_FASTER, FONT, FONT_MONO, PLAYER, SIZE_LABEL,
+    SLOWER as THEME_SLOWER, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
 )
 from . import layout as grid
 from .generated.formulas import binding as original
@@ -80,10 +81,11 @@ ROW_INSET = 3.0
 
 TEXT_GRAY = TEXT_SECONDARY
 ROW_BG = TILE_RAISED
-ROW_BG_PLAYER = "White"
+#: Linha do jogador: ambar translucido sob nome ambar (canvas Grafite).
+ROW_BG_PLAYER = "#38F4A73A"
 DISCONNECTED = TEXT_TERTIARY
-FASTER = "#8800FF7F"
-SLOWER = "#88FF6347"
+FASTER = THEME_FASTER
+SLOWER = THEME_SLOWER
 
 
 def row_top(index=0):
@@ -112,11 +114,15 @@ def has_driver():
 
 
 def row_text(name, left, width, size, text, align, **fields):
-    """TextItem de uma coluna da linha."""
+    """TextItem de uma coluna da linha. Numeros em Arame Mono, que ja e
+    monoespacada -- so o nome vai em Funnel Sans (`font=FONT`)."""
+    font = fields.pop("font", FONT_MONO)
+    if font == FONT_MONO:
+        fields.pop("UseMonospacedText", None)
     return TextItem(
         name=name,
         IsTextItem=True,
-        Font=FONT,
+        Font=font,
         FontSize=size,
         Text=text,
         TextColor=fields.pop("color", TEXT_GRAY),
@@ -138,7 +144,7 @@ def row_text(name, left, width, size, text, align, **fields):
 
 
 def position():
-    """Posicao na classe. Laranja para o jogador, apagada se desconectado."""
+    """Posicao na classe. Ambar para o jogador, apagada se desconectado."""
     return row_text(
         "DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE, "00", align=1,
         bindings={
@@ -153,11 +159,11 @@ def position():
 }}""", jsext=3, format_string=""),
             "TextColor": js(f"""if ({is_player()}) {{
 
-\treturn 'DarkOrange';
+\treturn '{PLAYER}';
 \t
 }} else {{
 
-\treturn 'Gray';
+\treturn '{TEXT_TERTIARY}';
 \t
 }}""", jsext=3),
             "Opacity": js(f"""if ({driver('IsConnected')} == false) {{
@@ -174,7 +180,7 @@ def position():
 
 
 def container():
-    """Faixa de fundo da linha; fica branca na linha do jogador."""
+    """Faixa de fundo da linha; fica ambar na linha do jogador."""
     return RectangleItem(
         name="DriverContainer",
         IsRectangleItem=True,
@@ -209,11 +215,12 @@ def name():
     """Nome do piloto, alinhado a esquerda."""
     return row_text(
         "DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE, "DRIVER NAME", align=0,
+        font=FONT,
         bindings={
             "Text": js(f"return {driver('Name')};", jsext=3, format_string=""),
             "TextColor": js(f"""if ({is_player()}) {{
 
-\treturn 'Black';
+\treturn '{PLAYER}';
 \t
 }} else if ({driver('IsConnected')} == false) {{
 
@@ -221,7 +228,7 @@ def name():
 \t
 }} else {{
 
-\treturn 'Gray';
+\treturn '{TEXT}';
 \t
 }}""", jsext=3),
             "Visible": js(has_driver()),
@@ -458,7 +465,7 @@ def overflow_layer():
             },
         ),
         row_text("DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE,
-                 "DRIVER NAME", align=0, top=top,
+                 "DRIVER NAME", align=0, top=top, font=FONT,
                  bindings={
                      "Text": at("DriverName", "Text"),
                      "TextColor": at("DriverName", "TextColor"),

@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import rpmled, top_bar  # noqa: E402
+from dash import ots, rpmled, top_bar  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from simhub.build import (  # noqa: E402
@@ -68,7 +68,7 @@ def main(argv):
     # redesign entram aqui, com MD5 e tamanho lidos do arquivo.
     shell = dict(main_dash.SHELL)
     shell["Images"] = list(main_dash.SHELL["Images"]) + [
-        image_entry(name) for name in top_bar.IMAGES]
+        image_entry(name) for name in (*top_bar.IMAGES, *ots.IMAGES)]
 
     write_dashboard(
         out_dir, DASH_NAME,

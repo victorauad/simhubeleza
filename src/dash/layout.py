@@ -72,40 +72,29 @@ class Region:
                 f"w={self.width:.1f}, h={self.height:.1f})")
 
 
-#: Margem externa do painel. O wireframe deixa ~12px livres no rodape.
+#: Margem externa do painel -- e o respiro entre quaisquer dois blocos. Todo
+#: componente que encosta numa borda do dash fica a essa mesma distancia
+#: dela, inclusive embaixo.
 MARGIN = 6.0
 
-# --- Barra superior, medida no Figma ----------------------------------------
+# --- Barra superior ----------------------------------------------------------
 #
-# A revisao da barra veio desenhada em 1329x132 (Figma, section 4317:567). Ela
-# entra aqui como o painel arredondado da barra, preservando a margem externa
-# que as outras secoes usam -- entao a escala sai da largura, e a altura vem
-# junto. Uma constante so: qualquer coordenada do Figma vira pixel do dash
-# multiplicando por `SCALE`.
-
-DESIGN_WIDTH, DESIGN_HEIGHT = 1329.0, 132.0
+# Medida no canvas de refino, ja em pixels do dash: duas linhas de 38.16 (os
+# pedais em cima; RPM e aviso embaixo) com 12 de respiro interno e 8.6 entre
+# elas, e o cartao do delta ocupando as duas no meio.
 
 TOP_BAR_PANEL_WIDTH = WIDTH - MARGIN * 2
-SCALE = TOP_BAR_PANEL_WIDTH / DESIGN_WIDTH
-TOP_BAR_PANEL_HEIGHT = DESIGN_HEIGHT * SCALE
+TOP_BAR_PANEL_HEIGHT = 108.92
 
-#: Respiro entre a barra e as colunas.
-TOP_BAR_GAP = 4.0
-
-
-def scaled(*values):
-    """Converte medidas do Figma (frame de 1329x132) para pixels do dash."""
-    out = tuple(value * SCALE for value in values)
-    return out[0] if len(out) == 1 else out
-
+#: Respiro entre a barra e as colunas -- o mesmo da margem.
+TOP_BAR_GAP = MARGIN
 
 #: Grade do wireframe, em pixels do dashboard. Tudo abaixo da barra deriva do
 #: rodape dela, entao mexer na altura da barra reposiciona as colunas sozinho.
 TOP_BAR = Region(0.0, 0.0, WIDTH,
                  MARGIN + TOP_BAR_PANEL_HEIGHT + TOP_BAR_GAP)
 
-#: O rodape do painel e fixo: a moldura do dash reserva ~12px ali.
-BODY_BOTTOM = 505.0
+BODY_BOTTOM = HEIGHT - MARGIN
 BODY_TOP = TOP_BAR.bottom
 BODY_HEIGHT = BODY_BOTTOM - BODY_TOP
 
@@ -117,6 +106,6 @@ BOTTOM_BAR_HEIGHT = 86.1
 
 LEFT = Region(0.0, BODY_TOP, 484.0, BODY_HEIGHT)
 RIGHT = Region(796.0, BODY_TOP, 484.0, BODY_HEIGHT)
-OTS = Region(484.0, BODY_BOTTOM - BOTTOM_BAR_HEIGHT - MARGIN,
-             312.1, BOTTOM_BAR_HEIGHT + MARGIN)
+OTS = Region(484.0, BODY_BOTTOM - BOTTOM_BAR_HEIGHT,
+             312.1, BOTTOM_BAR_HEIGHT)
 CENTER = Region(484.0, BODY_TOP, 312.1, OTS.y - BODY_TOP)

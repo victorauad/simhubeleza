@@ -23,7 +23,7 @@ FONT_FILES = {
     "Inter": [("Inter-Regular.ttf", "100 600"), ("Inter-Bold.ttf", "601 900")],
     "Funnel Sans": [("FunnelSans-VariableFont_wght.ttf", "100 900")],
     "Audiowide": [("Audiowide-Regular.ttf", "100 900")],
-    "Arame Mono": [("ArameMono.ttf", "100 900")],
+    "Arame Mono": [("ArameMono.ttf", "100 600"), ("ArameMono-Bold.ttf", "601 900")],
     "0Arame Mono": [("ArameMono.ttf", "100 900")],
 }
 
@@ -229,7 +229,12 @@ def render_node(node, folder, images, depth=0):
 
     kind = short_type(node)
     if kind in ("Layer", "GroupItem"):
-        style = ["position:absolute", "left:0", "top:0", "width:100%", "height:100%"]
+        # O GroupItem posiciona os filhos relativos ao proprio Left/Top; a
+        # Layer nao tem posicao.
+        left = node.get("Left") or 0 if kind == "GroupItem" else 0
+        top = node.get("Top") or 0 if kind == "GroupItem" else 0
+        style = ["position:absolute", f"left:{left}px", f"top:{top}px",
+                 "width:100%", "height:100%"]
         opacity = node.get("Opacity")
         if opacity is not None and opacity != 100:
             style.append(f"opacity:{opacity / 100:.3f}")

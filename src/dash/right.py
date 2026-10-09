@@ -22,17 +22,22 @@ O rodape e fixo em qualquer modo -- hora, pista, ar, grip e chuva.
 from simhub.bindings import formatted, js, ncalc
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FONT, GUTTER,
+    BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FASTER, FONT, GUTTER,
+    SLOWER,
     PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
-    TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE,
+    TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
 from . import leaderboard
 from .generated.formulas import FORMULAS, binding as original
-from .widgets import CENTER, LEFT, RIGHT, caption, text, tile
+from .widgets import CENTER, LEFT, RIGHT, caption, separators, text, tile
 
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
+
+#: Linha do jogador: ambar translucido com filete ambar, como no canvas.
+PLAYER_ROW = leaderboard.ROW_BG_PLAYER
+PLAYER_ROW_EDGE = "#8CF4A73A"
 
 #: Condicoes que decidem qual modo aparece.
 #:
@@ -105,11 +110,12 @@ def rel_top(index):
 ME_INDEX = 3
 
 
-def rel_text(name, left, width, sample, *, align, size=SIZE_LABEL + 5.0,
-             color=TEXT_SECONDARY, top, bindings=None, mono=False):
+def rel_text(name, left, width, sample, *, align, size=16.0,
+             color=TEXT_SECONDARY, top, bindings=None, mono=False, font=None):
+    extra = {"font": font} if font else {}
     return text(left, top, width, REL_ROW, sample, name=name, size=size,
                 color=color, align=align, mono=mono,
-                char_width=14.0 if mono else None, bindings=bindings)
+                char_width=14.0 if mono else None, bindings=bindings, **extra)
 
 
 def rel_row(prefix, name, top, *, repetitions=None, offset=None,
@@ -127,12 +133,9 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         RectangleItem(
             name="Row",
             IsRectangleItem=True,
-            BackgroundColor=TILE_RAISED,
-            BorderStyle={
-                "RadiusTopLeft": CORNER_RADIUS, "RadiusTopRight": CORNER_RADIUS,
-                "RadiusBottomLeft": CORNER_RADIUS,
-                "RadiusBottomRight": CORNER_RADIUS,
-            },
+            BackgroundColor=PLAYER_ROW if me else TILE_RAISED,
+            BorderStyle=rounded(PLAYER_ROW_EDGE if me else None, 1,
+                                radius=(2, 8, 2, 8)),
             Left=BODY.x, Top=top + 3.0,
             Width=BODY.width, Height=REL_ROW - 6.0,
             Visible=True, BlinkPhasisInverted=False,
@@ -147,7 +150,7 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
                  bindings={"Text": at("Car Number", "Text")}
                  if not me else {"Text": at("Car Number", "Text")}),
         rel_text("Name", NAME_X, NAME_W, "Lorem ipsum", align=LEFT, top=top,
-                 color=TEXT if me else TEXT_SECONDARY,
+                 color=PLAYER if me else TEXT, font=FONT,
                  bindings={"Text": at("Name", "Text")} if not me else None),
         rel_text("Last Lap", LAP_X, LAP_W, "0:00.00", align=RIGHT, top=top,
                  mono=True,
@@ -295,7 +298,7 @@ def practice():
     delta_color_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
-        "\tif (d < 0) { return 'SpringGreen'; } else { return 'Tomato'; }"
+        f"\tif (d < 0) {{ return '{FASTER}'; }} else {{ return '{SLOWER}'; }}"
     )
     #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
     #: variavel (so o `PersistantTrackerPlugin` tem `PreviousLap_XX_*` para
@@ -372,7 +375,8 @@ def footer():
         ("Rain", "Rain", "00",
          "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, None),
     ]
-    items = [tile(region, name="Footer Tile")]
+    items = [tile(region, name="Footer Tile"),
+             *separators(cells, region)]
     for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
         cell_inner = cell.inset(left=PADDING, right=PADDING)
         label_height = SIZE_LABEL + 6.0
@@ -399,7 +403,9 @@ def footer():
 def layer():
     """A coluna direita inteira, com os modos empilhados."""
     return Layer(
-        tile(PANEL, name="Background", color=TILE),
+        # O corpo (tabela, relative ou log) e o rodape sao dois tiles, como
+        # no canvas -- a coluna em si nao tem fundo.
+        tile(BODY, name="Background", color=TILE),
         footer(),
         leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),
