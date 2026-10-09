@@ -94,14 +94,14 @@ header.top p { margin: 4px 0 0; color: var(--bench-mute); max-width: 70ch; }
     repeating-linear-gradient(90deg, var(--tick-off) 0 2px, transparent 2px 4px); }
 .seg.on { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 100%, white 18%), var(--c));
   box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent); }
-.led { border-radius: 4px 16px 4px 16px; background: #111317;
+.led { border-radius: 3px 9px 3px 9px; background: #111317;
   box-shadow: inset 0 0 0 1px var(--edge), inset 0 1px 0 var(--edge-hi); }
 .led.on { background: radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--c) 100%, white 30%), var(--c) 55%, color-mix(in srgb, var(--c) 70%, black));
   box-shadow: 0 0 14px color-mix(in srgb, var(--c) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.4); }
 .dash.blink .led.on { animation: blink .5s steps(1) infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 
-.chip { border-radius: 4px 16px 4px 16px; display: grid; place-items: center;
+.chip { border-radius: 3px 9px 3px 9px; display: grid; place-items: center;
   font-family: var(--f-num); font-weight: 700; letter-spacing: .08em;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 16px color-mix(in srgb, var(--bgc) 45%, transparent);
   background: linear-gradient(180deg, color-mix(in srgb, var(--bgc) 100%, white 14%), var(--bgc)); color: var(--fgc); }
@@ -321,21 +321,21 @@ tr:last-child td { border-bottom: 0; }
       const val = isL ? state.brake : state.throttle;
 
 
-      // 10 segmentos, enchendo do centro para fora
-      const [bx, by, bw, bh] = box(side, 40, 12, 471, 28);
+      // linha 1: 10 segmentos da borda ate o numero, enchendo do centro para fora
+      const [bx, by, bw, bh] = box(side, 12, 38, 440, 28);
       const gap = 4 * S, sw = (bw - gap * 9) / 10, lit = Math.round(val / 10);
       for (let i = 0; i < 10; i++) {
         const fromCenter = isL ? 9 - i : i;
         root.appendChild(el('seg' + (fromCenter < lit ? ' on' : ''), bx + i * (sw + gap), by, sw, bh, '', `--c:${color}`));
       }
 
-      const [vx, vy, vw, vh] = box(side, 424, 58, 113, 62);
+      const [vx, vy, vw, vh] = box(side, 456, 38, 61, 28);
       const shown = val >= 100 ? '00' : String(val).padStart(2, '0');
       root.appendChild(txt('num', vx, vy, vw, vh, shown, 'center',
-        `font-size:${50 * S}px;color:${color};text-shadow:0 0 18px color-mix(in srgb, ${color} 45%, transparent)`));
+        `font-size:${30 * S}px;color:${color};text-shadow:0 0 18px color-mix(in srgb, ${color} 45%, transparent)`));
 
-      // 4 LEDs, vermelho para fora
-      const [ex, ey, ew, eh] = box(side, 40, 50, 229, 70);
+      // linha 2: 4 LEDs (vermelho para fora) + chip ate o cartao do delta
+      const [ex, ey, ew, eh] = box(side, 12, 76, 240, 28);
       const lg = 3 * S, slot = (ew - lg * 3) / 4;
       const order = isL ? ['--stop', '--caution', '--go', '--go'] : ['--go', '--go', '--caution', '--stop'];
       const litFromInside = 3; // amostra: tres acesos de dentro para fora
@@ -349,12 +349,12 @@ tr:last-child td { border-bottom: 0; }
 
       // chip de aviso
       if (state.flag !== 'none') {
-        const [cx, cy, cw, ch] = box(side, 275, 50, 159, 70);
+        const [cx, cy, cw, ch] = box(side, 260, 76, 257, 28);
         const [bg, fg] = FLAGS[state.flag];
         const blinking = ['YLW FLAG', 'BLUE', 'LEFT', 'RIGHT', 'OVERLAP'].includes(state.flag);
         const show = state.flag === 'LEFT' ? isL : state.flag === 'RIGHT' ? !isL : true;
         if (show) root.appendChild(txt('chip' + (blinking ? ' blinking' : ''), cx, cy, cw, ch, state.flag, 'center',
-          `--bgc:${cv(bg)};--fgc:${fg};font-size:${24 * S}px`));
+          `--bgc:${cv(bg)};--fgc:${fg};font-size:${17 * S}px`));
       }
     }
 
