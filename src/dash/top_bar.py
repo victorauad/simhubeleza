@@ -141,12 +141,14 @@ def pedal(side, label, prop, color):
         *segmented_bar(bar, f"[{prop}]", count=PEDAL_SEGMENTS, color=color,
                        gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
                        name=f"{label} Bar", reverse=(side is LEFT)),
-        # Sem binding de Visible: o Figma mostra "00" tambem com o pedal solto.
+        # Some com o pedal solto (0) e mostra "00" com ele no fundo (100),
+        # para o numero nunca passar de dois digitos.
         text(value.x, value.y, value.width, value.height, "00",
              name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
              weight="Bold", align=CENTER, mono=True,
              char_width=grid.scaled(30.0),
-             bindings={"Text": ncalc(f"if([{prop}]=100,'00',[{prop}])")}),
+             bindings={"Text": ncalc(f"if([{prop}]=100,'00',[{prop}])"),
+                       "Visible": ncalc(f"if([{prop}]<1,0,1)")}),
     ]
 
 

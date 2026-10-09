@@ -125,10 +125,6 @@ O que merece olhar primeiro, por ordem de risco:
   cores dos chips de bandeira; foram implementados com a paleta do tema (o
   vermelho voltou `#ff453a`, idêntico ao `theme.RED`, o que sugere que a
   paleta bate).
-- **Fórmulas removidas de propósito (2)**: `Gas Value.Visible` e
-  `Brake Value.Visible` (`if([Throttle]<1,0,1)`). O Figma mostra "00" em
-  repouso, então o número não some mais. `formula_audit.py` vai continuar
-  listando as duas em REMOVIDAS — é esperado, não regressão.
 - Egress para `figma.com` bloqueado: imagens do board só chegam inline via MCP.
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
