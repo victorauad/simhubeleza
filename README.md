@@ -22,6 +22,7 @@ Sem dependências externas: apenas a stdlib do Python 3.
 | `assets/` | Imagens, fontes, extensões JS e previews |
 | `tools/` | Decompilador e verificador de paridade |
 | `referencia-manual/` | Dashboard original feito à mão — baseline intocado |
+| `referencia-design/` | Referências visuais do redesign (`dashboard-grafite.html`: mockup interativo 1280×517) |
 
 ## Verificação
 
