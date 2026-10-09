@@ -5,15 +5,15 @@
 <style>
   :root {
     color-scheme: dark;
-    --ground: #08090b;
-    --surface: #131519;
-    --raised: #1b1f25;
-    --hairline: #232830;
-    --text: #e9ecf0;
-    --muted: #868d98;
-    --dim: #5b626c;
-    --accent: #64d2ff;
-    --warn: #ff9f0a;
+    --ground: #0c0e11;
+    --surface: #15181c;
+    --raised: #1c2025;
+    --hairline: #24292f;
+    --text: #eceef0;
+    --muted: #9aa0a8;
+    --dim: #6b717a;
+    --accent: #f4a73a;
+    --warn: #ff8a1f;
     --sans: "Funnel Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   }
@@ -102,7 +102,7 @@
   .tab[aria-selected="true"] {
     background: var(--accent);
     border-color: var(--accent);
-    color: #04202c;
+    color: #1a1206;
   }
   .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -182,17 +182,17 @@
     <p class="eyebrow">Super Formula SF23 · iRacing · 1280×517</p>
     <h1>Painel SF23</h1>
     <p class="lede">
-      Render estático do dashboard gerado por código. É o HTML lendo o mesmo
+      Render estático do dashboard gerado por código, já na paleta Grafite do
+      canvas de refino. É o HTML lendo o mesmo
       <code style="font-family:var(--mono);font-size:13px">.djson</code> que o SimHub lê — posição, cor e tipografia são as reais.
-      As fórmulas não são avaliadas, então os números são os valores de projeto.
-      Das 103 fórmulas do dashboard original, 101 seguem intactas: as duas que
-      saíram escondiam o número do pedal em repouso, e o Figma pede que o
-      <code style="font-family:var(--mono);font-size:13px">00</code> fique visível.
+      As fórmulas não são avaliadas: pedais, delta, marcha, velocidade e RPM
+      mostram uma telemetria de exemplo (freio 37, acelerador 72, marcha 4).
+      Todas as 103 fórmulas do dashboard original seguem no código.
     </p>
     <dl class="specs">
-      <div><dt>Controles</dt><dd>224</dd></div>
-      <div><dt>Bindings</dt><dd>189</dd></div>
-      <div><dt>Fórmulas preservadas</dt><dd>101 / 103</dd></div>
+      <div><dt>Controles</dt><dd>315</dd></div>
+      <div><dt>Bindings</dt><dd>200</dd></div>
+      <div><dt>Fórmulas preservadas</dt><dd>103 / 103</dd></div>
       <div><dt>Módulos</dt><dd>10</dd></div>
       <div><dt>Esforço manual no editor</dt><dd>0</dd></div>
     </dl>
@@ -252,14 +252,15 @@
   <section class="caveats">
     <h2>O que o preview não prova</h2>
     <ul>
-      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto gravados no arquivo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
-      <li><strong>As cores em fórmula do OTS usam nomes CSS</strong> (<code>limegreen</code>, <code>gold</code>, <code>orange</code>), não hex — são os que o SimHub resolve com certeza em fórmula de cor. Ficam a menos de 1% da paleta.</li>
-      <li><strong>O widget de telemetria</strong> aparece só como moldura: ele é outro <code>.djson</code>, com gráfico desenhado em tempo de execução.</li>
+      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto, mais a telemetria de exemplo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
+      <li><strong>Brilhos que dependem de estado não aparecem:</strong> o disco da marcha fica sempre âmbar (repouso) e o brake bias não pisca — o roxo/verde/vermelho da marcha e o flash verde/vermelho do bias são fórmulas. O do bias usa o objeto <code>root</code> do JavaScript do SimHub, ainda não testado lá.</li>
+      <li><strong>O halo borrado dos LEDs</strong> (<code>BlurRadius</code>) fica cortado pela borda do widget aqui; no SimHub pode sair diferente.</li>
+      <li><strong>Os pentes</strong> são uma imagem PNG por cima de um gauge. A redução da página pode criar moiré nos dentes; no tamanho real eles ficam regulares.</li>
+      <li><strong>O gráfico de telemetria</strong> aparece só com a grade e as marcas 0/25/50/75/100: as linhas são desenhadas em tempo de execução.</li>
       <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
-      <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; nenhuma mostra o estado "todos desligados", que é o padrão em corrida.</li>
+      <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; as abas de modo mostram o chip vazio, só com o contorno.</li>
       <li><strong>Quatro dos dez avisos dependem de propriedades não confirmadas</strong> — <code>Flag_Black</code>, <code>Flag_Blue</code> e <code>CarLeftRight</code> (esta com os valores do spotter ainda por conferir). <code>Dirt</code> e <code>Incident</code> existem como chip mas não têm fórmula que os acione.</li>
       <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
-      <li><strong>Os pedais aparecem cheios</strong> nas duas pontas porque o preview não avalia fórmula: em repouso os segmentos ficam apagados e só o <code>00</code> permanece.</li>
     </ul>
   </section>
 </div>
@@ -267,7 +268,7 @@
 <script>
   const NOTES = {
     relative: ["Relative",
-      "Os dois carros à frente, você, e os dois atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador some do cinza para o laranja. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
+      "Os três carros à frente, você, e os três atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador fica em âmbar. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
     standings: ["Standings · tabela cheia",
       "As 13 linhas cabem exatas no corpo da coluna — a altura de linha sai da divisão, não de um número escolhido. Aparece quando o grid é pequeno ou o jogador está entre os 11 primeiros."],
     window: ["Standings · janela",
@@ -295,9 +296,9 @@
     "flag-incident": ["Incidente",
       "Mesma situacao do Dirt: existe como chip, sem formula que o acione."],
     "shift-light": ["Shift light",
-      "Os quatro quadrados do RPM viram magenta na faixa de troca. O vermelho aponta para fora nos dois lados, seguindo o Figma."],
+      "Os quatro LEDs do RPM viram roxo na faixa de troca — o mesmo roxo que acende o brilho da marcha. Fora dela, a rampa é azul e clareia para fora nos dois lados."],
     "pit-limiter": ["Pit limiter",
-      "Limitador ligado: os quadrados piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."]
+      "Limitador ligado: os LEDs piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."]
   };
 
   const tabs = [...document.querySelectorAll('.tab')];

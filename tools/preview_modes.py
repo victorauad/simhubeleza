@@ -59,6 +59,28 @@ LED_STATES = {
     "pit-limiter": "Shift Light2",
 }
 
+#: Telemetria de exemplo, igual em todos os previews: sem ela os pedais e o
+#: delta saem vazios e a marcha mostra "N". Nome do controle -> campos.
+SAMPLE = {
+    "Brake Gauge": {"Value": 37.0},
+    "Throttle Gauge": {"Value": 72.0},
+    "Brake Value": {"Text": "37"},
+    "Throttle Value": {"Text": "72"},
+    "Progress-Red": {"Value": 0.0},
+    "Progress-Green": {"Value": -0.03},
+    "Delta-Red": {"Value": 0.0},
+    "Delta-Green": {"Value": -0.24},
+    "Delta Value": {"Text": "-0.24", "TextColor": "#FF34D27B"},
+    "GearText": {"DesignerText": "4"},
+    "Speed": {"Text": "218"},
+    "Rpm": {"Text": "985"},
+    "OTS Gauge": {"Value": 200.0},
+}
+
+#: Controles que so aparecem em situacao especifica (volta invalidada) e,
+#: com `--conditional show`, poluiriam todo preview.
+HIDDEN = {"Invalid Lap"}
+
 MODE_LAYERS = {"Standings", "Practice", "Relative"}
 BANNER_NAMES = set(FLAGS.values())
 LED_LAYERS = set(LED_STATES.values())
@@ -72,6 +94,11 @@ def render(mode, visible, repetitions, out_dir, work, flag=None, led=None):
 
     def walk(node, in_alerts=False):
         name = node.get("Name")
+        if name in SAMPLE:
+            node.update(SAMPLE[name])
+        if name in HIDDEN:
+            node["Visible"] = False
+            node.pop("Bindings", None)
         if name in MODE_LAYERS:
             node["Visible"] = name in visible
         if name in repetitions:

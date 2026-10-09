@@ -28,7 +28,7 @@ Preview como imagem (Chromium já instalado no ambiente):
 
 Página de revisão publicada (16 abas: 4 modos da coluna direita, 10 avisos da
 barra superior e 2 estados do RPMLed, montadas sobre `build/modes/`):
-<https://claude.ai/code/artifact/326ce39f-af40-4fbb-87bb-0a9c5068dc36>
+<https://claude.ai/artifact/7E9k77H5zjfvoEHtYdjqC9>
 O fonte dela é `tools/preview_page.html`; para republicar, rodar
 `preview_modes.py`, copiar a página como `build/modes/index.html` e publicar
 com os 16 arquivos ao lado.

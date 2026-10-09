@@ -311,7 +311,9 @@ def font_faces():
     return "\n".join(faces)
 
 
-PAGE = """<meta charset="utf-8">
+PAGE = """<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <style>
 {faces}
@@ -350,7 +352,9 @@ addEventListener('resize', fit); fit();
 
 #: Versao sem moldura: so o painel, do tamanho exato do dashboard. Serve para
 #: embutir o preview em outra pagina, que entao cuida do enquadramento.
-BARE_PAGE = """<meta charset="utf-8">
+BARE_PAGE = """<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <style>
 {faces}
