@@ -68,6 +68,11 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   `grid.BOTTOM_BAR_HEIGHT` compartilhado (esquerda, OTS e direita), com o
   `STATS_HEIGHT` da esquerda absorvendo a folga.
 
+- **Barras do delta invertidas**: no cartao do delta, a barra grossa passou a
+  mostrar o delta progress (`SessionBestLiveDeltaProgressSeconds`, escala de
+  0.1 s) e o trilho fino o delta absoluto (`DeltaToSessionBest`, escala de
+  0.5 s). Constantes renomeadas para `WIDE_BAR_*` / `THIN_BAR_*`.
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta

@@ -80,12 +80,13 @@ BEST_LABEL = (721.0, 56.0, 113.0, 21.0)
 DELTA_HERO = (589.0, 24.0, 165.0, 62.0)
 DELTA_HERO_SIZE = grid.scaled(40.0)
 
-#: As duas metades da barra do delta e as duas da barra de consistencia. O
-#: ponto de corte (672.06) e o centro do cartao.
-DELTA_BAR_LEFT = (533.0, 80.0, 135.72, 18.13)
-DELTA_BAR_RIGHT = (672.06, 80.0, 137.94, 18.13)
-PROGRESS_LEFT = (533.0, 103.47, 135.72, 8.53)
-PROGRESS_RIGHT = (672.06, 103.47, 137.94, 8.53)
+#: As duas metades da barra grossa e as duas do trilho fino por baixo. O
+#: ponto de corte (672.06) e o centro do cartao. A grossa mostra o delta
+#: progress e o trilho fino o delta absoluto (ver `delta()`).
+WIDE_BAR_LEFT = (533.0, 80.0, 135.72, 18.13)
+WIDE_BAR_RIGHT = (672.06, 80.0, 137.94, 18.13)
+THIN_BAR_LEFT = (533.0, 103.47, 135.72, 8.53)
+THIN_BAR_RIGHT = (672.06, 103.47, 137.94, 8.53)
 
 TICK_LEFT = (533.0, 35.0, 9.0, 40.0)
 TICK_RIGHT = (800.0, 35.0, 9.0, 40.0)
@@ -324,16 +325,19 @@ def delta():
                  "Text": ncalc(DELTA_TEXT),
                  "TextColor": ncalc(f"if({DELTA_PROP} < 0, 'SpringGreen', 'Tomato')"),
              }),
-        delta_gauge("Delta-Red", box(*DELTA_BAR_LEFT), SLOWER, 0.5, 0.5,
-                    alignment=2, radius=corners(6, 1, 1, 1)),
-        delta_gauge("Delta-Green", box(*DELTA_BAR_RIGHT), FASTER, -0.5, -0.25,
-                    alignment=0, radius=corners(1, 6, 1, 1)),
-        delta_gauge("Progress-Red", box(*PROGRESS_LEFT), SLOWER, 0.1, 0.1,
-                    alignment=2, radius=corners(1, 1, 6, 1), opacity=80.0,
+        # Barra grossa: delta progress (escala de 0.1 s). Trilho fino: delta
+        # absoluto (escala de 0.5 s). Cada gauge leva a escala da propria
+        # fonte de dado; cantos e opacidade seguem a posicao.
+        delta_gauge("Progress-Red", box(*WIDE_BAR_LEFT), SLOWER, 0.1, 0.1,
+                    alignment=2, radius=corners(6, 1, 1, 1),
                     prop=PROGRESS_PROP),
-        delta_gauge("Progress-Green", box(*PROGRESS_RIGHT), FASTER, -1.0, -0.1,
-                    alignment=0, radius=corners(1, 1, 1, 6), opacity=80.0,
+        delta_gauge("Progress-Green", box(*WIDE_BAR_RIGHT), FASTER, -1.0, -0.1,
+                    alignment=0, radius=corners(1, 6, 1, 1),
                     prop=PROGRESS_PROP),
+        delta_gauge("Delta-Red", box(*THIN_BAR_LEFT), SLOWER, 0.5, 0.5,
+                    alignment=2, radius=corners(1, 1, 6, 1), opacity=80.0),
+        delta_gauge("Delta-Green", box(*THIN_BAR_RIGHT), FASTER, -0.5, -0.25,
+                    alignment=0, radius=corners(1, 1, 1, 6), opacity=80.0),
         # Os dois marcadores das bordas do cartao. O da esquerda ganha uma
         # segunda passagem em vermelho: e o aviso de volta invalidada.
         tick("Tick Left", TICK_LEFT, TEXT_DIM),
