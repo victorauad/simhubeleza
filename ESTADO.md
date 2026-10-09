@@ -73,6 +73,13 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   0.1 s) e o trilho fino o delta absoluto (`DeltaToSessionBest`, escala de
   0.5 s). Constantes renomeadas para `WIDE_BAR_*` / `THIN_BAR_*`.
 
+- **Pedais em pente**: freio e acelerador viraram um gauge continuo entre um
+  trilho e uma mascara PNG (100 dentes, 1 por ponto percentual, dezena mais
+  alta). As mascaras saem de `tools/make_pedal_comb.py` a partir de
+  `PEDAL_BAR` -- mudou a barra, rode o script. `top_bar.IMAGES` entra no
+  Images[] pelo `build.py`, com MD5 e tamanho lidos do arquivo. O preview
+  agora le `GaugeAlignment` 2 como "enche da direita" (antes tratava 1).
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta

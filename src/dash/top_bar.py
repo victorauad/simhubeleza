@@ -20,7 +20,9 @@ do lado de dentro que estao acesos.
 """
 
 from simhub.bindings import ncalc
-from simhub.model import Layer, LinearGaugeItem, RectangleItem, WidgetItem
+from simhub.model import (
+    ImageItem, Layer, LinearGaugeItem, RectangleItem, WidgetItem,
+)
 from simhub.theme import (
     BRAKE, FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN,
     FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_WHITE, FLAG_YELLOW,
@@ -28,7 +30,7 @@ from simhub.theme import (
     rounded,
 )
 from . import layout as grid
-from .widgets import CENTER, LEFT, RIGHT, segmented_bar, text, tile
+from .widgets import CENTER, LEFT, RIGHT, text, tile
 
 #: O painel arredondado da barra -- o frame de 1329x132 do Figma.
 PANEL = grid.Region(grid.MARGIN, grid.MARGIN,
@@ -59,9 +61,14 @@ LABEL_SIZE = grid.scaled(13.0)
 LABEL = (6.0, 5.0, 113.0, 21.0)
 
 PEDAL_BAR = (40.0, 30.0, 471.0, 18.0)
-PEDAL_SEGMENTS = 10
-PEDAL_GAP = grid.scaled(4.0)
-PEDAL_RADIUS = 3
+
+#: Mascaras de pente (100 dentes, 1 por ponto percentual) que vao por cima
+#: do gauge de cada pedal. Geradas por `tools/make_pedal_comb.py` a partir de
+#: PEDAL_BAR -- mudou a barra, rode o script de novo.
+PEDAL_COMB = {LEFT: "PedalCombLeft", RIGHT: "PedalCombRight"}
+
+#: Imagens que esta regiao acrescenta ao Images[] do dashboard.
+IMAGES = tuple(PEDAL_COMB.values())
 
 PEDAL_VALUE = (424.0, 58.0, 113.0, 62.0)
 PEDAL_VALUE_SIZE = grid.scaled(50.0)
@@ -123,8 +130,14 @@ def leds(side):
 
 
 def pedal(side, label, prop, color):
-    """Entrada do piloto: rotulo na borda externa, fileira fina de dez
-    segmentos, e o numero grande encostado no cartao do delta.
+    """Entrada do piloto: rotulo na borda externa, barra em pente de 100
+    dentes (1 por ponto percentual, a dezena mais alta) e o numero grande
+    encostado no cartao do delta.
+
+    A barra e um gauge continuo entre um trilho e uma mascara: o trilho
+    pinta os dentes apagados, o gauge os acesos, e a mascara -- opaca na cor
+    do painel, vazada nos dentes -- recorta os dois. Sao tres controles por
+    lado, em vez de um retangulo com formula por dente.
 
     A barra enche do centro para fora nos dois lados, entao o movimento e
     simetrico no canto do olho.
@@ -138,9 +151,21 @@ def pedal(side, label, prop, color):
              label.upper(), name=f"{label} Label", size=LABEL_SIZE,
              color=TEXT_DIM, weight="Bold",
              align=LEFT if side is LEFT else RIGHT),
-        *segmented_bar(bar, f"[{prop}]", count=PEDAL_SEGMENTS, color=color,
-                       gap=PEDAL_GAP, radius=PEDAL_RADIUS, track=SURFACE_RAISED,
-                       name=f"{label} Bar", reverse=(side is LEFT)),
+        tile(bar, name=f"{label} Track", color=SURFACE_RAISED, radius=0),
+        delta_gauge(f"{label} Gauge", bar, color, 100.0, 0.0,
+                    alignment=2 if side is LEFT else 0,
+                    radius=rounded(radius=0), prop=prop),
+        ImageItem(
+            name=f"{label} Comb",
+            Image=PEDAL_COMB[side],
+            AutoSize=False,
+            BackgroundColor="#00FFFFFF",
+            Left=bar.x, Top=bar.y, Width=bar.width, Height=bar.height,
+            Visible=True,
+            BlinkPhasisInverted=False,
+            RenderingSkip=0,
+            MinimumRefreshIntervalMS=0.0,
+        ),
         # Some com o pedal solto (0) e mostra "00" com ele no fundo (100),
         # para o numero nunca passar de dois digitos.
         text(value.x, value.y, value.width, value.height, "00",

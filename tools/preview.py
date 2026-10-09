@@ -152,15 +152,21 @@ def render_gauge(node):
     parts.append("overflow:hidden")
 
     horizontal = (node.get("GaugeOrientation", 0) == 0)
-    # GaugeAlignment 1 preenche a partir da ponta oposta.
-    reverse = node.get("GaugeAlignment", 0) == 1
+    # GaugeAlignment: 0 ancora no inicio (esquerda/baixo), 1 no centro, 2 na
+    # ponta oposta. O dash original usa 2 no freio e na metade vermelha do
+    # delta, que enchem do centro do painel para a esquerda.
+    alignment = node.get("GaugeAlignment", 0)
     fill = [f"background:{css_color(node.get('GaugeColor'))}", "position:absolute"]
     if horizontal:
-        fill += [f"width:{fraction * 100:.2f}%", "height:100%", "top:0",
-                 "right:0" if reverse else "left:0"]
+        fill += [f"width:{fraction * 100:.2f}%", "height:100%", "top:0"]
+        fill += (["right:0"] if alignment == 2 else
+                 [f"left:{(1 - fraction) * 50:.2f}%"] if alignment == 1 else
+                 ["left:0"])
     else:
-        fill += [f"height:{fraction * 100:.2f}%", "width:100%", "left:0",
-                 "top:0" if reverse else "bottom:0"]
+        fill += [f"height:{fraction * 100:.2f}%", "width:100%", "left:0"]
+        fill += (["top:0"] if alignment == 2 else
+                 [f"bottom:{(1 - fraction) * 50:.2f}%"] if alignment == 1 else
+                 ["bottom:0"])
     return (f'<div style="{";".join(p for p in parts if p)}">'
             f'<div style="{";".join(fill)}"></div></div>')
 

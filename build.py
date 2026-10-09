@@ -12,11 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import rpmled  # noqa: E402
+from dash import rpmled, top_bar  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from simhub.build import (  # noqa: E402
-    copy_support_files, verify_fonts, write_dashboard,
+    copy_support_files, image_entry, verify_fonts, write_dashboard,
 )
 
 DASH_NAME = "iRacing_Dashboard_00"
@@ -64,9 +64,15 @@ def main(argv):
               + ", ".join(missing), file=sys.stderr)
         return 1
 
+    # Images[] do SHELL vem do dashboard original; as imagens novas do
+    # redesign entram aqui, com MD5 e tamanho lidos do arquivo.
+    shell = dict(main_dash.SHELL)
+    shell["Images"] = list(main_dash.SHELL["Images"]) + [
+        image_entry(name) for name in top_bar.IMAGES]
+
     write_dashboard(
         out_dir, DASH_NAME,
-        main_dash.SHELL, main_dash.SCREEN, main_dash.items(),
+        shell, main_dash.SCREEN, main_dash.items(),
         metadata=METADATA,
     )
     for name, widget_shell, widget_screen, widget_items in WIDGETS:
