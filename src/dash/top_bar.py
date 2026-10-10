@@ -268,11 +268,17 @@ def chip_slot(side):
                 thickness=1)
 
 
+#: Avisos de spotter que so fazem sentido de um lado: o carro a esquerda
+#: aparece so no chip da esquerda, o da direita so no da direita.
+ONE_SIDED = {"Flag Car Left": LEFT, "Flag Car Right": RIGHT}
+
+
 def chips(side):
-    """Os dez avisos empilhados no mesmo lugar, um visivel por vez."""
+    """Os avisos empilhados no mesmo lugar, um visivel por vez."""
+    specs = [spec for spec in CHIPS if ONE_SIDED.get(spec[0], side) is side]
     return Layer(
         chip_slot(side),
-        *(item for spec in CHIPS for item in chip(side, *spec)),
+        *(item for spec in specs for item in chip(side, *spec)),
         name="Alerrts" if side is LEFT else "Alerrts2",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,
