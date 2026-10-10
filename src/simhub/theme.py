@@ -96,10 +96,10 @@ FLAG_YELLOW = YELLOW
 FLAG_WHITE = "#FFFFFFFF"      # bandeira branca e branco puro, nao o TEXT
 FLAG_BLACK = "#FF050607"
 FLAG_BLUE = BLUE
-FLAG_DIRT = ORANGE
-FLAG_INCIDENT = "#FF8E1B14"   # vermelho fechado: incidente ja levado
+FLAG_DIRT = "#FF8B5E34"       # marrom terra: pista suja
+FLAG_INCIDENT = RED           # vermelho: incidente ja levado
 FLAG_PROXIMITY = ORANGE       # spotter: carro na esquerda / na direita
-FLAG_OVERLAP = ORANGE         # acelerador e freio juntos
+FLAG_OVERLAP = "#FFD946EF"    # magenta: acelerador e freio juntos
 
 # --- Tipografia --------------------------------------------------------------
 

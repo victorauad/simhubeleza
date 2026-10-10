@@ -210,9 +210,9 @@ def proximity(*values):
 
 
 CHIPS = [
-    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT_ON_LIGHT, None),
+    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT, None),
     ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, None),
-    ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT_ON_LIGHT,
+    ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT,
      "if([Throttle]>5 && [Brake]>5,1,0)"),
     ("Flag Car Left", "LEFT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
      f"if({proximity(2, 4, 5)},1,0)"),
