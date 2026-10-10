@@ -105,11 +105,16 @@ def render(mode, visible, repetitions, out_dir, work, flag=None, led=None):
             node["Repetitions"] = repetitions[name]
             if repetitions[name] == 0:
                 node["Visible"] = False
+        # Cada aviso e uma pilula mais o rotulo "<nome> Label"; o rotulo
+        # segue a pilula. O contorno do chip vazio fica sempre.
+        banner = name[:-len(" Label")] if (name or "").endswith(" Label") else name
         if name in ("Alerrts", "Alerrts2") and flag is not None:
             node["Visible"] = True
-        elif name in BANNER_NAMES and flag is not None:
-            node["Visible"] = name == flag
-        elif name in BANNER_NAMES or in_alerts:
+        elif name == "Chip Slot":
+            node["Visible"] = True
+        elif banner in BANNER_NAMES and flag is not None:
+            node["Visible"] = banner == flag
+        elif banner in BANNER_NAMES or in_alerts:
             node["Visible"] = False
             node.pop("Bindings", None)
         for child in (node.get("Childrens") or []):
