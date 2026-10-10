@@ -1,18 +1,19 @@
 """Centro: marcha, velocidade e RPM.
 
-E o bloco que o piloto olha de relance, entao a marcha domina: um disco no
-meio da coluna, com a marcha centrada dentro, e um brilho por tras que muda de
-cor com o estado do carro. No rodape, a barra de sub/sobre-esterco. Velocidade e RPM ficam no topo, em colunas opostas,
-cada uma com seu rotulo em cima: rotulo pequeno cinza, numero grande embaixo.
+E o bloco que o piloto olha de relance, entao a marcha domina: centrada na
+coluna, solta sobre um brilho que muda de cor com o estado do carro.
+Velocidade e RPM ficam no topo, em colunas opostas, cada uma com seu rotulo
+em cima: rotulo pequeno cinza, numero grande embaixo. No rodape, a barra de
+sub/sobre-esterco.
 
-Sem tile de fundo, como no canvas: o disco e o proprio bloco.
+Sem tile de fundo: o brilho e o proprio bloco.
 """
 
 from simhub.bindings import formatted, ncalc
 from simhub.model import OFF, GearText, Layer, RectangleItem
 from simhub.theme import (
     FONT_GEAR, GLOW_IDLE, GLOW_LIMITER, GLOW_OTS_ACTIVE, GLOW_OTS_COOLDOWN,
-    GLOW_SHIFT, GUTTER, PADDING, SEPARATOR, SIZE_GEAR, SIZE_LABEL, SIZE_VALUE,
+    GLOW_SHIFT, GUTTER, PADDING, SIZE_GEAR, SIZE_LABEL, SIZE_VALUE,
     TEXT, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
@@ -27,14 +28,10 @@ HEADER_HEIGHT = 72.0
 BALANCE_HEIGHT = 18.0
 BALANCE_GAP = 4.0
 
-#: Disco da marcha, o anel escuro em volta dele e o brilho por tras.
+#: Caixa da marcha e o brilho por tras dela.
 DISC = 180.0
-RING = 6.0
-GLOW = 290.0
-GLOW_BLUR = 40.0
-DISC_COLOR = "#FF101215"
-RING_COLOR = "#FF0E1013"
-RING_EDGE = "#FF2A2F35"
+GLOW = 200.0
+GLOW_BLUR = 32.0
 DIVIDER = "#FF3A4048"
 
 #: Cor do brilho, por prioridade: limite de RPM (roxo) > push to pass ativo
@@ -116,15 +113,12 @@ def divider(region):
 
 
 def disc(region):
-    """Brilho, anel e disco, centrados no espaco abaixo do cabecalho."""
+    """Brilho, centrado no espaco abaixo do cabecalho, e a caixa da marcha."""
     cx = region.x + region.width / 2
     cy = region.y + region.height / 2
     return [
         circle("Gear Glow", cx, cy, GLOW, GLOW_IDLE, blur=GLOW_BLUR,
                bindings={"BackgroundColor": ncalc(GLOW_COLOR)}),
-        circle("Gear Ring", cx, cy, DISC + RING * 2 + 2, RING_COLOR,
-               border=RING_EDGE),
-        circle("Gear Disc", cx, cy, DISC, DISC_COLOR, border=SEPARATOR),
     ], grid.Region(cx - DISC / 2, cy - DISC / 2, DISC, DISC)
 
 

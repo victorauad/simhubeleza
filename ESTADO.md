@@ -108,7 +108,7 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
     -- mudou a medida de uma barra, rode de novo.
 
 - **Barra de balanço sub/sobre-esterço** (`src/dash/balance.py`): rodapé da
-  coluna central, sob o disco da marcha (que caiu de 190 para 180). O iRacing
+  coluna central, sob a marcha. O iRacing
   não entrega slip angle, então a fórmula JS estima o ângulo de cada eixo pelo
   modelo de bicicleta (`VelocityX/Y`, `YawRate`, `SteeringWheelAngle`) e mostra
   |alfa_d| - |alfa_t|, suavizado: sub (ciano) para a esquerda, sobre
