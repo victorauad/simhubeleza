@@ -2,7 +2,7 @@
 
 E o bloco que o piloto olha de relance, entao a marcha domina: um disco no
 meio da coluna, com a marcha centrada dentro, e um brilho por tras que muda de
-cor com o estado do carro. Velocidade e RPM ficam no topo, em colunas opostas,
+cor com o estado do carro. No rodape, a barra de sub/sobre-esterco. Velocidade e RPM ficam no topo, em colunas opostas,
 cada uma com seu rotulo em cima: rotulo pequeno cinza, numero grande embaixo.
 
 Sem tile de fundo, como no canvas: o disco e o proprio bloco.
@@ -16,15 +16,19 @@ from simhub.theme import (
     TEXT, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
-from . import ots
+from . import balance, ots
 from .widgets import CENTER, LEFT, RIGHT, caption, text
 
 PANEL = grid.CENTER.inset(left=grid.MARGIN, right=grid.MARGIN, bottom=GUTTER)
 
 HEADER_HEIGHT = 72.0
 
+#: Faixa da barra de balanco, no rodape da coluna, sob o disco.
+BALANCE_HEIGHT = 18.0
+BALANCE_GAP = 4.0
+
 #: Disco da marcha, o anel escuro em volta dele e o brilho por tras.
-DISC = 190.0
+DISC = 180.0
 RING = 6.0
 GLOW = 290.0
 GLOW_BLUR = 40.0
@@ -158,6 +162,7 @@ def gear(region):
 def layer():
     """A coluna central inteira, com a faixa do OTS logo abaixo."""
     top, rest = PANEL.inset(top=PADDING).split_top(HEADER_HEIGHT - PADDING)
+    rest, strip = rest.split_bottom(BALANCE_HEIGHT, BALANCE_GAP)
     backdrop, gear_box = disc(rest)
 
     return Layer(
@@ -166,6 +171,7 @@ def layer():
             *header(top),
             *divider(top),
             gear(gear_box),
+            balance.layer(strip.inset(left=PADDING, right=PADDING)),
             name="Speed & Gear",
             Group=True, Repetitions=0, Visible=True,
             BlinkPhasisInverted=False, RenderingSkip=0,

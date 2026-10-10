@@ -107,6 +107,16 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   - Mascaras: `python3 tools/make_combs.py` (substitui `make_pedal_comb.py`)
     -- mudou a medida de uma barra, rode de novo.
 
+- **Barra de balanço sub/sobre-esterço** (`src/dash/balance.py`): rodapé da
+  coluna central, sob o disco da marcha (que caiu de 190 para 180). O iRacing
+  não entrega slip angle, então a fórmula JS estima o ângulo de cada eixo pelo
+  modelo de bicicleta (`VelocityX/Y`, `YawRate`, `SteeringWheelAngle`) e mostra
+  |alfa_d| - |alfa_t|, suavizado: sub (ciano) para a esquerda, sobre
+  (vermelho) para a direita, fundo de escala 3°. Constantes do SF23
+  (entre-eixos, distribuição de peso, relação de direção) são estimativas --
+  com o carro neutro numa curva longa a barra deve ficar perto do meio; se
+  não ficar, ajustar `STEERING_RATIO` primeiro.
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta
@@ -125,7 +135,10 @@ O que merece olhar primeiro, por ordem de risco:
    Se hex funcionar, trocar pelos valores exatos da paleta.
 2. **Escala do widget de telemetria** — virou `472/607` (largura exata do
    painel) no lugar do `0.74` do original. Conferir se não serrilhou.
-3. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
+3. **Barra de balanço** — conferir os sinais de `VelocityY`/`YawRate`/
+   `SteeringWheelAngle` (se a barra for para o lado errado numa curva, o
+   sinal de algum deles está trocado) e calibrar `STEERING_RATIO`.
+4. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
    coluna), então ficou menor que a do original. Conferir legibilidade em
    pista, não parado no menu.
 

@@ -67,6 +67,13 @@ class Region:
                       self.width, self.height - height - gutter)
         return top, rest
 
+    def split_bottom(self, height, gutter=0.0):
+        """O resto e a fatia de baixo."""
+        rest = Region(self.x, self.y, self.width,
+                      self.height - height - gutter)
+        bottom = Region(self.x, self.bottom - height, self.width, height)
+        return rest, bottom
+
     def __repr__(self):
         return (f"Region(x={self.x:.1f}, y={self.y:.1f}, "
                 f"w={self.width:.1f}, h={self.height:.1f})")
