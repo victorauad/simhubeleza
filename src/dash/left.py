@@ -39,11 +39,11 @@ STATS_HEIGHT = PANEL.height - CHART_HEIGHT - FOOTER_HEIGHT - GUTTER * 2
 #: ultimo campo e o espaco extra no rotulo (em caracteres) -- o do vento
 #: abriga a seta da direcao.
 STATS_FIELDS = [
-    ("Fuel Target", "FPL target", "2.30",
+    ("Fuel Target", "FPL tgt", "2.30",
      "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "0.00", 0.0),
     ("Fuel Last", "FPL last", "2.30",
      "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "0.00", 0.0),
-    ("Wind", "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 3.0),
+    ("Wind", "Wnd", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 3.0),
     ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", 0.0),
     ("Air", "Air", "00", "[AirTemperature]", "00", 0.0),
     ("Rain", "Rain", "00",
