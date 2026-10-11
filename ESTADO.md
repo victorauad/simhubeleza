@@ -36,6 +36,14 @@ com os 16 arquivos ao lado.
 Ao tirar screenshot, usar altura de janela **700**: a 540 o rodapé sai cortado
 pela janela, não pelo layout — o que já custou um diagnóstico errado.
 
+## Próximos passos (planejados, nada executado)
+
+- **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
+  (fases 0–6, começar por medir).
+- **Estados temporários dos componentes laterais** (Damage, Lap Review,
+  Weather, New Lap Info) — plano em `docs/estados.md`, com o que os dados do
+  iRacing permitem, as decisões em aberto e o que falta pedir ao usuário.
+
 ## Concluído
 
 - **Fases 1–4**: gerador completo com paridade validada (diff vazio) contra o
