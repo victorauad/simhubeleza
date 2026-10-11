@@ -272,7 +272,7 @@
       <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; as abas de modo mostram o chip vazio, só com o contorno.</li>
       <li><strong>Quatro dos dez avisos dependem de propriedades não confirmadas</strong> — <code>Flag_Black</code>, <code>Flag_Blue</code> e <code>CarLeftRight</code> (esta com os valores do spotter ainda por conferir). <code>Dirt</code> e <code>Incident</code> existem como chip mas não têm fórmula que os acione.</li>
       <li><strong>Os estados temporários</strong> (Damage, Lap Review, Weather, New Lap Info) dependem de gatilhos com tempo; aqui cada aba força um deles. A lógica dos gatilhos é testada à parte (<code>tools/check_states.py</code>), mas nunca rodou no SimHub.</li>
-      <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
+      <li><strong>O combustível por volta no lap log</strong> é medido pelo próprio dash (tanque no início menos no fim de cada volta) e aqui aparece com valores de exemplo. A primeira volta depois de abrir o dash e as voltas com reabastecimento ficam em branco. <strong>A temperatura da pista</strong> só aparece na volta mais recente.</li>
     </ul>
   </section>
 </div>
@@ -286,7 +286,7 @@
     window: ["Standings · janela",
       "Quando o jogador está longe do topo: o trio da frente, e daí a janela de 7 linhas centrada nele. Mesma grade de colunas da tabela cheia, então a leitura não se desloca quando o SimHub troca de um para o outro."],
     practice: ["Lap log",
-      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido."],
+      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido. O consumo é medido pelo próprio dash a cada volta, porque o SimHub não guarda esse histórico."],
     "flag-green": ["Bandeira verde",
       "Largada ou relargada. Ligada a <code>[Flag_Green]</code>, propriedade que o dashboard original ja usava."],
     "flag-yellow": ["Bandeira amarela",
@@ -312,13 +312,13 @@
     "pit-limiter": ["Pit limiter",
       "Limitador ligado: os LEDs piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."],
     "state-damage": ["Damage",
-      "No lugar do gráfico por 3 s quando você aperta o botão Damage Report, ou por 5 s a cada dano novo (tempo de reparo que cresce, ou aviso de motor novo). O iRacing não entrega dano por peça, então o carro é pintado pela gravidade geral — verde, amarelo, laranja, vermelho, pelo tempo total de reparo — e a tampa do motor fica vermelha com aviso de motor. Cockpit em branco (não danifica) e rodas neutras (sem dado). Ao lado: reparo obrigatório e opcional, e os avisos de água, óleo e combustível. O botão só funciona depois de configurado em <code>states.DAMAGE_BUTTON</code>."],
+      "No lugar do gráfico por 3 s quando você aperta o botão Damage Report, ou por 5 s a cada dano novo (tempo de reparo que cresce, ou aviso de motor novo). O iRacing não entrega dano por peça, então o carro é pintado pela gravidade geral — verde, amarelo, laranja, vermelho, pelo tempo total de reparo — e a tampa do motor fica vermelha com aviso de motor. Cockpit em branco (não danifica) e rodas neutras (sem dado). Ao lado: reparo obrigatório e opcional, e os avisos de água, óleo e combustível. O botão está ligado ao B15 do volante, deduzido da configuração do iRacing — falta conferir apertando."],
     "state-review": ["Lap Review",
       "Por 5 s a cada volta fechada fora do pit, só em corrida. Em cima e maior: sua última volta com o delta para a sua melhor, a média do stint e as voltas do stint. Embaixo: os 3 à frente e os 3 atrás na classe (o filete âmbar é você), com a última volta deles, o delta dela para a <em>sua</em> melhor volta e a média do stint deles. As médias são acumuladas volta a volta pelo próprio dash — começam a contar quando ele é aberto."],
     "state-weather": ["Weather",
       "Por 10 s ao sair do pit ou ao entrar no carro numa corrida (o “Race” que leva ao grid). O iRacing não publica a previsão no SDK, então é a condição atual com tendência: a seta no canto de cada campo compara com ~10 min atrás. O vento traz HEAD/TAIL/CROSS e a seta relativos ao carro. Aqui o preview mostra um ícone e três setas de exemplo."],
     "state-new-lap": ["New Lap Info",
-      "Por 5 s a cada volta nova, no lugar dos setores. FPS do próprio iRacing, ping, qualidade da conexão e temperaturas de CPU e GPU — branco quando está tudo bem, âmbar para atenção, vermelho para problema. CPU e GPU mostram N/A até o provedor de temperatura ser configurado em <code>states.CPU_TEMP</code>/<code>GPU_TEMP</code>."]
+      "Por 5 s a cada volta nova, no lugar dos setores. FPS do próprio iRacing, ping, qualidade da conexão e temperaturas de CPU e GPU — branco quando está tudo bem, âmbar para atenção, vermelho para problema. CPU e GPU vêm do MSI Afterburner e mostram N/A quando ele está fechado."]
   };
 
   const tabs = [...document.querySelectorAll('.tab')];
