@@ -7,6 +7,15 @@ do piloto e montado em tempo de execucao a partir do indice da linha.
 
 Todos os dados vem do plugin IRacingExtraProperties, que expoe o grid da classe
 do jogador como propriedades numeradas (Driver_00_Name, Driver_01_Name, ...).
+
+Reescrita de desempenho (docs/otimizacao.md, Fase 3): cada formula monta o
+prefixo da linha uma vez (`_row`), le cada propriedade uma vez e o gap do
+treino sai de `timespantoseconds`, sem passar o tempo por texto. Os itens
+das linhas rodam a ~6 Hz (`SKIP_ROW`). O comportamento e o das formulas
+originais -- `tools/check_leaderboard.py` roda as duas versoes lado a lado
+(as originais ficam em `tools/fixtures/leaderboard_legacy.json`). Diferencas
+de proposito, todas no teste: o overflow usa a paleta da tabela principal, e
+piloto sem volta no treino mostra N/A em vez de "+-82.9".
 """
 
 from simhub.bindings import js
@@ -17,7 +26,6 @@ from simhub.theme import (
 )
 from . import layout as grid
 from . import states
-from .generated.formulas import binding as original
 
 #: Area util da coluna, e quanto dela sobra para as linhas depois do rodape.
 PANEL = grid.RIGHT.inset(left=grid.MARGIN, right=grid.MARGIN)
@@ -42,27 +50,32 @@ PLAYER_NAME = "$prop('DataCorePlugin.GameData.PlayerName')"
 PLAYER_POSITION = "$prop('IRacingExtraProperties.iRacing_Player_PositionInClass')"
 FIELD_SIZE = "$prop('PlayerClassOpponentsCount')"
 
-#: Quantas linhas renderizar. O trecho comentado e a versao anterior da regra,
-#: preservada pelo autor original.
-ROWS_EXPRESSION = f"""//if([IRacingExtraProperties.iRacing_Player_PositionInClass] <= 11, 13, 3)
+BOARD = "IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_"
 
-var index;
-if ({FIELD_SIZE} - {PLAYER_POSITION} <= 5) {{
-\tindex = {FIELD_SIZE} - 10;
-}} else {{
-\tindex = {PLAYER_POSITION} - 5;
-}}
-/**/
+#: Inicio da janela do overflow, em indice do plugin -- a mesma conta do
+#: original. Le `F` (tamanho da classe) e `me` (posicao do jogador).
+WINDOW_INDEX = (
+    f"var F = {FIELD_SIZE}, me = {PLAYER_POSITION};\r\n"
+    "var index = F - me <= 5 ? F - 10 : me - 5;\r\n"
+)
 
-if ({FIELD_SIZE} <= 13 || index < 0 || {PLAYER_POSITION} <= 11) {{
+#: Quantas linhas renderizar: a tabela inteira (13) com grid pequeno ou o
+#: jogador perto do topo; senao o trio da frente, e o overflow assume.
+ROWS_EXPRESSION = (
+    WINDOW_INDEX
+    + f"return (F <= 13 || index < 0 || me <= 11) ? {ROWS_FULL} : {ROWS_WINDOW};"
+)
 
-\treturn {ROWS_FULL};
-\t
-}} else {{
+#: O overflow aparece exatamente quando a tabela principal encolhe.
+OVERFLOW_VISIBLE = (
+    WINDOW_INDEX
+    + "return (F <= 13 || index < 0 || me <= 11) ? 0 : 1;"
+)
 
-\treturn {ROWS_WINDOW};
-\t
-}}"""
+#: Cadencia dos itens das linhas: ~6 Hz. Gap e diferenca de volta mudam no
+#: maximo a cada setor; nome e posicao, a cada ultrapassagem.
+SKIP_ROW = 9
+
 
 #: Colunas da linha. Posicao e nome a esquerda, os dois numeros a direita --
 #: e a ordem em que se le: quem e, depois quao longe esta.
@@ -92,26 +105,6 @@ SLOWER = THEME_SLOWER
 def row_top(index=0):
     """Topo da linha `index` dentro do corpo da coluna."""
     return BODY.y + ROW_HEIGHT * index
-
-
-def driver(field, sep=""):
-    """Propriedade do piloto na linha corrente.
-
-    `sep` existe so para reproduzir a diferenca de espacamento que o editor
-    gravou em algumas formulas; nao tem efeito nenhum na avaliacao.
-    """
-    return (
-        "$prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + "
-        f"format((repeatindex() - 1), '00'){sep} + '_{field}')"
-    )
-
-
-def is_player():
-    return f"{driver('Name')} == {PLAYER_NAME}"
-
-
-def has_driver():
-    return f"if ({driver('Name')} != '') return 1; else return 0;"
 
 
 def row_text(name, left, width, size, text, align, **fields):
@@ -144,44 +137,136 @@ def row_text(name, left, width, size, text, align, **fields):
     )
 
 
-def position():
-    """Posicao na classe. Ambar para o jogador, apagada se desconectado."""
-    return row_text(
-        "DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE, "00", align=1,
-        bindings={
-            "Text": js(f"""if ({driver('PositionInClass')} != 0) {{
-
-\treturn {driver('PositionInClass')};
-
-}} else {{
-
-\treturn '';
-\t
-}}""", jsext=3, format_string=""),
-            "TextColor": js(f"""if ({is_player()}) {{
-
-\treturn '{PLAYER}';
-\t
-}} else {{
-
-\treturn '{TEXT_TERTIARY}';
-\t
-}}""", jsext=3),
-            "Opacity": js(f"""if ({driver('IsConnected')} == false) {{
-
-\treturn 70;
-\t
-}} else {{
-
-\treturn 100;
-\t
-}}"""),
-        },
+def _row(overflow):
+    """Prelúdio JS da linha: `r` (repeticao), `i` (indice do plugin), `P`
+    (prefixo das propriedades) e `d(campo)`. No overflow, tambem `F`, `me`
+    e `index` (inicio da janela)."""
+    head = WINDOW_INDEX + "var i = repeatindex() - 1 + index;\r\n" if overflow \
+        else "var i = repeatindex() - 1;\r\n"
+    return (
+        head
+        + f"var P = '{BOARD}' + (i >= 0 && i < 10 ? '0' : '') + i + '_';\r\n"
+        "var d = function (f) { return $prop(P + f); };\r\n"
     )
 
 
-def container():
+def row_js(overflow, body, **options):
+    return js(_row(overflow) + body, **options)
+
+
+def _is_player():
+    return f"d('Name') == {PLAYER_NAME}"
+
+
+#: Diferenca da ultima volta do jogador para a do piloto da linha
+#: (negativa = o outro foi mais rapido).
+LAST_DIFF = ("var diff = timespantoseconds($prop('LastLapTime')) - "
+             "timespantoseconds(d('LastLapTime'));\r\n")
+
+#: Posicao do jogador na classe (no overflow ja vem lida em `me`).
+def _me(overflow):
+    return "" if overflow else f"var me = {PLAYER_POSITION};\r\n"
+
+
+#: Melhor volta em centesimos, como o original lia (minutos da hora, segundos
+#: e centesimos truncados), mas sem formatar o tempo em texto.
+CENTIS = ("var cs = function (v) { var s = timespantoseconds(v); "
+          "if (s == null || isNaN(s)) return 0; "
+          "return Math.floor((s % 3600) * 100 + 1e-6); };\r\n")
+
+
+def formulas(overflow):
+    """Bindings de cada coluna da linha: {(controle, alvo): binding}."""
+    o = overflow
+    # Overflow: o original nao foi restilizado; agora segue a paleta da
+    # tabela principal (cores mapeadas no teste de equivalencia).
+    return {
+        ("DriverPosition", "Text"): row_js(
+            o, "var v = d('PositionInClass');\r\nreturn v != 0 ? v : '';",
+            jsext=3, format_string=""),
+        ("DriverPosition", "TextColor"): row_js(
+            o, f"return {_is_player()} ? '{PLAYER}' : '{TEXT_TERTIARY}';",
+            jsext=3),
+        ("DriverPosition", "Opacity"): row_js(
+            o, "return d('IsConnected') == false ? 70 : 100;"),
+        ("DriverContainer", "Visible"): row_js(
+            o, ("if (index < 0) return 0;\r\n" if o else "")
+            + "return d('Name') != '' ? 1 : 0;", jsext=3),
+        ("DriverContainer", "BackgroundColor"): row_js(
+            o, f"return {_is_player()} ? '{ROW_BG_PLAYER}' : '{ROW_BG}';"),
+        ("DriverName", "Text"): row_js(
+            o, "return d('PositionInClass') != 0 ? d('Name') : '';" if o
+            else "return d('Name');", jsext=3, format_string=""),
+        ("DriverName", "TextColor"): row_js(
+            o, f"if ({_is_player()}) return '{PLAYER}';\r\n"
+            f"if (d('IsConnected') == false) return '{DISCONNECTED}';\r\n"
+            f"return '{TEXT}';", jsext=3),
+        ("LastLapDifference", "Text"): row_js(
+            o, _me(o)
+            + "if (i + 1 == me && me != 0) return '';\r\n"
+            + LAST_DIFF
+            + "if (diff < 0) { var a = Math.abs(diff); "
+            "return '-' + format(a, a >= 100 ? '0' : '0.0') + ' '; }\r\n"
+            "return '+' + format(diff, diff >= 100 ? '0' : '0.00') + ' ';",
+            jsext=3, format_string="mm\\:ss\\.ff"),
+        ("LastLapDifference", "Visible"): row_js(
+            o, "if ($prop('GameRawData.Telemetry.Lap') <= 2) return 0;\r\n"
+            "if (d('LastLapTime') == '00:00:00' || "
+            "$prop('DataCorePlugin.GameRawData.Telemetry.LapBestLap') == 0 || "
+            + ("d('Name') == ''" if o else "d('PositionInClass') == 0")
+            + ") return 0;\r\nreturn 1;", jsext=3),
+        ("LastLapDifference", "TextColor"): row_js(
+            o, ("if (i + 1 == me) return 'White';\r\n" if o else "")
+            + LAST_DIFF
+            + f"return diff < 0 ? '{FASTER}' : '{SLOWER}';", jsext=3),
+        ("Gap", "Text"): row_js(
+            o, "return d('PositionInClass') != 0 ? d('GapToLeaderString') : '';"
+            if o else
+            f"if ({states.SESSION_TYPE} == 'Race') "
+            "return d('PositionInClass') != 0 ? d('GapToLeaderString') : '';\r\n"
+            "if (repeatindex() == 1) return ' 0.0';\r\n"
+            + CENTIS
+            + "var mine = cs(d('BestLapTime'));\r\n"
+            f"var lead = cs($prop('{BOARD}00_BestLapTime'));\r\n"
+            # Sem volta (dele ou do lider): falta dado, vira N/A.
+            "if (mine == 0 || lead == 0) return null;\r\n"
+            "return '+' + format((mine - lead) / 100, '0.0');",
+            jsext=3, format_string="0.0"),
+        ("Gap", "TextColor"): row_js(
+            o, f"if ({_is_player()}) return 'White';\r\n"
+            f"if (d('IsConnected') == false && {states.SESSION_TYPE} == 'Race') "
+            f"return '{DISCONNECTED}';\r\nreturn 'Gray';", jsext=3),
+        ("Gap", "Visible"): row_js(
+            o, "return d('Name') != '' ? 1 : 0;", jsext=3),
+        ("DriverName", "Visible"): row_js(
+            o, "return d('Name') != '' ? 1 : 0;"),
+    }
+
+
+def _bind(controls, overflow):
+    """Cola os bindings da linha nos controles e aplica a cadencia."""
+    table = formulas(overflow)
+    for control in controls:
+        name = control["Name"]
+        bindings = {target: binding for (owner, target), binding in table.items()
+                    if owner == name}
+        if overflow and name == "DriverName":
+            bindings.pop("Visible", None)   # o original nao tinha
+        control["Bindings"] = bindings
+        control["RenderingSkip"] = SKIP_ROW
+    return controls
+
+
+def position(top=None):
+    """Posicao na classe. Ambar para o jogador, apagada se desconectado."""
+    return row_text(
+        "DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE, "00",
+        align=1, top=row_top() if top is None else top)
+
+
+def container(top=None):
     """Faixa de fundo da linha; fica ambar na linha do jogador."""
+    top = row_top() if top is None else top
     return RectangleItem(
         name="DriverContainer",
         IsRectangleItem=True,
@@ -192,59 +277,27 @@ def container():
             "RadiusBottomLeft": 5, "RadiusBottomRight": 5,
         },
         Height=ROW_HEIGHT - ROW_INSET * 2, Left=NAME_X - 4.0,
-        Top=row_top() + ROW_INSET, Width=NAME_WIDTH + 8.0,
+        Top=top + ROW_INSET, Width=NAME_WIDTH + 8.0,
         Visible=True,
         BlinkPhasisInverted=False,
         RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
-        bindings={
-            "Visible": js(has_driver(), jsext=3),
-            "BackgroundColor": js(f"""if ({is_player()}) {{
-
-\treturn '{ROW_BG_PLAYER}';
-\t
-}} else {{
-
-\treturn '{ROW_BG}';
-\t
-}}"""),
-        },
     )
 
 
-def name():
+def name(top=None):
     """Nome do piloto, alinhado a esquerda."""
     return row_text(
         "DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE, "DRIVER NAME", align=0,
-        font=FONT,
-        bindings={
-            "Text": js(f"return {driver('Name')};", jsext=3, format_string=""),
-            "TextColor": js(f"""if ({is_player()}) {{
-
-\treturn '{PLAYER}';
-\t
-}} else if ({driver('IsConnected')} == false) {{
-
-\treturn '{DISCONNECTED}';
-\t
-}} else {{
-
-\treturn '{TEXT}';
-\t
-}}""", jsext=3),
-            "Visible": js(has_driver()),
-        },
-    )
+        font=FONT, top=row_top() if top is None else top)
 
 
-def last_lap_difference():
+def last_lap_difference(top=None):
     """Diferenca entre a ultima volta do jogador e a do piloto da linha.
 
     Verde quando o outro foi mais rapido, vermelho quando mais lento. Some nas
     duas primeiras voltas, quando ainda nao ha tempo valido para comparar.
     """
-    faster = (f"timespantoseconds($prop('LastLapTime')) - "
-              f"timespantoseconds({driver('LastLapTime')})")
     return row_text(
         "LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE, "-0.00", align=2,
         color=FASTER,
@@ -256,88 +309,16 @@ def last_lap_difference():
             "RadiusTopLeft": 5, "RadiusTopRight": 5,
             "RadiusBottomLeft": 5, "RadiusBottomRight": 5,
         },
-        bindings={
-            "Text": js(f"""var lapdiff;
-
-if (repeatindex() == $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') && $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') != 0) {{
-
-\treturn '';
-\t
-}} else if ({faster} < 0) {{
-
-\tlapdiff = Math.abs({faster});
-\t
-\tif (lapdiff >= 100) {{
-\t\t
-\t\treturn '-' + format(lapdiff, '0') + ' ';
-\t\t
-\t}} else {{
-\t
-\t\treturn '-' + format(lapdiff, '0.0') + ' ';
-\t
-\t}}
-\t\t
-}} else {{
-
-\tlapdiff = {faster};
-\t
-\tif (lapdiff >= 100) {{
-\t\t
-\t\treturn '+' + format(lapdiff, '0') + ' ';
-\t\t
-\t}} else {{
-\t
-\t\treturn '+' + format(lapdiff, '0.00') + ' ';
-\t
-\t}}
-\t\t
-}}""", jsext=3, format_string="mm\\:ss\\.ff"),
-            "Visible": js(f"""if ($prop("GameRawData.Telemetry.Lap") <= 2) {{
-
-\treturn 0;
-\t
-}} else if ({driver('LastLapTime')} == '00:00:00' || $prop('DataCorePlugin.GameRawData.Telemetry.LapBestLap') == 0 || {driver('PositionInClass')} == 0) {{
-
-\treturn 0;
-\t
-}} else {{
-
-\treturn 1;
-\t
-}}""", jsext=3),
-            "TextColor": js(f"""if ({faster} < 0) {{
-\t
-\treturn '{FASTER}';
-\t
-}} else {{
-\t
-\treturn '{SLOWER}';
-\t\t
-}}""", jsext=3),
-        },
+        top=row_top() if top is None else top,
     )
 
 
-def _best_lap_seconds(prop_expression):
-    """Converte um BestLapTime em segundos somando mm, ss e centesimos.
-
-    O plugin entrega o tempo como texto, entao a conversao e feita a mao com
-    format() em vez de timespantoseconds().
-    """
-    return (
-        f"(parseInt(format({prop_expression}, 'mm') * 60) + "
-        f"parseInt(format({prop_expression}, 'ss')) + "
-        f"parseFloat(format({prop_expression}, 'ff') * 0.01))"
-    )
-
-
-def gap():
+def gap(top=None):
     """Gap para o lider.
 
     Em corrida usa o gap pronto do plugin; fora dela compara a melhor volta do
     piloto com a do lider da classe (Driver_00).
     """
-    leader_best = "$prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_00_BestLapTime')"
     return row_text(
         "Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
         color=FASTER,
@@ -345,66 +326,20 @@ def gap():
         char_width=14.0,
         SpecialCharsWidth=8.0,
         special_chars=".,",
-        bindings={
-            "Text": js(f"""if ({states.SESSION_TYPE} == 'Race') {{
-
-\tif ({driver('PositionInClass')} != 0) {{
-\t\t
-\t\tif ({driver('GapToLeaderString', sep=' ')} == '0.0' && repeatindex() == 1) {{
-\t\t
-\t\t\treturn '0.0';
-\t\t\t
-\t\t}} else {{
-\t\t
-\t\t\treturn {driver('GapToLeaderString', sep=' ')};
-\t\t
-\t\t}}
-\t\t
-\t}} else {{
-\t
-\t\treturn '';
-\t\t
-\t}}
-\t
-}} else {{
-
-\tif(repeatindex() == 1) {{
-
-\t\treturn ' 0.0';
-\t
-\t}} else {{
-
-\t\treturn '+' +
-\t\t
-\t\tformat(({_best_lap_seconds(driver('BestLapTime'))} - 
-\t
-\t\t{_best_lap_seconds(leader_best)}), '0.0');
-\t\t
-\t}}
-\t
-}}""", jsext=3, format_string="0.0"),
-            "TextColor": js(f"""if ({is_player()}) {{
-
-\treturn 'White';
-\t
-}} else if ({states.SESSION_TYPE} == 'Race' &&{driver('IsConnected')} == false) {{
-
-\treturn '{DISCONNECTED}';
-\t
-}} else {{
-
-\treturn 'Gray';
-\t
-}}""", jsext=3),
-            "Visible": js(has_driver(), jsext=3),
-        },
+        top=row_top() if top is None else top,
     )
+
+
+def row(overflow=False, top=None):
+    """Os controles de uma linha, com os bindings."""
+    return _bind([position(top), container(top), name(top),
+                  last_lap_difference(top), gap(top)], overflow)
 
 
 def layer():
     """A camada repetidora, com a linha-template dentro."""
     return Layer(
-        position(), container(), name(), last_lap_difference(), gap(),
+        *row(),
         name="Leaderboard",
         Group=True,
         Repetitions=2,
@@ -428,67 +363,11 @@ OVERFLOW_ROWS = 7
 def overflow_layer():
     """A janela em volta do jogador, quando ele nao cabe na tabela cheia.
 
-    Mesma linha, mesma grade de colunas; o que muda e o indice, que aqui e
-    calculado a partir da posicao do jogador. Essas formulas vem verbatim do
-    original (`tools/dump_formulas.py`) -- sao trinta linhas de aritmetica de
-    indice que nao ganham nada em serem reescritas.
+    Mesma linha, mesma grade de colunas; o que muda e o indice, calculado a
+    partir da posicao do jogador (`WINDOW_INDEX`).
     """
-    def at(node, target, **extra):
-        return original(f"Leaderboard Overflow/{node}", target, **extra)
-
-    top = row_top(OVERFLOW_START)
     return Layer(
-        row_text("DriverPosition", POSITION_X, POSITION_WIDTH, ROW_TEXT_SIZE,
-                 "00", align=1, top=top,
-                 bindings={
-                     "Text": at("DriverPosition", "Text"),
-                     "TextColor": at("DriverPosition", "TextColor"),
-                     "Opacity": at("DriverPosition", "Opacity"),
-                 }),
-        RectangleItem(
-            name="DriverContainer",
-            IsRectangleItem=True,
-            BackgroundColor=ROW_BG,
-            BorderStyle={
-                "BorderColor": "#FF00BFFF",
-                "RadiusTopLeft": 5, "RadiusTopRight": 5,
-                "RadiusBottomLeft": 5, "RadiusBottomRight": 5,
-            },
-            Height=ROW_HEIGHT - ROW_INSET * 2, Left=NAME_X - 4.0,
-            Top=top + ROW_INSET, Width=NAME_WIDTH + 8.0,
-            Visible=True,
-            BlinkPhasisInverted=False,
-            RenderingSkip=0,
-            MinimumRefreshIntervalMS=0.0,
-            bindings={
-                "Visible": at("DriverContainer", "Visible"),
-                "BackgroundColor": at("DriverContainer", "BackgroundColor"),
-            },
-        ),
-        row_text("DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE,
-                 "DRIVER NAME", align=0, top=top, font=FONT,
-                 bindings={
-                     "Text": at("DriverName", "Text"),
-                     "TextColor": at("DriverName", "TextColor"),
-                 }),
-        row_text("LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE,
-                 "-0.00", align=2, top=top, color=FASTER,
-                 UseMonospacedText=True, char_width=14.0,
-                 SpecialCharsWidth=8.0, special_chars=".,",
-                 bindings={
-                     "Text": at("LastLapDifference", "Text"),
-                     "Visible": at("LastLapDifference", "Visible"),
-                     "TextColor": at("LastLapDifference", "TextColor"),
-                 }),
-        row_text("Gap", GAP_X, GAP_WIDTH, ROW_TEXT_SIZE, "00.0", align=2,
-                 top=top, color=FASTER,
-                 UseMonospacedText=True, char_width=14.0,
-                 SpecialCharsWidth=8.0, special_chars=".,",
-                 bindings={
-                     "Text": at("Gap", "Text"),
-                     "TextColor": at("Gap", "TextColor"),
-                     "Visible": at("Gap", "Visible"),
-                 }),
+        *row(overflow=True, top=row_top(OVERFLOW_START)),
         name="Leaderboard Overflow",
         Group=True,
         Repetitions=OVERFLOW_ROWS,
@@ -498,7 +377,7 @@ def overflow_layer():
         BlinkPhasisInverted=False,
         RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
-        bindings={"Visible": original("Leaderboard Overflow", "Visible")},
+        bindings={"Visible": js(OVERFLOW_VISIBLE)},
     )
 
 

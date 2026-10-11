@@ -1,0 +1,118 @@
+{
+ "Leaderboard.Repetitions": {
+  "Expression": "//if([IRacingExtraProperties.iRacing_Player_PositionInClass] <= 11, 13, 3)\n\nvar index;\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\n} else {\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\n}\n/**/\n\nif ($prop('PlayerClassOpponentsCount') <= 13 || index < 0 || $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 11) {\n\n\treturn 13;\n\t\n} else {\n\n\treturn 3;\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverPosition.Text": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_PositionInClass') != 0) {\n\n\treturn $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_PositionInClass');\n\n} else {\n\n\treturn '';\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverPosition.TextColor": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\n\n\treturn '#FFF4A73A';\n\t\n} else {\n\n\treturn '#FF6B717A';\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverPosition.Opacity": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_IsConnected') == false) {\n\n\treturn 70;\n\t\n} else {\n\n\treturn 100;\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverContainer.Visible": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') != '') return 1; else return 0;",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverContainer.BackgroundColor": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\n\n\treturn '#38F4A73A';\n\t\n} else {\n\n\treturn '#FF1F2328';\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverName.Text": {
+  "Expression": "return $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name');",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverName.TextColor": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\n\n\treturn '#FFF4A73A';\n\t\n} else if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_IsConnected') == false) {\n\n\treturn '#FF6B717A';\n\t\n} else {\n\n\treturn '#FFECEEF0';\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/DriverName.Visible": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') != '') return 1; else return 0;",
+  "Interpreter": 1
+ },
+ "Leaderboard/LastLapDifference.Text": {
+  "Expression": "var lapdiff;\n\nif (repeatindex() == $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') && $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') != 0) {\n\n\treturn '';\n\t\n} else if (timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_LastLapTime')) < 0) {\n\n\tlapdiff = Math.abs(timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_LastLapTime')));\n\t\n\tif (lapdiff >= 100) {\n\t\t\n\t\treturn '-' + format(lapdiff, '0') + ' ';\n\t\t\n\t} else {\n\t\n\t\treturn '-' + format(lapdiff, '0.0') + ' ';\n\t\n\t}\n\t\t\n} else {\n\n\tlapdiff = timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_LastLapTime'));\n\t\n\tif (lapdiff >= 100) {\n\t\t\n\t\treturn '+' + format(lapdiff, '0') + ' ';\n\t\t\n\t} else {\n\t\n\t\treturn '+' + format(lapdiff, '0.00') + ' ';\n\t\n\t}\n\t\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/LastLapDifference.Visible": {
+  "Expression": "if ($prop(\"GameRawData.Telemetry.Lap\") <= 2) {\n\n\treturn 0;\n\t\n} else if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_LastLapTime') == '00:00:00' || $prop('DataCorePlugin.GameRawData.Telemetry.LapBestLap') == 0 || $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_PositionInClass') == 0) {\n\n\treturn 0;\n\t\n} else {\n\n\treturn 1;\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/LastLapDifference.TextColor": {
+  "Expression": "if (timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_LastLapTime')) < 0) {\n\t\n\treturn '#FF34D27B';\n\t\n} else {\n\t\n\treturn '#FFFF4B3E';\n\t\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/Gap.Text": {
+  "Expression": "if ((((typeof getsharedvalueordefault === 'function' && typeof setsharedvalue === 'function') && Date.now() - getsharedvalueordefault('sf23dash', 'at', 0) < 1000 && getsharedvalueordefault('sf23dash', 'session', null)) || ($prop('GameRawData.CurrentSessionInfo.SessionType') || $prop('GameRawData.SessionData.SessionInfo.Sessions' + ('0' + ((Number($prop('GameRawData.Telemetry.SessionNum')) || 0) + 1)).slice(-2) + '.SessionType'))) == 'Race') {\n\n\tif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_PositionInClass') != 0) {\n\t\t\n\t\tif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00')  + '_GapToLeaderString') == '0.0' && repeatindex() == 1) {\n\t\t\n\t\t\treturn '0.0';\n\t\t\t\n\t\t} else {\n\t\t\n\t\t\treturn $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00')  + '_GapToLeaderString');\n\t\t\n\t\t}\n\t\t\n\t} else {\n\t\n\t\treturn '';\n\t\t\n\t}\n\t\n} else {\n\n\tif(repeatindex() == 1) {\n\n\t\treturn ' 0.0';\n\t\n\t} else {\n\n\t\treturn '+' +\n\t\t\n\t\tformat(((parseInt(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_BestLapTime'), 'mm') * 60) + parseInt(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_BestLapTime'), 'ss')) + parseFloat(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_BestLapTime'), 'ff') * 0.01)) - \n\t\n\t\t(parseInt(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_00_BestLapTime'), 'mm') * 60) + parseInt(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_00_BestLapTime'), 'ss')) + parseFloat(format($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_00_BestLapTime'), 'ff') * 0.01))), '0.0');\n\t\t\n\t}\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/Gap.TextColor": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\n\n\treturn 'White';\n\t\n} else if ((((typeof getsharedvalueordefault === 'function' && typeof setsharedvalue === 'function') && Date.now() - getsharedvalueordefault('sf23dash', 'at', 0) < 1000 && getsharedvalueordefault('sf23dash', 'session', null)) || ($prop('GameRawData.CurrentSessionInfo.SessionType') || $prop('GameRawData.SessionData.SessionInfo.Sessions' + ('0' + ((Number($prop('GameRawData.Telemetry.SessionNum')) || 0) + 1)).slice(-2) + '.SessionType'))) == 'Race' &&$prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_IsConnected') == false) {\n\n\treturn '#FF6B717A';\n\t\n} else {\n\n\treturn 'Gray';\n\t\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard/Gap.Visible": {
+  "Expression": "if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1), '00') + '_Name') != '') return 1; else return 0;",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow.Visible": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('PlayerClassOpponentsCount') <= 13 || index < 0 || $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 11) {\r\n\r\n\treturn 0;\r\n\t\r\n} else {\r\n\r\n\treturn 1;\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverPosition.Text": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_PositionInClass') != 0) {\r\n\r\n\treturn $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_PositionInClass');\r\n\r\n} else {\r\n\r\n\treturn '';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverPosition.TextColor": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\r\n\r\n\treturn 'DarkOrange';\r\n\t\r\n} else {\r\n\r\n\treturn 'Gray';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverPosition.Opacity": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_IsConnected') == false) {\r\n\r\n\treturn 70;\r\n\t\r\n} else {\r\n\r\n\treturn 100;\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverContainer.Visible": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif (index < 0) {\r\n\r\n\treturn 0;\r\n\t\r\n} else if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') != '') {\r\n\r\n\treturn 1;\r\n\t\r\n} else {\r\n\r\n\treturn 0;\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverContainer.BackgroundColor": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\r\n\r\n\treturn 'White';\r\n\t\r\n} else {\r\n\r\n\treturn '#FF1C1C1C';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverName.Text": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_PositionInClass') != 0) {\r\n\r\n\treturn $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name');\r\n\r\n} else {\r\n\r\n\treturn '';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/DriverName.TextColor": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\r\n\r\n\treturn 'Black';\r\n\t\r\n} else if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_IsConnected') == false) {\r\n\r\n\treturn '#FF404040';\r\n\t\r\n} else {\r\n\r\n\treturn 'Gray';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/LastLapDifference.Text": {
+  "Expression": "var lapdiff;\r\nvar index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif (repeatindex() + index == $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') && $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') != 0) {\r\n\r\n\treturn '';\r\n\t\r\n} else if (timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_LastLapTime')) < 0) {\r\n\r\n\tlapdiff = Math.abs(timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_LastLapTime')));\r\n\t\r\n\tif (lapdiff >= 100) {\r\n\t\t\r\n\t\treturn '-' + format(lapdiff, '0') + ' ';\r\n\t\t\r\n\t} else {\r\n\t\r\n\t\treturn '-' + format(lapdiff, '0.0') + ' ';\r\n\t\r\n\t}\r\n\t\t\r\n} else {\r\n\r\n\tlapdiff = timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_LastLapTime'));\r\n\t\r\n\tif (lapdiff >= 100) {\r\n\t\t\r\n\t\treturn '+' + format(lapdiff, '0') + ' ';\r\n\t\t\r\n\t} else {\r\n\t\r\n\t\treturn '+' + format(lapdiff, '0.00') + ' ';\r\n\t\r\n\t}\r\n\t\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/LastLapDifference.Visible": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop(\"GameRawData.Telemetry.Lap\") <= 2) {\r\n\r\n\treturn 0;\r\n\t\r\n} else if ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_LastLapTime') == '00:00:00' || $prop('DataCorePlugin.GameRawData.Telemetry.LapBestLap') == 0 || $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') == '') {\r\n\r\n\treturn 0;\r\n\t\r\n} else {\r\n\r\n\treturn 1;\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/LastLapDifference.TextColor": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif (repeatindex() + index == $prop('IRacingExtraProperties.iRacing_Player_PositionInClass')) {\r\n\r\n\treturn 'White';\r\n\t\r\n} else if (timespantoseconds($prop('LastLapTime')) - timespantoseconds($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_LastLapTime')) < 0) {\r\n\t\r\n\treturn '#8800FF7F';\r\n\t\r\n} else {\r\n\t\r\n\treturn '#88FF6347';\r\n\t\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/Gap.Text": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_PositionInClass') != 0) {\r\n\t\t\r\n\treturn $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00')  + '_GapToLeaderString');\r\n\t\t\t\r\n} else {\r\n\t\r\n\treturn '';\r\n\t\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/Gap.TextColor": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') == $prop('DataCorePlugin.GameData.PlayerName')) {\r\n\r\n\treturn 'White';\r\n\t\r\n} else if ($prop(\"SessionTypeName\") == 'Race' && $prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_IsConnected') == false) {\r\n\r\n\treturn '#FF404040';\r\n\t\r\n} else {\r\n\r\n\treturn 'Gray';\r\n\t\r\n}",
+  "Interpreter": 1
+ },
+ "Leaderboard Overflow/Gap.Visible": {
+  "Expression": "var index;\r\nif ($prop('PlayerClassOpponentsCount') - $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') <= 5) {\r\n\tindex = $prop('PlayerClassOpponentsCount') - 10;\r\n} else {\r\n\tindex = $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') - 5;\r\n}\r\n/**/\r\n\r\nif ($prop('IRacingExtraProperties.iRacing_ClassLeaderboard_Driver_' + format((repeatindex() - 1 + index), '00') + '_Name') != '') {\r\n\r\n\treturn 1;\r\n\t\r\n} else {\r\n\r\n\treturn 0;\r\n\t\r\n}",
+  "Interpreter": 1
+ }
+}

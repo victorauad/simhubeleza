@@ -24,6 +24,22 @@ from dash.fallback import unwrap  # noqa: E402
 from dash.fixes import fix  # noqa: E402
 from dash.fixes import AUDIT as PROPERTY_FIXES  # noqa: E402
 
+#: Regioes reescritas de proposito, com o comportamento garantido por um teste
+#: de equivalencia contra as formulas originais (que ele guarda). Uma formula
+#: original que some daqui so e aceita se todas as ocorrencias dela estiverem
+#: na regiao e o teste passar.
+REWRITTEN = [
+    ("/Standings/Leaderboard", "tools/check_leaderboard.py"),
+]
+
+
+def equivalence_passes(script):
+    """Roda o teste de equivalencia em silencio; True se passou."""
+    import subprocess
+    result = subprocess.run([sys.executable, str(ROOT / script), "1000"],
+                            capture_output=True, text=True)
+    return result.returncode == 0
+
 
 def fixed(expression):
     """Forma de comparacao do original com as propriedades corrigidas.
@@ -118,6 +134,13 @@ def main(argv=None):
     new_squeezed = {squeeze(colorless(e)) for e in new}
     corrected = [e for e in removed if colorless(fixed(e)) in new_squeezed]
     removed = [e for e in removed if e not in corrected]
+    rewritten = {}
+    for region, script in REWRITTEN:
+        inside = [e for e in removed
+                  if all(region in where for where in old[e])]
+        if inside and equivalence_passes(script):
+            rewritten[script] = inside
+            removed = [e for e in removed if e not in inside]
     restyled_shapes = {colorless(x) for x in restyled}
     corrected_shapes = {colorless(fixed(x)) for x in corrected}
     added = [e for e in added if colorless(e) not in restyled_shapes
@@ -128,6 +151,13 @@ def main(argv=None):
               "pela certa (dash/fixes.py):")
         for expression in corrected:
             print(f"  {', '.join(old[expression][:3])}")
+        print()
+
+    for script, expressions in rewritten.items():
+        print(f"REESCRITAS ({len(expressions)}) -- equivalencia verificada "
+              f"por {script}:")
+        for expression in expressions:
+            print(f"  {', '.join(old[expression][:2])}")
         print()
 
     if restyled:

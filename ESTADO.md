@@ -16,6 +16,7 @@ python3 tools/preview_modes.py      # um preview por modo -> build/modes/
 python3 tools/dump_formulas.py      # re-extrai as fórmulas do original
 python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
+python3 tools/check_leaderboard.py  # leaderboard novo == original (Node)
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
@@ -364,6 +365,12 @@ Dois defeitos achados e corrigidos:
   sessão por `CurrentSessionInfo`, flash do bias em NCalc. **A conferir em
   pista:** se `setsharedvalue` aceita os valores (o `--diag` mostra JS/s caindo)
   e se `isincreasing` conta o atraso em ms.
+
+- **Leaderboard reescrito para desempenho** (Fase 3, `docs/otimizacao.md`):
+  mesma saída das fórmulas originais em 3.000 grids simulados
+  (`tools/check_leaderboard.py`, chamado pela auditoria), linhas a ~6 Hz. O
+  overflow passou a usar a paleta da tabela principal e o gap de treino sem
+  volta mostra N/A.
 
 ## O que ainda falta
 

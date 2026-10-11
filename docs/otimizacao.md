@@ -67,10 +67,26 @@ Pontos quentes (sem mudança desde o plano):
 - **Flash do bias em NCalc:** `isincreasing`/`isdecreasing` nativas, sem JS e
   sem `root`; o desbotamento virou 4 degraus (`left.BIAS_STEPS`).
 
+- **Fase 3 — leaderboard reescrito** (`src/dash/leaderboard.py`): cada fórmula
+  monta o prefixo da linha uma vez (`_row`), lê cada propriedade uma vez, e o
+  gap do treino sai de `timespantoseconds` em centésimos (antes: o tempo
+  formatado em texto três vezes por piloto). Linhas a ~6 Hz (`SKIP_ROW = 9`,
+  no item; os layers ficam a 60 Hz). Conta estática por quadro (13 linhas +
+  7 do overflow): `format()` 643 → 53, leituras de propriedade 1219 → 844;
+  avaliações JS/s das linhas ~16.500 → ~1.800. Equivalência:
+  `python3 tools/check_leaderboard.py` roda as 29 fórmulas originais
+  (`tools/fixtures/leaderboard_legacy.json`) e as novas lado a lado em 3.000
+  grids simulados; a auditoria chama esse teste e só aceita as originais como
+  REESCRITAS se ele passar. Diferenças de propósito (contadas no teste):
+  overflow com a paleta da tabela principal; gap de treino sem volta → N/A
+  (antes "+-82.9"); cor de desconectado no overflow em corrida (o original lia
+  `SessionTypeName`, que não existe); arredondamento exato na casa de 5
+  centésimos.
+
 Não feito ainda: tendência de ar/pista pelo plugin
 (`iRacing_AirTemperatureChange`/`iRacing_TrackTemperatureChange` — formato do
 texto desconhecido; conferir em `http://localhost:8888/api/GetProperty/IRacingExtraProperties.iRacing_TrackTemperatureChange`
-em sessão) e a Fase 3 do leaderboard (medir primeiro com o `--diag`).
+em sessão) NCalc no leaderboard (as fórmulas usam `prop()` dinâmico, que o NCalc tem, mas a equivalência só é testável em JS).
 
 ## O plano (fases)
 
