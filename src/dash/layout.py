@@ -109,7 +109,7 @@ BODY_HEIGHT = BODY_BOTTOM - BODY_TOP
 #: rodape da direita, que juntos formam uma barra inferior unica. Sai daqui,
 #: nao de "o que sobrou" em cada coluna, senao os tres se desalinham a cada
 #: mudanca de altura da barra superior.
-BOTTOM_BAR_HEIGHT = 86.1
+BOTTOM_BAR_HEIGHT = 100.0
 
 LEFT = Region(0.0, BODY_TOP, 484.0, BODY_HEIGHT)
 RIGHT = Region(796.0, BODY_TOP, 484.0, BODY_HEIGHT)
