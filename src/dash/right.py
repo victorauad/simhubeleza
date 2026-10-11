@@ -64,9 +64,14 @@ IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 #: O SimHub entrega booleanos como `true` (JS) ou 'True' (texto), nunca
 #: 'TRUE' -- comparar com 'TRUE' deixava o Relative sempre escondido.
 #: Normaliza tudo para texto maiusculo antes de comparar.
+#:
+#: Em replay o iRacing reporta `IsOnTrack` falso (o piloto nao esta no
+#: carro), o que deixava a coluna presa no Standings. `IsReplayPlaying`
+#: (docs/propriedades.txt) conta como "na pista" para o Relative aparecer.
 NOT_ON_TRACK_JS = (
     "!(String($prop('DataCorePlugin.GameRunning')).toUpperCase() == 'TRUE' && "
-    "String($prop('GameRawData.Telemetry.IsOnTrack')).toUpperCase() == 'TRUE')")
+    "(String($prop('GameRawData.Telemetry.IsOnTrack')).toUpperCase() == 'TRUE' || "
+    "String($prop('GameRawData.Telemetry.IsReplayPlaying')).toUpperCase() == 'TRUE'))")
 #: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
 #: acabou de ser completada.
 JUST_COMPLETED_LAP_JS = (
