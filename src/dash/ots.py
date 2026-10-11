@@ -48,13 +48,15 @@ ACTIVE_BLINK = "if([DahlDesign.SF23.OTActive], 1, 0)"
 
 
 def state_formula(box, ready, active, cooldown, blocked, fallback):
-    """Cascata de estados do OTS, identica a do original."""
+    """Cascata de estados do OTS: a do original, com a recarga antes do pronto."""
+    # Recarga antes de "pronto": durante a recarga o plugin ja diz OTAllowed,
+    # e o original mostrava READY com o numero contando a recarga.
     return ("if([DahlDesign.PitBoxPosition] > 0, '%s',\n"
-            "if([DahlDesign.SF23.OTAllowed] && ![DahlDesign.SF23.OTActive], '%s',\n"
             "if([DahlDesign.SF23.OTActive], '%s',\n"
             "if([DahlDesign.SF23.OTCooldownActive], '%s',\n"
+            "if([DahlDesign.SF23.OTAllowed], '%s',\n"
             "if(![DahlDesign.SF23.OTAllowed], '%s',\n"
-            "'%s')))))" % (box, ready, active, cooldown, blocked, fallback))
+            "'%s')))))" % (box, active, cooldown, ready, blocked, fallback))
 
 
 #: Cor do estado -- usada pelo texto, pelo numero e pela barra, para os tres

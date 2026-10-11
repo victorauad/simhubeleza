@@ -42,13 +42,16 @@ STATS_FIELDS = [
     # Alvo = media de consumo por volta; last = consumo da ultima volta.
     ("Fuel Target", "FPL tgt", "2.30",
      "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "0.00", 0.0),
+    # Antes da primeira volta completa o consumo vem 0: N/A, nao "0.00".
     ("Fuel Last", "FPL last", "2.30",
-     "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "0.00", 0.0),
+     "if([DataCorePlugin.Computed.Fuel_LastLapConsumption] > 0, "
+     "format([DataCorePlugin.Computed.Fuel_LastLapConsumption], '0.00'), "
+     "'N/A')", None, 0.0),
     ("Wind", "Wnd", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 3.0),
     ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", 0.0),
     ("Air", "Air", "00", "[AirTemperature]", "00", 0.0),
     ("Rain", "Rain", "00",
-     "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, 0.0),
+     "format([GameRawData.Telemetry.Precipitation] * 100, '00')", None, 0.0),
 ]
 
 #: Rodape: a sessao, mais a hora e o grip que vieram do rodape da direita
@@ -60,8 +63,11 @@ FOOTER_FIELDS = [
      "00", None),
     ("Inc", "Inc", "00",
      "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
+    # SoF 0 = sessao sem SoF (treino sozinho, replay): N/A, nao "0".
     ("SoF", "SoF", "34",
-     "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
+     "if([IRacingExtraProperties.iRacing_Class_SoF] > 0, "
+     "format([IRacingExtraProperties.iRacing_Class_SoF]/100, '00'), 'N/A')",
+     None, None),
     ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
     ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
     ("Grip", "Grip", "00",

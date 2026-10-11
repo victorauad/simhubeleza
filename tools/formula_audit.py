@@ -32,6 +32,16 @@ REWRITTEN = [
     ("/Standings/Leaderboard", "tools/check_leaderboard.py"),
 ]
 
+#: Defeitos do original corrigidos de proposito: (controle do original,
+#: motivo). A formula original desses controles e aceita como trocada.
+INTENDED = [
+    ("Left Component2/LP Label3.Text", "FPL last 0 antes da 1a volta -> N/A"),
+    ("Left Component2/Data/LP Value5.Text", "SoF 0 (sem SoF) -> N/A"),
+    ("Right Component/Data/LP Value8.Text", "chuva sempre 'NA' -> numero"),
+    ("/OTS/Status.Text", "OTS: recarga antes de READY"),
+    ("/OTS/OTS Gauge.GaugeColor", "OTS: recarga antes de READY"),
+]
+
 
 def equivalence_passes(script):
     """Roda o teste de equivalencia em silencio; True se passou."""
@@ -141,6 +151,9 @@ def main(argv=None):
         if inside and equivalence_passes(script):
             rewritten[script] = inside
             removed = [e for e in removed if e not in inside]
+    intended = {e: reason for e in removed for where, reason in INTENDED
+                 if old[e][0].endswith(where)}
+    removed = [e for e in removed if e not in intended]
     restyled_shapes = {colorless(x) for x in restyled}
     corrected_shapes = {colorless(fixed(x)) for x in corrected}
     added = [e for e in added if colorless(e) not in restyled_shapes
@@ -158,6 +171,13 @@ def main(argv=None):
               f"por {script}:")
         for expression in expressions:
             print(f"  {', '.join(old[expression][:2])}")
+        print()
+
+    if intended:
+        print(f"CONSERTADAS ({len(intended)}) -- defeito do original trocado "
+              "de proposito:")
+        for expression, reason in intended.items():
+            print(f"  {old[expression][0]}: {reason}")
         print()
 
     if restyled:

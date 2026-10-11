@@ -292,7 +292,7 @@ FORMAT = (
     "var r = (ms - m * 60000) / 1000; "
     "return m + ':' + (r < 10 ? '0' : '') + r.toFixed(3); };\r\n"
     "var fmtDelta = function (d, p) { if (d == null) return 'N/A'; "
-    "var r = Number(d.toFixed(p)); if (r == 0) return 'N/A'; "
+    "var r = Number(d.toFixed(p)); if (r == 0) return (0).toFixed(p); "
     "if (Math.abs(r) > 99) return 'OFF'; "
     "return (r > 0 ? '+' : '') + r.toFixed(p); };\r\n"
 )
