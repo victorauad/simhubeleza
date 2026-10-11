@@ -54,6 +54,7 @@ def formulas():
         "aheadAvg": expr(lap_review.collector_other(-1)),
         # Com o envelope de N/A do build, como vai para o .djson.
         "fuelLog": fallback.wrap_js(right.FUEL_LOG_JS),
+        "trackLog": fallback.wrap_js(right.TRACK_LOG_JS),
         "naValue": fallback.wrap_js("return $prop('X');"),
         "naRow": fallback.wrap_js("return $prop('X');", "$prop('Row') != 0"),
         "naTwin": fallback._twin(
@@ -257,6 +258,24 @@ for (const shared of [true, false]) {
   expect('volta com reabastecimento fica fora' + tag, rows().map(num), [2.31, 2.4, 2.3]);
   set({ [T_ + 'Lap']: 2, 'DataCorePlugin.Computed.Fuel_LastLapConsumption': null });
   expect('volta sem medida: N/A; volta que nao existe: vazio' + tag, rows().map(num), ['N/A', '', '']);
+}
+
+// 10b. Temperatura da pista por volta, nos dois jeitos de root.
+for (const shared of [true, false]) {
+  const fn = new Function('root', '$prop', 'repeatindex', F.trackLog);
+  const roots = [{}, {}, {}];
+  const rows = () => [1, 2, 3].map(r => fn(shared ? roots[0] : roots[r - 1], $prop, () => r));
+  const tag = shared ? ' (root unico)' : ' (root por linha)';
+  base({ [T_ + 'Lap']: 3, [T_ + 'TrackTemp']: 30.0 });
+  expect('pista: dash recem-aberto, so a leitura atual' + tag, rows(), [30, 'N/A', '']);
+  set({ [T_ + 'TrackTemp']: 31.0 }); rows();
+  set({ [T_ + 'Lap']: 4, [T_ + 'TrackTemp']: 32.0 });
+  expect('pista: volta 3 gravada com a ultima leitura dela' + tag, rows(), [31, 'N/A', 'N/A']);
+  set({ [T_ + 'TrackTemp']: null }); rows();
+  set({ [T_ + 'Lap']: 5 });
+  expect('pista: leitura sumiu, fica a ultima valida' + tag, rows(), [32, 31, 'N/A']);
+  set({ [T_ + 'Lap']: 2 });
+  expect('pista: sessao nova zera; sem leitura, N/A' + tag, rows(), ['N/A', '', '']);
 }
 
 // 11. Envelope de N/A (dash/fallback.py): dado ausente nunca fica em branco;

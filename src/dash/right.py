@@ -284,6 +284,29 @@ FUEL_LOG_JS = (
 )
 
 
+#: Temperatura da pista por volta, gravada pelo proprio dash: o SimHub nao
+#: guarda historico dela (so o `PersistantTrackerPlugin` tem `PreviousLap_*`
+#: para tempo e delta). A ultima leitura valida de cada volta fica para ela
+#: na virada de `Lap`. Voltas de antes do dash abrir mostram N/A; a linha
+#: mais recente, ainda sem gravacao, cai na leitura atual. Chaveada pelo
+#: numero da volta, como o `FUEL_LOG_JS`.
+TRACK_LOG_JS = (
+    "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
+    "var temp = Number($prop('GameRawData.Telemetry.TrackTemp'));\r\n"
+    "var ok = $prop('GameRawData.Telemetry.TrackTemp') != null && !isNaN(temp);\r\n"
+    "var h = root.h || (root.h = {});\r\n"
+    "if (root.lap != null && lap < root.lap) { h = root.h = {}; root.temp = null; }\r\n"
+    "if (root.lap != null && lap > root.lap && root.temp != null) h[root.lap] = root.temp;\r\n"
+    "if (ok) root.temp = temp;\r\n"
+    "root.lap = lap;\r\n"
+    "var n = lap - repeatindex();\r\n"
+    "if (n < 1) return '';\r\n"
+    "var v = h[n];\r\n"
+    "if (v == null && repeatindex() == 1 && ok) v = temp;\r\n"
+    "return (v == null || isNaN(v)) ? null : v;"
+)
+
+
 def lap_js(body, format_string=None):
     """Formula JS de uma coluna nova do log: `body` e o codigo dentro do
     `else` (a guarda de volta invalida ja fica por fora)."""
@@ -333,14 +356,6 @@ def practice():
         f"\tif (Math.abs(d) < 0.005) {{ return '{TEXT_TERTIARY}'; }}\r\n"
         f"\tif (d < 0) {{ return '{FASTER}'; }} else {{ return '{SLOWER}'; }}"
     )
-    #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
-    #: variavel (so o `PersistantTrackerPlugin` tem `PreviousLap_XX_*` para
-    #: tempo e delta) -- entao so a volta mais recente mostra a leitura
-    #: atual; as demais mostram N/A em vez de repetir um valor errado.
-    track_body = (
-        "\tif (repeatindex() == 1) { return $prop('GameRawData.Telemetry.TrackTemp'); }\r\n"
-        "\telse { return null; }"
-    )
     return Layer(
         tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),
         *(caption(x, header.y + 4.0, w, label, name=f"Log {label} Header",
@@ -360,7 +375,8 @@ def practice():
             text(track_x, rows.y, LOG_TRACK_W, LOG_ROW, "32",
                  name="LapTrackTemp", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT_TERTIARY,
-                 bindings={"Text": lap_js(track_body, "00")}),
+                 bindings={"Text": js(TRACK_LOG_JS, jsext=3,
+                                      format_string="00")}),
             text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.12",
                  name="LapDelta", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,

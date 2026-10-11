@@ -81,19 +81,19 @@ SAMPLE = {
 
 #: Lap log com uma volta diferente por linha (a mais recente em cima). O
 #: render estatico repetiria a mesma linha nove vezes; aqui a camada vira
-#: nove copias com os valores escritos. A temperatura so existe na volta
-#: mais recente e a volta 9 teve reabastecimento -- como na pista.
+#: nove copias com os valores escritos. Temperatura e combustivel sao
+#: gravados pelo dash por volta; a volta 9 teve reabastecimento (N/A).
 #: (numero, tempo, pista, delta, combustivel)
 LAP_LOG = [
     ("13", "1:32.90", "31", "+0.42", "2.33"),
-    ("12", "1:32.61", "N/A", "+0.13", "2.31"),
-    ("11", "1:32.48", "N/A", "0.00", "2.30"),
-    ("10", "1:32.87", "N/A", "+0.39", "2.34"),
-    ("09", "1:33.21", "N/A", "+0.73", "N/A"),
-    ("08", "1:32.70", "N/A", "+0.22", "2.29"),
-    ("07", "1:33.48", "N/A", "+1.00", "2.38"),
-    ("06", "1:32.95", "N/A", "+0.47", "2.32"),
-    ("05", "1:34.10", "N/A", "+1.62", "2.41"),
+    ("12", "1:32.61", "31", "+0.13", "2.31"),
+    ("11", "1:32.48", "31", "0.00", "2.30"),
+    ("10", "1:32.87", "30", "+0.39", "2.34"),
+    ("09", "1:33.21", "30", "+0.73", "N/A"),
+    ("08", "1:32.70", "30", "+0.22", "2.29"),
+    ("07", "1:33.48", "30", "+1.00", "2.38"),
+    ("06", "1:32.95", "29", "+0.47", "2.32"),
+    ("05", "1:34.10", "29", "+1.62", "2.41"),
 ]
 LAP_BEST = "11"
 LAP_COLUMNS = ("LapNumber", "LapTime", "LapTrackTemp", "LapDelta", "LapFuel")

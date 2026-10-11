@@ -291,10 +291,12 @@ Resolveu quase tudo que estava pendente.
   substituído pela medição no próprio dash (ver a seção acima).
 - Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
   propriedade clara para eles.
-- **Temperatura da pista por volta**: não há (que se saiba) um histórico
-  indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
-  mostra a leitura *atual* só na linha da volta mais recente, em vez de
-  repetir um valor errado nas voltas anteriores.
+- **Temperatura da pista por volta**: não há histórico indexado por volta
+  dessa variável no `PersistantTrackerPlugin` — o próprio dash grava
+  (`right.TRACK_LOG_JS`) a última leitura válida de cada volta na virada de
+  `Lap`. Voltas de antes do dash abrir mostram N/A; a linha mais recente, sem
+  gravação, mostra a leitura atual. Testado em `check_states.py`; depende do
+  `root` (conferir em pista).
 - A string exata de uma sessão de treino livre solo (`'Offline Testing'`,
   usada para o modo Practice em `right.py`) segue sem confirmação — os dumps
   recebidos eram sempre de fins de semana com practice/qualy/race, nunca de
