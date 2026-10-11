@@ -78,7 +78,7 @@ _STANDINGS_CHECK = (
     "(ssn == null && ss != null && /^(GetInCar|Warmup)$/i.test(String(ss)));\r\n"
     "var sl = root.sl;\r\n"
     "if (sl == null) { sl = root.sl = { lap: lap, until: 0 }; }\r\n"
-    f"if (lap > sl.lap && (onTrack || replay)) sl.until = now + {int(STANDINGS_TIME * 1000)};\r\n"
+    f"if (lapDone(sl) && (onTrack || replay)) sl.until = now + {int(STANDINGS_TIME * 1000)};\r\n"
     "sl.lap = lap;\r\n"
     "var standings = garage || grid || now < sl.until;\r\n"
 )

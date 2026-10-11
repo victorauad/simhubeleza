@@ -106,7 +106,8 @@ MINE = (
     "if (onPit) me.dirty = true;\r\n"
     # Fechou volta: conta no stint e marca se ela entra na media (o tempo
     # pode chegar um pouco depois da troca de volta).
-    "if (lap > me.lap) { if (!onPit) me.laps += 1; "
+    "var done = lapDone(me);\r\n"
+    "if (lap > me.lap) { if (!onPit && done) me.laps += 1; "
     "me.pending = !me.dirty; me.dirty = onPit; }\r\n"
     "if (last != null && last !== me.last) { "
     "if (me.pending) { me.sum += last; me.n += 1; } "

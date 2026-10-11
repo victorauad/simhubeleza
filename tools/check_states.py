@@ -262,6 +262,29 @@ expect('volta completa em replay -> standings', col(), 'standings');
 fresh(); base({ [S_ + 'Sessions03.SessionType']: 'Offline Testing', [T_ + 'IsOnTrack']: false });
 expect('treino solo -> nenhum (modo Practice)', [run.standings(), run.relative()], [false, false]);
 
+// 7c. Largada: a primeira virada de volta (carro saiu antes da linha) nao
+// conta como volta completa -- nem Lap Review, nem New Lap Info, nem Standings.
+function all() { return [state(), run.newLap(), col()]; }
+fresh(); base({ [T_ + 'SessionState']: 4, [T_ + 'Lap']: 0, [T_ + 'LapDistPct']: 0.97 });
+settle(); all();
+set({ [T_ + 'Lap']: 1, [T_ + 'LapDistPct']: 0.01 }); T += 100;
+expect('largada: cruzar a linha nao conta', all(), [null, false, 'relative']);
+for (const pct of [0.3, 0.6, 0.98]) { set({ [T_ + 'LapDistPct']: pct }); T += 100; all(); }
+set({ [T_ + 'Lap']: 2, [T_ + 'LapDistPct']: 0.01 }); T += 100;
+expect('primeira volta completa conta', all(), ['review', true, 'standings']);
+fresh(); base({ [T_ + 'SessionState']: 4, [T_ + 'Lap']: 3, [T_ + 'LapDistPct']: 0.6 });
+settle(); all();
+set({ [T_ + 'Lap']: 4, [T_ + 'LapDistPct']: 0.01 }); T += 100;
+expect('dash aberto no meio da volta: a virada conta', all(), ['review', true, 'standings']);
+fresh(); base({ [T_ + 'SessionState']: 4, [T_ + 'Lap']: 0, [T_ + 'LapDistPct']: 0.97,
+  'DataCorePlugin.GameData.LastLapTime': null });
+function laps() { state(); return run.myLaps(); }
+settle(); laps();
+set({ [T_ + 'Lap']: 1, [T_ + 'LapDistPct']: 0.01 }); T += 100; laps();
+for (const pct of [0.5, 0.99]) { set({ [T_ + 'LapDistPct']: pct }); T += 100; laps(); }
+set({ [T_ + 'Lap']: 2, [T_ + 'LapDistPct']: 0.01 }); T += 100;
+expect('largada fora da contagem do stint', laps(), '1');
+
 // 8. Coletor do jogador: voltas do stint e media sem volta de saida.
 fresh(); base({ [T_ + 'Lap']: 1, [T_ + 'OnPitRoad']: true, 'DataCorePlugin.GameData.LastLapTime': null });
 run.myLaps(); run.myAvg();

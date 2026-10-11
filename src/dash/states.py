@@ -135,6 +135,10 @@ SKIP_GATE = 5
 #: Conteudo de um estado ja visivel: ~6 Hz.
 SKIP_CONTENT = 9
 
+#: Faixa de `LapDistPct` que o carro precisa cruzar para a virada de volta
+#: contar (exclui a volta de abertura da largada).
+MID_LAP = (0.25, 0.75)
+
 # --- JS --------------------------------------------------------------------
 
 #: Leitura comum: normaliza booleanos (o SimHub entrega bool, 0/1 ou 'True')
@@ -148,6 +152,16 @@ BASE = (
     f"var lap = num($prop('{TELEMETRY}Lap')) || 0;\r\n"
     f"var onPit = yes($prop('{TELEMETRY}OnPitRoad'));\r\n"
     f"var onTrack = yes($prop('{TELEMETRY}IsOnTrack'));\r\n"
+    f"var pct = num($prop('{TELEMETRY}LapDistPct'));\r\n"
+    # Volta completa de verdade: so conta a virada de `Lap` se o carro passou
+    # pelo meio da pista desde a virada anterior. Na largada o carro sai
+    # antes da linha e a primeira virada vem com poucos metros -- nao conta.
+    # Idem para quem sai de um box antes da linha. Sem `LapDistPct`, toda
+    # virada conta. Chamar uma vez por quadro, antes de gravar `s.lap`.
+    "var lapDone = function (s) { "
+    f"if (pct == null || (pct > {MID_LAP[0]} && pct < {MID_LAP[1]})) s.mid = true; "
+    "var d = lap > s.lap && s.mid === true; "
+    "if (lap != s.lap) s.mid = false; return d; };\r\n"
 )
 
 
@@ -214,7 +228,7 @@ def _left_compute():
         f"if (st.pit && !onPit && onTrack) st.weather = now + {ms['weather']};\r\n"
         f"if (race && onTrack && !st.track) st.weather = now + {ms['weather']};\r\n"
         # Lap Review: volta nova, em corrida, fechada fora do pit.
-        f"if (lap > st.lap && race && !onPit) st.review = now + {ms['review']};\r\n"
+        f"if (lapDone(st) && race && !onPit) st.review = now + {ms['review']};\r\n"
         "st.lap = lap; st.pit = onPit; st.track = onTrack; "
         "st.repair = repair; st.warn = warn; st.btn = btn;\r\n"
         "var state = now < st.damage ? 'damage' : now < st.weather ? 'weather' "
@@ -257,7 +271,7 @@ def right_prelude():
         BASE
         + "var nl = root.nl;\r\n"
         "if (nl == null) { nl = root.nl = { lap: lap, until: 0 }; }\r\n"
-        f"if (lap > nl.lap && onTrack) nl.until = now + {ms};\r\n"
+        f"if (lapDone(nl) && onTrack) nl.until = now + {ms};\r\n"
         "nl.lap = lap;\r\n"
         "var newLap = now < nl.until;\r\n"
     )
