@@ -161,6 +161,8 @@ def rounded(border_color=None, thickness=3, radius=CORNER_RADIUS):
             "BorderLeft": thickness, "BorderRight": thickness,
         })
     tl, tr, br, bl = radius if isinstance(radius, tuple) else (radius,) * 4
+    # O SimHub le o raio como inteiro: "100.0" derruba o carregamento do dash.
+    tl, tr, br, bl = (int(r + 0.5) for r in (tl, tr, br, bl))
     style.update({
         "RadiusTopLeft": tl, "RadiusTopRight": tr,
         "RadiusBottomLeft": bl, "RadiusBottomRight": br,
