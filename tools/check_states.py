@@ -45,6 +45,7 @@ def formulas():
         "weather": expr(states.showing("weather")),
         "review": expr(states.showing("review")),
         "chart": expr(states.chart_visible()),
+        "clock": expr(states.clock()),
         "newLap": expr(states.new_lap_visible()),
         "sectors": expr(states.sectors_visible()),
         "myLaps": expr(lap_review.collector_mine(
@@ -68,6 +69,18 @@ def formulas():
 HARNESS = r"""
 const F = JSON.parse(process.argv[2]);
 const BUTTON = process.argv[3];
+// 'shared': armazenamento compartilhado do SimHub presente, com o relogio
+// (states.clock) publicando antes dos consumidores. 'solo': sem ele, cada
+// consumidor calcula sozinho.
+const SHARED = process.argv[4] === 'shared';
+let STORE = new Map();
+if (SHARED) {
+  globalThis.setsharedvalue = (s, k, v) => { STORE.set(s + '/' + k, v); return v; };
+  globalThis.getsharedvalueordefault = (s, k, d) =>
+    STORE.has(s + '/' + k) ? STORE.get(s + '/' + k) : d;
+}
+let CLOCK = true;
+console.log('-- modo ' + (SHARED ? 'compartilhado' : 'solo'));
 let T = 1000000;
 Date.now = () => T;
 const timespantoseconds = (v) => v;
@@ -95,6 +108,7 @@ function base(over) {
 }
 function set(over) { Object.assign(P, over); }
 function state() {
+  if (CLOCK) run.clock();
   const s = ['damage', 'weather', 'review'].filter(k => run[k]());
   const chart = run.chart();
   if (s.length > 1) throw new Error('dois estados juntos: ' + s);
@@ -109,6 +123,7 @@ function expect(label, got, want) {
 }
 function tick(ms) { T += ms; return state(); }
 function fresh() {
+  STORE = new Map(); CLOCK = true;
   for (const k of Object.keys(F)) {
     const fn = new Function('root', '$prop', 'timespantoseconds', 'format', F[k]);
     const root = {};
@@ -303,6 +318,25 @@ expect('linha que nao existe fica vazia', na({ X: null, Row: 0 }), ['N/A', '']);
   expect('com dado: o gemeo some', [twin(1), twin(2), twin(3)], [0, 0, 0]);
 }
 
+// 13. Tipo de sessao: a sessao corrente pronta vale mais que a montada pelo
+// indice.
+fresh(); base({ 'GameRawData.CurrentSessionInfo.SessionType': 'Practice' }); state();
+set({ [T_ + 'Lap']: 6 });
+expect('CurrentSessionInfo = Practice -> sem review', tick(100), null);
+fresh(); base({ 'GameRawData.CurrentSessionInfo.SessionType': 'Race',
+  [S_ + 'Sessions03.SessionType']: 'Practice' }); state();
+set({ [T_ + 'Lap']: 6 });
+expect('CurrentSessionInfo = Race -> review', tick(100), 'review');
+
+// 14. Relogio parado: depois de 1 s sem publicacao, os consumidores
+// calculam sozinhos e continuam de acordo entre si e com o grafico.
+fresh(); base(); state();
+CLOCK = false;
+tick(1100);
+set({ [T_ + 'Lap']: 6 });
+expect('sem relogio, volta nova -> review', tick(100), 'review');
+expect('sem relogio, acaba aos 5 s', tick(5000), null);
+
 console.log(fails ? `\n${fails} falha(s)` : '\ntudo ok');
 process.exit(fails ? 1 : 0);
 """
@@ -357,9 +391,10 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp) / "check_states.js"
         script.write_text(HARNESS, encoding="utf-8")
-        result = subprocess.run(
-            [node, str(script), json.dumps(formulas()), BUTTON])
-    return result.returncode or syntax
+        codes = [subprocess.run(
+            [node, str(script), json.dumps(formulas()), BUTTON, mode]).returncode
+            for mode in ("solo", "shared")]
+    return max(codes) or syntax
 
 
 if __name__ == "__main__":

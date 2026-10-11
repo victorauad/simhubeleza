@@ -46,6 +46,32 @@ Pontos quentes (sem mudança desde o plano):
 - **Fórmulas com estado**: flash do bias (2 JS, `left.bias_flash`) e
   balanço (2 JS fazendo a mesma conta, `balance.formula`).
 
+## Feito a partir do relatório de propriedades (`docs/propriedades-simhub-completo.md`)
+
+- **Fase 0 sem Gerenciador de Tarefas:** `python3 build.py --diag` gera também
+  `iRacing_Dashboard_00_Diag`, o mesmo dash com uma faixa no rodapé
+  (`src/dash/diag.py`, ~2 Hz) mostrando JS/s, NCalc/s (normais + otimizadas),
+  fórmulas servidas do cache/s, duração do ciclo de dados (ms), CPU do processo
+  SimHub e erros no log — tudo publicado pelo próprio SimHub
+  (`DataCorePlugin.Performance_*`, `SystemInfoPlugin.SimHubProcessor`).
+- **Máquina de estados calculada uma vez:** o `Visible` do cartão do gráfico
+  (`states.clock()`) calcula e publica com `setsharedvalue`; os ~20
+  consumidores leem com `getsharedvalueordefault`. Publicação com mais de 1 s
+  ou SimHub sem o armazenamento → cada consumidor calcula sozinho, como antes.
+  Testado nos dois modos em `tools/check_states.py`.
+- **Tipo de sessão:** `GameRawData.CurrentSessionInfo.SessionType` (antes:
+  nome `SessionsNN` montado pelo `SessionNum` a cada avaliação, com o caminho
+  antigo como reserva). Leaderboard e modo da coluna direita leem o valor
+  publicado pela máquina de estados (`states.SESSION_TYPE`) — 26 fórmulas por
+  linha do leaderboard a menos montando a string.
+- **Flash do bias em NCalc:** `isincreasing`/`isdecreasing` nativas, sem JS e
+  sem `root`; o desbotamento virou 4 degraus (`left.BIAS_STEPS`).
+
+Não feito ainda: tendência de ar/pista pelo plugin
+(`iRacing_AirTemperatureChange`/`iRacing_TrackTemperatureChange` — formato do
+texto desconhecido; conferir em `http://localhost:8888/api/GetProperty/IRacingExtraProperties.iRacing_TrackTemperatureChange`
+em sessão) e a Fase 3 do leaderboard (medir primeiro com o `--diag`).
+
 ## O plano (fases)
 
 **Fase 0 — Medir.** Acrescentar ao `build.py` variantes de diagnóstico

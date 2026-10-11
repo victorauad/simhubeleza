@@ -10,7 +10,7 @@ A hierarquia e a das referencias: rotulo em caixa alta cinza em cima, numero
 grande embaixo, unidade pequena colada nele.
 """
 
-from simhub.bindings import formatted, js, ncalc
+from simhub.bindings import formatted, ncalc
 from simhub.model import ImageItem, Layer, RectangleItem
 from simhub.theme import (
     BIAS, BIAS_DOWN, BIAS_UP, CYAN, GUTTER, ORANGE, PADDING, SIZE_LABEL,
@@ -87,40 +87,45 @@ BIAS_HOLD = 0.25
 BIAS_FLASH_BG_ALPHA = 0x29     # ~16%: o fundo so tinge, o numero e que brilha
 
 
+#: Degraus do brilho: (ate quantos ms depois da mudanca, quanto da cor de
+#: brilho). O primeiro segura a cor cheia (`BIAS_HOLD`); os outros sao o
+#: meio de cada terco da volta ao ambar.
+BIAS_STEPS = [
+    (int(BIAS_FLASH_MS * BIAS_HOLD), 1.0),
+    *((int(BIAS_FLASH_MS * (BIAS_HOLD + (1 - BIAS_HOLD) * (i + 1) / 3)),
+       round(1 - (i + 0.5) / 3, 3)) for i in range(3)),
+]
+
+
 def bias_flash(prefix, rest, up, down, alpha=None):
-    """Formula JS: a cor do brake bias, com o brilho de mudanca.
+    """Formula NCalc: a cor do brake bias, com o brilho de mudanca.
 
-    Guarda o ultimo valor em `root` (que o SimHub preserva entre avaliacoes)
-    e, quando ele muda, marca a hora e a direcao. Por `BIAS_FLASH_MS` a cor
-    sai do verde/vermelho e volta para `rest`. `alpha`, se dado, troca a
-    opacidade das cores de brilho (para o fundo); `rest` ja vem pronta.
-    `prefix` separa as chaves de cada formula em `root`.
+    `isincreasing` / `isdecreasing` (nativas do NCalc do SimHub) dizem se o
+    bias subiu ou desceu nos ultimos N ms -- sem JS e sem guardar estado em
+    `root`. O desbotamento volta ao ambar em degraus (`BIAS_STEPS`); o degrau
+    mais curto vem primeiro, entao a mudanca mais recente decide a cor.
+    `alpha`, se dado, troca a opacidade das cores de brilho (para o fundo);
+    `rest` ja vem pronta. `prefix` ficou da versao em JS (sem uso).
     """
-    def rgb(color):
-        return [int(color[i:i + 2], 16) for i in (3, 5, 7)]
+    def argb(color):
+        return [int(color[i:i + 2], 16) for i in (1, 3, 5, 7)]
 
-    a_flash = alpha if alpha is not None else 0xFF
-    a_rest = int(rest[1:3], 16)
-    return js(
-        f"var v = $prop('BrakeBias');\r\n"
-        f"var k = '{prefix}';\r\n"
-        f"if (root[k + 'v'] == null) {{ root[k + 'v'] = v; root[k + 't'] = 0; root[k + 'd'] = 0; }}\r\n"
-        f"if (v != root[k + 'v']) {{\r\n"
-        f"\troot[k + 'd'] = v > root[k + 'v'] ? 1 : -1;\r\n"
-        f"\troot[k + 't'] = Date.now();\r\n"
-        f"\troot[k + 'v'] = v;\r\n"
-        f"}}\r\n"
-        f"var t = (Date.now() - root[k + 't']) / {BIAS_FLASH_MS};\r\n"
-        f"if (root[k + 'd'] == 0 || t >= 1) {{ return '{rest}'; }}\r\n"
-        f"var f = t < {BIAS_HOLD} ? 1 : 1 - (t - {BIAS_HOLD}) / {1 - BIAS_HOLD};\r\n"
-        f"var from = root[k + 'd'] > 0 ? {rgb(up)} : {rgb(down)};\r\n"
-        f"var to = {rgb(rest)};\r\n"
-        f"var a = Math.round({a_rest} + ({a_flash} - {a_rest}) * f);\r\n"
-        f"var hex = function (n) {{ var s = Math.round(n).toString(16).toUpperCase(); return s.length < 2 ? '0' + s : s; }};\r\n"
-        f"var c = '#' + hex(a);\r\n"
-        f"for (var i = 0; i < 3; i++) {{ c += hex(to[i] + (from[i] - to[i]) * f); }}\r\n"
-        f"return c;"
-    )
+    def blend(flash, f):
+        a, *to = argb(rest)
+        fa, *fr = argb(flash)
+        if alpha is not None:
+            fa = alpha
+        mix = [round(a + (fa - a) * f)] + [round(t + (c - t) * f)
+                                          for t, c in zip(to, fr)]
+        return "#" + "".join(f"{x:02X}" for x in mix)
+
+    value = "[BrakeBias]"
+    formula = f"'{rest}'"
+    for ms, f in reversed(BIAS_STEPS):
+        formula = (f"if(isincreasing({ms}, {value}), '{blend(up, f)}', "
+                   f"if(isdecreasing({ms}, {value}), '{blend(down, f)}', "
+                   f"{formula}))")
+    return ncalc(formula)
 
 
 def chart():
@@ -300,6 +305,13 @@ def footer_row(region):
     return items
 
 
+def clock_tile(area):
+    item = tile(area, name="Chart Tile", color=TILE)
+    item["Bindings"] = {"Visible": states.clock()}
+    item["RenderingSkip"] = states.SKIP_GATE
+    return item
+
+
 def layer():
     """A coluna esquerda inteira."""
     _, rest = PANEL.split_top(CHART_HEIGHT, gutter=GUTTER)
@@ -310,7 +322,9 @@ def layer():
     forecast, forecast_live = weather.layer(chart_area)
     return Layer(
         # Tres cartoes, sem fundo de coluna: grafico, ajustes e sessao.
-        tile(chart_area, name="Chart Tile", color=TILE),
+        # O cartao e o primeiro item da coluna: o `Visible` dele calcula a
+        # maquina de estados e publica para os outros (states.clock()).
+        clock_tile(chart_area),
         chart(),
         # Estados temporarios no lugar do grafico, no mesmo cartao. Os
         # layers "Live" ficam sempre ligados: acumulam historico e se

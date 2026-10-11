@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Gera a pasta DashTemplates completa a partir do codigo.
 
-Uso:  python3 build.py [destino]
+Uso:  python3 build.py [--diag] [destino]
 
 Sem argumento, escreve em build/. Passe o caminho da pasta DashTemplates do
-SimHub para instalar direto.
+SimHub para instalar direto. `--diag` gera tambem `iRacing_Dashboard_00_Diag`,
+o mesmo dash com a faixa de medicao de desempenho (dash/diag.py).
 """
 import sys
 from pathlib import Path
@@ -12,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import fallback, fixes, ots, rpmled, top_bar, weather  # noqa: E402
+from dash import diag, fallback, fixes, ots, rpmled, top_bar, weather  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from simhub.build import (  # noqa: E402
@@ -54,8 +55,16 @@ WIDGETS = [
 
 
 def main(argv):
-    out_root = Path(argv[1]) if len(argv) > 1 else ROOT / "build"
-    out_dir = out_root / DASH_NAME
+    args = [a for a in argv[1:] if a != "--diag"]
+    out_root = Path(args[0]) if args else ROOT / "build"
+    code = build(out_root, DASH_NAME)
+    if code == 0 and "--diag" in argv:
+        code = build(out_root, diag.DASH_NAME, extra=[diag.layer()])
+    return code
+
+
+def build(out_root, dash_name, extra=()):
+    out_dir = out_root / dash_name
 
     # Fonte ausente e falha silenciosa no SimHub -- para aqui, nao la.
     missing = verify_fonts(main_dash.items())
@@ -73,8 +82,9 @@ def main(argv):
 
     # Nenhum campo de texto fica em branco por falta de dado: vira N/A.
     write_dashboard(
-        out_dir, DASH_NAME,
-        shell, main_dash.SCREEN, fallback.apply(fixes.apply(main_dash.items())),
+        out_dir, dash_name,
+        shell, main_dash.SCREEN,
+        fallback.apply(fixes.apply(main_dash.items() + list(extra))),
         metadata=METADATA,
     )
     for name, widget_shell, widget_screen, widget_items in WIDGETS:
@@ -85,6 +95,10 @@ def main(argv):
         out_dir,
         previews=[f"{DASH_NAME}.djson.png", f"{DASH_NAME}.djson.00.png"],
     )
+    if dash_name != DASH_NAME:
+        for suffix in (".djson.png", ".djson.00.png"):
+            (out_dir / f"{DASH_NAME}{suffix}").rename(
+                out_dir / f"{dash_name}{suffix}")
 
     files = sum(1 for _ in out_dir.rglob("*") if _.is_file())
     print(f"gerado: {out_dir}  ({files} arquivos)")

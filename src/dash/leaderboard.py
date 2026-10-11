@@ -346,7 +346,7 @@ def gap():
         SpecialCharsWidth=8.0,
         special_chars=".,",
         bindings={
-            "Text": js(f"""if ({states.SESSION_TYPE_JS} == 'Race') {{
+            "Text": js(f"""if ({states.SESSION_TYPE} == 'Race') {{
 
 \tif ({driver('PositionInClass')} != 0) {{
 \t\t
@@ -387,7 +387,7 @@ def gap():
 
 \treturn 'White';
 \t
-}} else if ({states.SESSION_TYPE_JS} == 'Race' &&{driver('IsConnected')} == false) {{
+}} else if ({states.SESSION_TYPE} == 'Race' &&{driver('IsConnected')} == false) {{
 
 \treturn '{DISCONNECTED}';
 \t

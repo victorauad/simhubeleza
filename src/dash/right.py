@@ -43,8 +43,8 @@ PLAYER_ROW_EDGE = "#8CF4A73A"
 #: Condicoes que decidem qual modo aparece.
 #:
 #: `[SessionTypeName]` nao existe. O tipo da sessao vem de
-#: `states.SESSION_TYPE_JS` (`GameRawData.SessionData.SessionInfo.SessionsNN`
-#: indexado pelo `SessionNum` da telemetria). NCalc nao indexa propriedade
+#: `states.SESSION_TYPE` (o publicado pela maquina de estados, ou
+#: `GameRawData.CurrentSessionInfo.SessionType` lido na hora). NCalc nao indexa propriedade
 #: dinamicamente, entao a checagem so existe em JS -- por tabela, os dois
 #: formulas que a incorporam tambem. "Offline Testing" e a string do treino
 #: livre solo, conferida na API do SimHub em 2026-10-11.
@@ -57,7 +57,7 @@ PLAYER_ROW_EDGE = "#8CF4A73A"
 #: negacoes em Standings/Relative) prefixam este texto e so trocam o
 #: `return` final.
 _SESSION_TYPE_LOOKUP = (
-    f"\tvar inPractice = {states.SESSION_TYPE_JS} == 'Offline Testing';\r\n"
+    f"\tvar inPractice = {states.SESSION_TYPE} == 'Offline Testing';\r\n"
 )
 IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 

@@ -12,10 +12,17 @@ Regras completas e decisoes em `docs/estados.md`.
 Como o SimHub decide qual aparece
 ---------------------------------
 
-Cada formula JS tem o proprio `root`, e nao ha estado compartilhado
-confiavel entre formulas. Entao a maquina de estados e um prelúdio JS gerado
-aqui e repetido em cada consumidor (o `Visible` de cada estado, o do grafico,
-os coletores). Todos leem as mesmas propriedades na mesma cadencia e com o
+Cada formula JS tem o proprio `root`. O SimHub tem um armazenamento
+compartilhado entre formulas (`setsharedvalue` / `getsharedvalueordefault`,
+docs/propriedades-simhub-completo.md sec. 11.1): uma formula so -- o
+`Visible` do cartao do grafico, o primeiro item da coluna (`clock()`) --
+calcula a maquina de estados e publica o resultado com a hora. Os
+consumidores (o `Visible` de cada estado, o do grafico, os coletores) leem
+o resultado publicado.
+
+Se a publicacao estiver velha (mais de `STALE_MS`) ou o armazenamento nao
+existir, cada consumidor volta a calcular sozinho, com o proprio `root`,
+como antes: todos leem as mesmas propriedades na mesma cadencia e com o
 mesmo relogio (`Date.now()`), e chegam a mesma resposta.
 
 O `Visible` de item escondido continua sendo avaliado, entao os consumidores
@@ -37,10 +44,39 @@ TELEMETRY = "GameRawData.Telemetry."
 #: `GameRawData.SessionData.` (sem o prefixo, `$prop` devolve nulo -- conferido
 #: na API do SimHub) e nao tem `CurrentSessionNum`; o indice da sessao atual e
 #: o `SessionNum` da telemetria, e `SessionsNN` comeca em 01.
+#: A sessao corrente ja vem pronta em `GameRawData.CurrentSessionInfo`
+#: (sec. 6.4 do relatorio); a montagem pelo indice fica de reserva.
 SESSION_TYPE_JS = (
+    "($prop('GameRawData.CurrentSessionInfo.SessionType') || "
     "$prop('GameRawData.SessionData.SessionInfo.Sessions' + "
     f"('0' + ((Number($prop('{TELEMETRY}SessionNum')) || 0) + 1)).slice(-2) "
-    "+ '.SessionType')"
+    "+ '.SessionType'))"
+)
+
+#: Escopo das chaves no armazenamento compartilhado do SimHub (global a todos
+#: os dashboards: o nome evita colisao).
+SHARED = "sf23dash"
+#: Publicacao mais velha que isso nao vale: o consumidor calcula sozinho.
+STALE_MS = 1000
+
+#: Ha armazenamento compartilhado neste SimHub?
+HAS_SHARED = ("(typeof getsharedvalueordefault === 'function' && "
+              "typeof setsharedvalue === 'function')")
+
+
+def shared_get(key, default="null"):
+    return f"getsharedvalueordefault('{SHARED}', '{key}', {default})"
+
+
+def shared_set(key, value):
+    return f"setsharedvalue('{SHARED}', '{key}', {value})"
+
+
+#: Tipo de sessao para quem nao e a maquina de estados (leaderboard, modo da
+#: coluna direita): o publicado por `clock()`, ou lido na hora.
+SESSION_TYPE = (
+    f"(({HAS_SHARED} && Date.now() - {shared_get('at', '0')} < {STALE_MS} "
+    f"&& {shared_get('session')}) || {SESSION_TYPE_JS})"
 )
 
 # --- Configuracao da instalacao do usuario ---------------------------------
@@ -129,12 +165,12 @@ def _button_read():
     return f"var btn = yes($prop('{DAMAGE_BUTTON}'));\r\n"
 
 
-def left_prelude():
-    """Define `state`: 'damage', 'weather', 'review' ou null."""
+def _left_compute():
+    """Calcula `state` (e `session`) a partir das propriedades e do `root`."""
     ms = {key: int(value * 1000) for key, value in DURATION.items()}
     return (
-        BASE
-        + f"var race = {SESSION_TYPE_JS} == 'Race';\r\n"
+        f"var session = {SESSION_TYPE_JS};\r\n"
+        "var race = session == 'Race';\r\n"
         f"var repair = (num($prop('{TELEMETRY}PitRepairLeft')) || 0) + "
         f"(num($prop('{TELEMETRY}PitOptRepairLeft')) || 0);\r\n"
         + FLAGS
@@ -163,6 +199,34 @@ def left_prelude():
         "st.repair = repair; st.warn = warn; st.btn = btn;\r\n"
         "var state = now < st.damage ? 'damage' : now < st.weather ? 'weather' "
         ": now < st.review ? 'review' : null;\r\n"
+    )
+
+
+def left_prelude():
+    """Define `state`: 'damage', 'weather', 'review' ou null.
+
+    Le o publicado por `clock()`; calcula sozinho se nao houver publicacao
+    recente."""
+    return (
+        BASE
+        + "var state = null;\r\n"
+        f"if ({HAS_SHARED} && now - {shared_get('at', '0')} < {STALE_MS}) "
+        f"{{ state = {shared_get('left', chr(39) * 2)} || null; }}\r\n"
+        "else {\r\n"
+        + _left_compute()
+        + "}\r\n"
+    )
+
+
+def clock():
+    """`Visible` do primeiro item da coluna: calcula a maquina de estados uma
+    vez e publica para os consumidores. Sempre visivel."""
+    return js(
+        BASE + _left_compute()
+        + f"if ({HAS_SHARED}) {{ {shared_set('left', "state || ''")}; "
+        f"{shared_set('session', "session || ''")}; "
+        f"{shared_set('at', 'now')}; }}\r\n"
+        "return true;"
     )
 
 

@@ -357,6 +357,14 @@ Dois defeitos achados e corrigidos:
     dos plugins (`isnull(..., false)`) chegando como bool e não texto; a
     unidade do `OTCooldownTimer` (assumido segundos).
 
+- **Desempenho (itens do relatório de propriedades)** — detalhes em
+  `docs/otimizacao.md`, seção "Feito a partir do relatório": variante
+  `--diag` com a faixa de medição, máquina de estados publicada uma vez
+  (`setsharedvalue`, com recálculo local se a publicação envelhecer), tipo de
+  sessão por `CurrentSessionInfo`, flash do bias em NCalc. **A conferir em
+  pista:** se `setsharedvalue` aceita os valores (o `--diag` mostra JS/s caindo)
+  e se `isincreasing` conta o atraso em ms.
+
 ## O que ainda falta
 
 1. **Mapeamento de propriedades do SimHub.** É o maior bloqueio. Os arquivos

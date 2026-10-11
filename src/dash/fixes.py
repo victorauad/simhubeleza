@@ -10,7 +10,7 @@ Fonte: `docs/propriedades-simhub-completo.md` (reflexao nas DLLs do SimHub
 """
 import re
 
-from .states import SESSION_TYPE_JS
+from .states import SESSION_TYPE
 
 #: Prefixo do plugin em minuscula: o SimHub registra pelo nome da classe,
 #: `IRacingExtraProperties.` (sec. 1.1 e 8.1). Vem do original, na linha do
@@ -24,8 +24,9 @@ TREE = [PREFIX]
 #: Trocas feitas nos modulos (a nova expressao ja sai do gerador); aqui so
 #: para a auditoria reconhecer.
 AUDIT = TREE + [
-    # `SessionTypeName` nao existe no SimHub (docs/propriedades.txt).
-    (re.compile(r"\$prop\((['\"])SessionTypeName\1\)"), SESSION_TYPE_JS),
+    # `SessionTypeName` nao existe no SimHub (docs/propriedades.txt); o tipo
+    # de sessao vem do publicado pela maquina de estados (states.SESSION_TYPE).
+    (re.compile(r"\$prop\((['\"])SessionTypeName\1\)"), SESSION_TYPE),
     # `GameData.NewData.*` e a copia legada e oculta (sec. 3); a barra fina
     # ja lia o nome certo, agora o numero tambem.
     (re.compile(r"\[DataCorePlugin\.GameData\.NewData\.DeltaToSessionBest\]"),
