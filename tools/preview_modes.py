@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+from simhub.theme import FASTER, SLOWER  # noqa: E402
 BUILD = ROOT / "build" / "iRacing_Dashboard_00"
 
 #: modo -> (camadas visiveis, repeticoes por camada repetidora)
@@ -76,6 +78,47 @@ SAMPLE = {
     "Rpm": {"Text": "985"},
     "OTS Gauge": {"Value": 200.0},
 }
+
+#: Lap log com uma volta diferente por linha (a mais recente em cima). O
+#: render estatico repetiria a mesma linha nove vezes; aqui a camada vira
+#: nove copias com os valores escritos. A temperatura so existe na volta
+#: mais recente e a volta 9 teve reabastecimento -- como na pista.
+#: (numero, tempo, pista, delta, combustivel)
+LAP_LOG = [
+    ("13", "1:32.90", "31", "+0.42", "2.33"),
+    ("12", "1:32.61", "", "+0.13", "2.31"),
+    ("11", "1:32.48", "", "+0.00", "2.30"),
+    ("10", "1:32.87", "", "+0.39", "2.34"),
+    ("09", "1:33.21", "", "+0.73", ""),
+    ("08", "1:32.70", "", "+0.22", "2.29"),
+    ("07", "1:33.48", "", "+1.00", "2.38"),
+    ("06", "1:32.95", "", "+0.47", "2.32"),
+    ("05", "1:34.10", "", "+1.62", "2.41"),
+]
+LAP_BEST = "11"
+LAP_COLUMNS = ("LapNumber", "LapTime", "LapTrackTemp", "LapDelta", "LapFuel")
+
+
+def expand_lap_log(layer):
+    """Troca a camada repetidora do lap log por uma copia por volta."""
+    import copy
+    rows = []
+    for i, values in enumerate(LAP_LOG):
+        row = copy.deepcopy(layer)
+        row["Repetitions"] = 0
+        row["Name"] = f"Lap Data {i + 1}"
+        for child in row["Childrens"]:
+            column = LAP_COLUMNS.index(child["Name"])
+            child["Top"] += i * layer["RepeatTopOffset"]
+            child["Text"] = values[column]
+            child.pop("Bindings", None)
+            if child["Name"] == "LapDelta":
+                child["TextColor"] = FASTER if values[3].startswith("-") else SLOWER
+            if values[0] == LAP_BEST and child["Name"] in ("LapNumber", "LapTime"):
+                child["TextColor"] = "#FFB56CFF"
+        rows.append(row)
+    return rows
+
 
 #: Estados temporarios dos componentes laterais (states.py). Cada um liga
 #: os proprios layers e desliga o componente que ele substitui; os layers
@@ -157,6 +200,12 @@ def render(mode, visible, repetitions, out_dir, work, flag=None, led=None,
         elif banner in BANNER_NAMES or in_alerts:
             node["Visible"] = False
             node.pop("Bindings", None)
+        if mode == "practice" and node.get("Childrens"):
+            out = []
+            for child in node["Childrens"]:
+                out += (expand_lap_log(child) if child.get("Name") == "Lap Data"
+                        else [child])
+            node["Childrens"] = out
         for child in (node.get("Childrens") or []):
             walk(child, in_alerts or name in ("Alerrts", "Alerrts2"))
 
