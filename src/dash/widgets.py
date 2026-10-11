@@ -215,3 +215,43 @@ def ramp(count, stops):
         position = int(index * len(stops) / count)
         out.append(stops[min(position, len(stops) - 1)])
     return out
+
+
+def spread(region, widths, *, inset_x, inset_y, min_gap, name="Spread"):
+    """Celulas da largura do conteudo, com o que sobra repartido em
+    respiros iguais e um filete no meio de cada respiro (como os rodapes).
+
+    Devolve as celulas e os filetes ja prontos.
+    """
+    from . import layout as grid
+
+    inner = region.inset(top=inset_y, bottom=inset_y,
+                         left=inset_x, right=inset_x)
+    gap = (inner.width - sum(widths)) / (len(widths) - 1)
+    assert gap >= min_gap, f"{name}: fileira nao cabe (respiro de {gap:.1f})"
+    cells, x = [], inner.x
+    for width in widths:
+        cells.append(grid.Region(x, inner.y, width, inner.height))
+        x += width + gap
+    rules = separators(
+        [grid.Region(cell.x - gap / 2, region.y, 0.0, region.height)
+         for cell in cells], region, name=f"{name} Separator")
+    return cells, rules, gap
+
+
+def labeled(region, label, sample, *, name, size, color=TEXT,
+            bindings=None, label_bindings=None, align=LEFT, slack=0.0):
+    """Rotulo em caixa alta em cima, valor embaixo, na mesma borda.
+
+    `slack` alarga a caixa do valor para a direita: o SimHub nao mede texto,
+    e um valor maior que o exemplo nao deve quebrar linha.
+    """
+    label_height = SIZE_LABEL + 6.0
+    return [
+        caption(region.x, region.y, region.width + slack, label,
+                name=f"{name} Label", align=align, bindings=label_bindings),
+        text(region.x, region.y + label_height, region.width + slack,
+             region.height - label_height, sample, name=name, size=size,
+             color=color, weight=WEIGHT_VALUE, align=align,
+             bindings=bindings),
+    ]

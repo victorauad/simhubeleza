@@ -1,7 +1,42 @@
 # Plano — estados temporários dos componentes laterais
 
 Fonte das regras: `Estados.md` enviado pelo usuário em 2026-10-11 (reproduzido
-no fim deste arquivo). Quatro estados que **substituem por alguns segundos** um
+no fim deste arquivo).
+
+## Status (2026-10-11): implementado, falta validar no SimHub
+
+O usuário aprovou as recomendações das §2.2 e §6 (prioridade Damage >
+Weather > Lap Review; 5 s no dano novo; "à frente/atrás" por posição na
+classe; Damage na opção A; New Lap Info no lugar dos setores). Fases A–E
+feitas, direto em código (sem passar pelo canvas antes):
+
+| Módulo | O quê |
+|---|---|
+| `src/dash/states.py` | prelúdio JS dos gatilhos, prioridade, durações, cadência e a configuração da instalação (`DAMAGE_BUTTON`, `CPU_TEMP`, `GPU_TEMP`, hoje `None`) |
+| `src/dash/new_lap_info.py` | rodapé da direita; `right.footer()` alterna com os setores |
+| `src/dash/lap_review.py` | estado + coletores (`Lap Review Live`) |
+| `src/dash/weather.py` | estado + setas de tendência (`Weather Live`) |
+| `src/dash/damage.py` | estado (opção A) |
+| `tools/make_state_icons.py` | ícones do tempo e setas (SVG → PNG pelo Chromium) |
+| `tools/check_states.py` | 35 cenários dos gatilhos/coletores no Node + sintaxe de todo JS do build |
+| `tools/preview_modes.py` | abas `state-*` no preview |
+
+**Pendente do usuário** (§5): nome do botão, propriedades de temperatura,
+`RSC.iRacingExtraProperties.txt`. Com o botão/temperaturas é só preencher as
+constantes em `states.py` e gerar de novo.
+
+**A conferir no SimHub, por ordem de risco:**
+
+1. `Date.now()` e `root` em fórmulas de `Visible` de layer (toda a máquina de
+   estados depende disso; o flash do bias tem o mesmo risco).
+2. Se `RenderingSkip` em layer é respeitado (os gatilhos usam 5).
+3. `PitRepairLeft`/`PitOptRepairLeft` andando com dano em pista, e o formato de
+   `EngineWarnings`/`TrackWetness` (número ou nome de enum — os dois são
+   aceitos).
+4. `LapsSinceLastPit` no IRacingExtraProperties (sem ele, a média dos outros é
+   da corrida inteira, com o filtro de 107% cortando volta de box).
+5. Convenção de `WindDir` (a seta e HEAD/TAIL podem sair invertidos).
+6. A string `'Race'` em `SessionInfo.Sessions0N.SessionType`. Quatro estados que **substituem por alguns segundos** um
 componente existente:
 
 | Estado | Ocupa o lugar de | Gatilho | Duração |

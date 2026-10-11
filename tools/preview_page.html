@@ -190,10 +190,10 @@
       Todas as 103 fórmulas do dashboard original seguem no código.
     </p>
     <dl class="specs">
-      <div><dt>Controles</dt><dd>315</dd></div>
-      <div><dt>Bindings</dt><dd>200</dd></div>
+      <div><dt>Controles</dt><dd>464</dd></div>
+      <div><dt>Bindings</dt><dd>321</dd></div>
       <div><dt>Fórmulas preservadas</dt><dd>103 / 103</dd></div>
-      <div><dt>Módulos</dt><dd>10</dd></div>
+      <div><dt>Módulos</dt><dd>16</dd></div>
       <div><dt>Esforço manual no editor</dt><dd>0</dd></div>
     </dl>
   </header>
@@ -223,6 +223,13 @@
     <button class="tab" role="tab" id="tab-pit-limiter" aria-controls="view-pit-limiter" aria-selected="false">Pit limiter</button>
   </nav>
 
+  <nav role="tablist" aria-label="Estados temporarios dos componentes laterais">
+    <button class="tab" role="tab" id="tab-state-damage" aria-controls="view-state-damage" aria-selected="false">Damage</button>
+    <button class="tab" role="tab" id="tab-state-review" aria-controls="view-state-review" aria-selected="false">Lap Review</button>
+    <button class="tab" role="tab" id="tab-state-weather" aria-controls="view-state-weather" aria-selected="false">Weather</button>
+    <button class="tab" role="tab" id="tab-state-new-lap" aria-controls="view-state-new-lap" aria-selected="false">New Lap Info</button>
+  </nav>
+
   <div class="stage">
     <div class="stage-inner" id="stage-inner">
       <iframe id="view-relative" src="relative.html" title="Modo relative" loading="eager"></iframe>
@@ -241,6 +248,10 @@
       <iframe id="view-flag-incident" src="flag-incident.html" title="Incidente" hidden></iframe>
       <iframe id="view-shift-light" src="shift-light.html" title="Shift light" hidden></iframe>
       <iframe id="view-pit-limiter" src="pit-limiter.html" title="Pit limiter" hidden></iframe>
+      <iframe id="view-state-damage" src="state-damage.html" title="Estado Damage" hidden></iframe>
+      <iframe id="view-state-review" src="state-review.html" title="Estado Lap Review" hidden></iframe>
+      <iframe id="view-state-weather" src="state-weather.html" title="Estado Weather" hidden></iframe>
+      <iframe id="view-state-new-lap" src="state-new-lap.html" title="Estado New Lap Info" hidden></iframe>
     </div>
   </div>
 
@@ -260,6 +271,7 @@
       <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
       <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; as abas de modo mostram o chip vazio, só com o contorno.</li>
       <li><strong>Quatro dos dez avisos dependem de propriedades não confirmadas</strong> — <code>Flag_Black</code>, <code>Flag_Blue</code> e <code>CarLeftRight</code> (esta com os valores do spotter ainda por conferir). <code>Dirt</code> e <code>Incident</code> existem como chip mas não têm fórmula que os acione.</li>
+      <li><strong>Os estados temporários</strong> (Damage, Lap Review, Weather, New Lap Info) dependem de gatilhos com tempo; aqui cada aba força um deles. A lógica dos gatilhos é testada à parte (<code>tools/check_states.py</code>), mas nunca rodou no SimHub.</li>
       <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
     </ul>
   </section>
@@ -298,7 +310,15 @@
     "shift-light": ["Shift light",
       "Os quatro LEDs do RPM viram roxo na faixa de troca — o mesmo roxo que acende o brilho da marcha. Fora dela, a rampa é azul e clareia para fora nos dois lados."],
     "pit-limiter": ["Pit limiter",
-      "Limitador ligado: os LEDs piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."]
+      "Limitador ligado: os LEDs piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."],
+    "state-damage": ["Damage",
+      "No lugar do gráfico por 3 s quando você aperta o botão Damage Report, ou por 5 s a cada dano novo (tempo de reparo que cresce, ou aviso de motor novo). O iRacing não entrega dano por peça, então o carro é pintado pela gravidade geral — verde, amarelo, laranja, vermelho, pelo tempo total de reparo — e a tampa do motor fica vermelha com aviso de motor. Cockpit em branco (não danifica) e rodas neutras (sem dado). Ao lado: reparo obrigatório e opcional, e os avisos de água, óleo e combustível. O botão só funciona depois de configurado em <code>states.DAMAGE_BUTTON</code>."],
+    "state-review": ["Lap Review",
+      "Por 5 s a cada volta fechada fora do pit, só em corrida. Em cima e maior: sua última volta com o delta para a sua melhor, a média do stint e as voltas do stint. Embaixo: os 3 à frente e os 3 atrás na classe (o filete âmbar é você), com a última volta deles, o delta dela para a <em>sua</em> melhor volta e a média do stint deles. As médias são acumuladas volta a volta pelo próprio dash — começam a contar quando ele é aberto."],
+    "state-weather": ["Weather",
+      "Por 10 s ao sair do pit ou ao entrar no carro numa corrida (o “Race” que leva ao grid). O iRacing não publica a previsão no SDK, então é a condição atual com tendência: a seta no canto de cada campo compara com ~10 min atrás. O vento traz HEAD/TAIL/CROSS e a seta relativos ao carro. Aqui o preview mostra um ícone e três setas de exemplo."],
+    "state-new-lap": ["New Lap Info",
+      "Por 5 s a cada volta nova, no lugar dos setores. FPS do próprio iRacing, ping, qualidade da conexão e temperaturas de CPU e GPU — branco quando está tudo bem, âmbar para atenção, vermelho para problema. CPU e GPU mostram N/A até o provedor de temperatura ser configurado em <code>states.CPU_TEMP</code>/<code>GPU_TEMP</code>."]
   };
 
   const tabs = [...document.querySelectorAll('.tab')];

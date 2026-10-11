@@ -16,7 +16,8 @@ Standings e Relative usam a mesma grade de colunas e a mesma altura de linha,
 entao trocar entre os dois nao reposiciona a leitura: a posicao continua na
 esquerda, os tempos na direita.
 
-O rodape e fixo em qualquer modo: os setores contra a melhor volta.
+O rodape e fixo em qualquer modo: os setores contra a melhor volta -- que
+dao lugar ao New Lap Info por alguns segundos a cada volta nova.
 """
 
 from simhub.bindings import formatted, js, ncalc
@@ -28,7 +29,7 @@ from simhub.theme import (
     TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
-from . import leaderboard, sectors
+from . import leaderboard, new_lap_info, sectors, states
 from .generated.formulas import FORMULAS, binding as original
 from .widgets import CENTER, LEFT, RIGHT, caption, separators, text, tile
 
@@ -363,7 +364,11 @@ def footer():
     As condicoes da pista que moravam aqui foram para a coluna esquerda."""
     region = grid.Region(PANEL.x, BODY.bottom + GUTTER, PANEL.width,
                          leaderboard.FOOTER_HEIGHT)
-    return sectors.layer(region)
+    # Nos primeiros segundos de cada volta o New Lap Info toma o lugar dos
+    # setores (states.py decide; os dois leem o mesmo gatilho).
+    timing = sectors.layer(region)
+    timing["Bindings"] = {"Visible": states.sectors_visible()}
+    return [states.gate(timing), new_lap_info.layer(region)]
 
 
 def layer():
@@ -372,7 +377,7 @@ def layer():
         # O corpo (tabela, relative ou log) e o rodape sao dois tiles, como
         # no canvas -- a coluna em si nao tem fundo.
         tile(BODY, name="Background", color=TILE),
-        footer(),
+        *footer(),
         leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),
         practice(),

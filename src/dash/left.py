@@ -16,6 +16,7 @@ from simhub.theme import (
     BIAS, BIAS_DOWN, BIAS_UP, CYAN, GUTTER, ORANGE, PADDING, SIZE_LABEL,
     SIZE_VALUE_SM, TEXT, TEXT_TERTIARY, TILE, MONO_ADVANCE,
 )
+from . import damage, lap_review, states, weather
 from . import layout as grid
 from .widgets import LEFT, caption, separators, tile, value_unit
 
@@ -138,8 +139,11 @@ def chart():
         Width=PANEL.width, Height=CHART_HEIGHT,
         Visible=True,
         BlinkPhasisInverted=False,
-        RenderingSkip=0,
+        RenderingSkip=states.SKIP_GATE,
         MinimumRefreshIntervalMS=0.0,
+        # Some (e deixa de ser desenhado) enquanto um estado temporario
+        # ocupa o lugar dele -- ver states.py.
+        bindings={"Visible": states.chart_visible()},
     )
 
 
@@ -299,10 +303,20 @@ def layer():
     stats, footer = rest.split_top(STATS_HEIGHT, gutter=GUTTER)
 
     chart_area = grid.Region(PANEL.x, PANEL.y, PANEL.width, CHART_HEIGHT)
+    review, review_live = lap_review.layer(chart_area)
+    forecast, forecast_live = weather.layer(chart_area)
     return Layer(
         # Tres cartoes, sem fundo de coluna: grafico, ajustes e sessao.
         tile(chart_area, name="Chart Tile", color=TILE),
         chart(),
+        # Estados temporarios no lugar do grafico, no mesmo cartao. Os
+        # layers "Live" ficam sempre ligados: acumulam historico e se
+        # apagam sozinhos fora do estado.
+        damage.layer(chart_area),
+        forecast,
+        review,
+        forecast_live,
+        review_live,
         Layer(
             *stats_row(stats),
             name="Car",

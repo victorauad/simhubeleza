@@ -26,23 +26,27 @@ Preview como imagem (Chromium já instalado no ambiente):
   "file:///home/user/simhubeleza/build/preview.html"
 ```
 
-Página de revisão publicada (16 abas: 4 modos da coluna direita, 10 avisos da
-barra superior e 2 estados do RPMLed, montadas sobre `build/modes/`):
+Página de revisão publicada (20 abas: 4 modos da coluna direita, 10 avisos da
+barra superior, 2 estados do RPMLed e 4 estados temporários, montadas sobre
+`build/modes/`):
 <https://claude.ai/artifact/7E9k77H5zjfvoEHtYdjqC9>
 O fonte dela é `tools/preview_page.html`; para republicar, rodar
 `preview_modes.py`, copiar a página como `build/modes/index.html` e publicar
-com os 16 arquivos ao lado.
+com os 20 arquivos ao lado.
 
 Ao tirar screenshot, usar altura de janela **700**: a 540 o rodapé sai cortado
 pela janela, não pelo layout — o que já custou um diagnóstico errado.
 
-## Próximos passos (planejados, nada executado)
+## Próximos passos
 
 - **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
   (fases 0–6, começar por medir).
 - **Estados temporários dos componentes laterais** (Damage, Lap Review,
-  Weather, New Lap Info) — plano em `docs/estados.md`, com o que os dados do
-  iRacing permitem, as decisões em aberto e o que falta pedir ao usuário.
+  Weather, New Lap Info) — **implementados**, falta validar no SimHub e
+  receber do usuário o nome do botão Damage Report e as propriedades de
+  temperatura (constantes em `src/dash/states.py`). Status, riscos e o que
+  conferir em `docs/estados.md`. Testes: `python3 tools/check_states.py`
+  (depois do `build.py`).
 
 ## Concluído
 

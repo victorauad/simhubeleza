@@ -77,6 +77,33 @@ SAMPLE = {
     "OTS Gauge": {"Value": 200.0},
 }
 
+#: Estados temporarios dos componentes laterais (states.py). Cada um liga
+#: os proprios layers e desliga o componente que ele substitui; os layers
+#: "Live" (coletores, sempre ligados em pista) so aparecem no estado deles.
+STATES = {
+    "state-damage": {"Damage"},
+    "state-weather": {"Weather", "Weather Live"},
+    "state-review": {"Lap Review", "Lap Review Live"},
+    "state-new-lap": {"New Lap Info"},
+}
+STATE_LAYERS = set().union(*STATES.values())
+
+#: Dentro do Weather, icones e setas sao excludentes por formula; no preview
+#: fica um icone e um punhado de setas, como em pista.
+WEATHER_ICON = "Weather WxPartlySun"
+WEATHER_TRENDS = {"Weather Air TrendUp", "Weather Track TrendUp",
+                  "Weather Humidity TrendDown"}
+
+
+def weather_pick(name):
+    """None se o controle nao e icone/seta do Weather; senao, se aparece."""
+    if name.startswith("Weather Wx"):
+        return name == WEATHER_ICON
+    if name.startswith("Weather ") and name.endswith(("TrendUp", "TrendDown")):
+        return name in WEATHER_TRENDS
+    return None
+LEFT_STATES = {"Damage", "Weather", "Lap Review"}
+
 #: Controles que so aparecem em situacao especifica (volta invalidada) e,
 #: com `--conditional show`, poluiriam todo preview.
 HIDDEN = {"Invalid Lap"}
@@ -86,7 +113,8 @@ BANNER_NAMES = set(FLAGS.values())
 LED_LAYERS = set(LED_STATES.values())
 
 
-def render(mode, visible, repetitions, out_dir, work, flag=None, led=None):
+def render(mode, visible, repetitions, out_dir, work, flag=None, led=None,
+           state=None):
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(BUILD, work)
     path = work / "iRacing_Dashboard_00.djson"
@@ -101,6 +129,18 @@ def render(mode, visible, repetitions, out_dir, work, flag=None, led=None):
             node.pop("Bindings", None)
         if name in MODE_LAYERS:
             node["Visible"] = name in visible
+        on = STATES.get(state, set())
+        if name in STATE_LAYERS:
+            node["Visible"] = name in on
+            node.pop("Bindings", None) if name in on else None
+        pick = weather_pick(name or "")
+        if pick is not None:
+            node["Visible"] = pick
+            node.pop("Bindings", None)
+        if name == "Telemetry":
+            node["Visible"] = not (on & LEFT_STATES)
+        if name == "Sectors":
+            node["Visible"] = "New Lap Info" not in on
         if name in repetitions:
             node["Repetitions"] = repetitions[name]
             if repetitions[name] == 0:
@@ -174,6 +214,10 @@ def main(argv=None):
     for slug, banner in FLAGS.items():
         target = render(slug, base_visible, base_repetitions, out_dir, work,
                         flag=banner)
+        print(f"{slug:20} -> {target}")
+    for slug in STATES:
+        target = render(slug, base_visible, base_repetitions, out_dir, work,
+                        state=slug)
         print(f"{slug:20} -> {target}")
     for slug, layer_name in LED_STATES.items():
         target = render(slug, base_visible, base_repetitions, out_dir, work,
