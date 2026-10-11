@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import lap_review, states  # noqa: E402
+from dash import lap_review, right, states  # noqa: E402
 
 BUTTON = "InputStatus.JoystickPlugin.Wheel_B14"
 
@@ -51,6 +51,7 @@ def formulas():
         "myAvg": expr(lap_review.collector_mine(
             "return fmtLap(me.n ? me.sum / me.n : null);")),
         "aheadAvg": expr(lap_review.collector_other(-1)),
+        "fuelLog": right.FUEL_LOG_JS,
     }
 
 
@@ -221,6 +222,30 @@ run.aheadAvg();
 for (const t of [82.4, 99.0, 82.2]) { set({ [B + '00_LastLapTime']: t }); T += 2100; run.aheadAvg(); }
 set({ [T_ + 'Lap']: 6 }); T += 2100;
 expect('media do piloto a frente (sem 99.0)', run.aheadAvg(), '1:22.300');
+
+// 10. Consumo por volta no lap log, com root compartilhado entre as linhas
+// e com um root por linha (o SimHub nao documenta qual dos dois).
+for (const shared of [true, false]) {
+  const fn = new Function('root', '$prop', 'repeatindex', F.fuelLog);
+  const roots = [{}, {}, {}];
+  const rows = () => [1, 2, 3].map(r => fn(shared ? roots[0] : roots[r - 1], $prop, () => r));
+  const tag = shared ? ' (root unico)' : ' (root por linha)';
+  base({ [T_ + 'Lap']: 3, [T_ + 'FuelLevel']: 50.0,
+         'DataCorePlugin.Computed.Fuel_LastLapConsumption': 2.31 });
+  rows();
+  set({ [T_ + 'FuelLevel']: 48.9 }); rows();           // volta 3 pela metade: nao conta
+  set({ [T_ + 'Lap']: 4 }); rows();
+  set({ [T_ + 'FuelLevel']: 46.6 }); rows();
+  set({ [T_ + 'Lap']: 5 });
+  expect('volta medida; a que estava pela metade fica em branco' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.3, '', '']);
+  set({ [T_ + 'FuelLevel']: 44.2 }); rows();
+  set({ [T_ + 'Lap']: 6 });
+  expect('duas voltas medidas' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.4, 2.3, '']);
+  set({ [T_ + 'FuelLevel']: 60.0 }); rows();           // reabasteceu no meio da volta
+  set({ [T_ + 'FuelLevel']: 59.0 }); rows();
+  set({ [T_ + 'Lap']: 7 });
+  expect('volta com reabastecimento fica fora' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.31, 2.4, 2.3]);
+}
 
 console.log(fails ? `\n${fails} falha(s)` : '\ntudo ok');
 process.exit(fails ? 1 : 0);

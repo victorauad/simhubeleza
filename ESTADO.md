@@ -218,7 +218,12 @@ resultado de cada consulta à API local (`localhost:8888/api/GetProperty/<nome>`
   **`'Offline Testing'`** (treino solo).
 - `Flag_Black`, `Flag_Blue`, `CarLeftRight`, `LapsSinceLastPit`: existem.
 - `PreviousLap_NN_FuelConsumed`: não respondeu fora de sessão (enquanto
-  `_DeltaToSessionBest` respondeu) — provavelmente não existe; conferir em pista.
+  `_DeltaToSessionBest` respondeu) — tratado como inexistente. A coluna FUEL
+  do lap log agora é medida pelo próprio dash (`right.FUEL_LOG_JS`):
+  `FuelLevel` no início menos no fim de cada volta, sem a volta em andamento
+  quando o dash abre nem volta com reabastecimento; na linha mais recente,
+  sem medida, cai em `Computed.Fuel_LastLapConsumption`. Testado em
+  `check_states.py`; depende do `root` como o resto (conferir em pista).
 - `states.DAMAGE_BUTTON` = `..._B15`, deduzido do `controls.cfg` do iRacing
   (`SPCCDamageReport`, máscara 0x8000) — conferir apertando o botão.
   `CPU_TEMP`/`GPU_TEMP` vêm do MSI Afterburner, que precisa estar aberto.
@@ -275,10 +280,8 @@ Resolveu quase tudo que estava pendente.
 
 - `[Flag_Black]` e `[Flag_Blue]` — mesma categoria de `Flag_Green`, sem
   confirmação direta ainda.
-- `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — o plugin existe
-  e está ativo, mas o **nome exato desta propriedade específica** ainda é
-  palpite (segue o padrão de `_DeltaToSessionBest`, mas pode não existir com
-  esse sufixo). Só um dump do próprio `PersistantTrackerPlugin` confirma.
+- ~~`PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed`~~ — não existe;
+  substituído pela medição no próprio dash (ver a seção acima).
 - Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
   propriedade clara para eles.
 - **Temperatura da pista por volta**: não há (que se saiba) um histórico

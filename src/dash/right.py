@@ -236,9 +236,8 @@ LOG_ROW = (BODY.height - LOG_HEADER_HEIGHT) / LOG_ROWS
 
 #: Colunas do log, da esquerda para a direita. Numero e tempo repetem as
 #: formulas extraidas do original (`Practice/Lap Data/...`); temperatura,
-#: delta e combustivel sao novas -- ver ESTADO.md para a pendencia de
-#: validar `PersistantTrackerPlugin.PreviousLap_XX_FuelConsumed`, que nao
-#: aparece em nenhum outro lugar do projeto.
+#: delta e combustivel sao novas. O combustivel e calculado pelo proprio dash
+#: (`FUEL_LOG_JS`): o `PersistantTrackerPlugin` nao tem consumo por volta.
 LOG_NUM_W = 40.0
 LOG_TIME_W = 92.0
 LOG_TRACK_W = 76.0
@@ -249,6 +248,38 @@ LOG_FUEL_W = 90.0
 #: Guarda comum: sem volta suficiente ainda, a linha fica em branco -- mesma
 #: condicao usada por `Practice/Lap Data/LapNumber.Text` no original.
 LAP_INVALID = "(($prop('GameRawData.Telemetry.Lap') - repeatindex()) < 1)"
+
+
+#: Consumo por volta, medido pelo proprio dash: o `PersistantTrackerPlugin`
+#: so guarda tempo e delta das voltas anteriores (`PreviousLap_NN_FuelConsumed`
+#: nao existe -- conferido na API do SimHub). A cada virada de `Lap` guarda
+#: (combustivel no inicio da volta - combustivel agora) para a volta que
+#: acabou. Nao conta a volta em andamento quando o dash abre, nem volta com
+#: reabastecimento (o tanque subiu em algum momento) ou que pulou contagem.
+#: A atualizacao e chaveada pelo numero da volta, entao da no mesmo se o
+#: `root` for compartilhado entre as repeticoes da linha ou um por repeticao.
+#: Sem medida, a linha mais recente cai no `Fuel_LastLapConsumption`.
+FUEL_LOG_JS = (
+    "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
+    "var fuel = Number($prop('GameRawData.Telemetry.FuelLevel'));\r\n"
+    "var ok = $prop('GameRawData.Telemetry.FuelLevel') != null && !isNaN(fuel);\r\n"
+    "var h = root.h || (root.h = {});\r\n"
+    "if (root.lap != null && lap < root.lap) { h = root.h = {}; root.start = null; }\r\n"
+    "if (ok) { if (root.prev != null && fuel > root.prev + 0.05) root.dirty = true; "
+    "root.prev = fuel; }\r\n"
+    "if (root.lap != null && lap > root.lap) {\r\n"
+    "\tvar used = root.start == null || !ok ? null : root.start - fuel;\r\n"
+    "\tif (lap == root.lap + 1 && !root.dirty && used > 0) h[root.lap] = used;\r\n"
+    "\troot.start = ok ? fuel : null; root.dirty = false;\r\n"
+    "}\r\n"
+    "root.lap = lap;\r\n"
+    "var n = lap - repeatindex();\r\n"
+    "if (n < 1) return '';\r\n"
+    "var v = h[n];\r\n"
+    "if (v == null && repeatindex() == 1) "
+    "v = Number($prop('DataCorePlugin.Computed.Fuel_LastLapConsumption'));\r\n"
+    "return (v == null || isNaN(v) || v <= 0) ? '' : v;"
+)
 
 
 def lap_js(body, format_string=None):
@@ -303,12 +334,6 @@ def practice():
         "\tif (repeatindex() == 1) { return $prop('GameRawData.Telemetry.TrackTemp'); }\r\n"
         "\telse { return ''; }"
     )
-    #: Combustivel por volta: propriedade nao confirmada (ver ESTADO.md).
-    fuel_body = (
-        "\treturn $prop('PersistantTrackerPlugin.PreviousLap_0' + "
-        "(repeatindex() - 1) + '_FuelConsumed');"
-    )
-
     return Layer(
         tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),
         *(caption(x, header.y + 4.0, w, label, name=f"Log {label} Header",
@@ -337,7 +362,8 @@ def practice():
             text(fuel_x, rows.y, LOG_FUEL_W, LOG_ROW, "2.30",
                  name="LapFuel", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT_SECONDARY,
-                 bindings={"Text": lap_js(fuel_body, "0.00")}),
+                 bindings={"Text": js(FUEL_LOG_JS, jsext=3,
+                                           format_string="0.00")}),
             name="Lap Data",
             Group=True, Repetitions=LOG_ROWS, PrepareRepetitions=True,
             RepeatTopOffset=LOG_ROW,
