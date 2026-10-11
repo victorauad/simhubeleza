@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-from simhub.theme import FASTER, SLOWER  # noqa: E402
+from simhub.theme import FASTER, SLOWER, TEXT_TERTIARY as NEUTRAL  # noqa: E402
 BUILD = ROOT / "build" / "iRacing_Dashboard_00"
 
 #: modo -> (camadas visiveis, repeticoes por camada repetidora)
@@ -87,7 +87,7 @@ SAMPLE = {
 LAP_LOG = [
     ("13", "1:32.90", "31", "+0.42", "2.33"),
     ("12", "1:32.61", "", "+0.13", "2.31"),
-    ("11", "1:32.48", "", "+0.00", "2.30"),
+    ("11", "1:32.48", "", "0.00", "2.30"),
     ("10", "1:32.87", "", "+0.39", "2.34"),
     ("09", "1:33.21", "", "+0.73", ""),
     ("08", "1:32.70", "", "+0.22", "2.29"),
@@ -113,7 +113,8 @@ def expand_lap_log(layer):
             child["Text"] = values[column]
             child.pop("Bindings", None)
             if child["Name"] == "LapDelta":
-                child["TextColor"] = FASTER if values[3].startswith("-") else SLOWER
+                child["TextColor"] = (NEUTRAL if values[3] == "0.00" else FASTER
+                                      if values[3].startswith("-") else SLOWER)
             if values[0] == LAP_BEST and child["Name"] in ("LapNumber", "LapTime"):
                 child["TextColor"] = "#FFB56CFF"
         rows.append(row)

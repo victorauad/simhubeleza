@@ -315,15 +315,19 @@ def practice():
         ("Fuel", LOG_FUEL_W, fuel_x, RIGHT),
     ]
 
+    #: Delta zero (a propria melhor volta) fica sem sinal e em cinza:
+    #: nem ganhou nem perdeu.
     delta_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
+        "\tif (Math.abs(d) < 0.005) { return '0.00'; }\r\n"
         "\tif (d < 0) { return '-' + format(Math.abs(d), '0.00'); }\r\n"
         "\telse { return '+' + format(d, '0.00'); }"
     )
     delta_color_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
+        f"\tif (Math.abs(d) < 0.005) {{ return '{TEXT_TERTIARY}'; }}\r\n"
         f"\tif (d < 0) {{ return '{FASTER}'; }} else {{ return '{SLOWER}'; }}"
     )
     #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
