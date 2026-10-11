@@ -16,6 +16,10 @@ from . import layout as grid
 
 DASH_NAME = "iRacing_Dashboard_00_Diag"
 
+#: O SimHub identifica o dash pelo Id, nao pelo nome da pasta: com o Id do
+#: normal, importar um sobrescreve o outro.
+DASH_ID = "a4c4951f-4b07-5bdc-863a-6d138d81e4a5"
+
 #: Atualiza a ~2 Hz: a medicao nao deve pesar no que mede.
 SKIP = 30
 

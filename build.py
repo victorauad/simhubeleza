@@ -59,11 +59,12 @@ def main(argv):
     out_root = Path(args[0]) if args else ROOT / "build"
     code = build(out_root, DASH_NAME)
     if code == 0 and "--diag" in argv:
-        code = build(out_root, diag.DASH_NAME, extra=[diag.layer()])
+        code = build(out_root, diag.DASH_NAME, extra=[diag.layer()],
+                     dash_id=diag.DASH_ID)
     return code
 
 
-def build(out_root, dash_name, extra=()):
+def build(out_root, dash_name, extra=(), dash_id=None):
     out_dir = out_root / dash_name
 
     # Fonte ausente e falha silenciosa no SimHub -- para aqui, nao la.
@@ -76,6 +77,8 @@ def build(out_root, dash_name, extra=()):
     # Images[] do SHELL vem do dashboard original; as imagens novas do
     # redesign entram aqui, com MD5 e tamanho lidos do arquivo.
     shell = dict(main_dash.SHELL)
+    if dash_id:
+        shell["Id"] = dash_id
     shell["Images"] = list(main_dash.SHELL["Images"]) + [
         image_entry(name)
         for name in (*top_bar.IMAGES, *ots.IMAGES, *weather.IMAGES)]
