@@ -49,6 +49,8 @@ def formulas():
         "clock": expr(states.clock()),
         "newLap": expr(states.new_lap_visible()),
         "sectors": expr(states.sectors_visible()),
+        "standings": right.SHOW_STANDINGS_JS,
+        "relative": right.SHOW_RELATIVE_JS,
         "myLaps": expr(lap_review.collector_mine(
             "return me.laps ? String(me.laps) : 'N/A';")),
         "myAvg": expr(lap_review.collector_mine(
@@ -225,6 +227,40 @@ expect('5 s depois -> setores', [run.newLap(), run.sectors()], [false, true]);
 fresh(); base({ [T_ + 'IsOnTrack']: false }); run.newLap();
 set({ [T_ + 'Lap']: 6 }); T += 100;
 expect('fora da pista -> sem new lap info', run.newLap(), false);
+
+// 7b. Direita: Standings x Relative.
+function col() {
+  const st = run.standings(), rel = run.relative();
+  if (st === rel) throw new Error('standings e relative juntos/nenhum');
+  return st ? 'standings' : 'relative';
+}
+fresh(); base({ [T_ + 'SessionState']: 4 });
+expect('correndo -> relative', col(), 'relative');
+set({ [T_ + 'SessionState']: 'Racing' });
+expect('correndo (enum) -> relative', col(), 'relative');
+set({ [T_ + 'IsOnTrack']: false });
+expect('fora do carro -> standings', col(), 'standings');
+set({ [T_ + 'IsReplayPlaying']: true });
+expect('replay -> relative', col(), 'relative');
+set({ [T_ + 'IsReplayPlaying']: false, [T_ + 'IsOnTrack']: true, [T_ + 'IsInGarage']: 'True' });
+expect('garagem -> standings', col(), 'standings');
+set({ [T_ + 'IsInGarage']: false, [T_ + 'SessionState']: 1 });
+expect('grid (GetInCar) -> standings', col(), 'standings');
+set({ [T_ + 'SessionState']: 'Warmup' });
+expect('grid (Warmup) -> standings', col(), 'standings');
+set({ [T_ + 'SessionState']: 3 });
+expect('volta de apresentacao -> relative', col(), 'relative');
+set({ [T_ + 'SessionState']: 4, [T_ + 'Lap']: 6 }); T += 100;
+expect('volta completa -> standings', col(), 'standings');
+T += 4800;
+expect('standings aos 4.9 s', col(), 'standings');
+T += 200;
+expect('relative aos 5 s', col(), 'relative');
+fresh(); base({ [T_ + 'IsOnTrack']: false, [T_ + 'IsReplayPlaying']: true }); col();
+set({ [T_ + 'Lap']: 6 }); T += 100;
+expect('volta completa em replay -> standings', col(), 'standings');
+fresh(); base({ [S_ + 'Sessions03.SessionType']: 'Offline Testing', [T_ + 'IsOnTrack']: false });
+expect('treino solo -> nenhum (modo Practice)', [run.standings(), run.relative()], [false, false]);
 
 // 8. Coletor do jogador: voltas do stint e media sem volta de saida.
 fresh(); base({ [T_ + 'Lap']: 1, [T_ + 'OnPitRoad']: true, 'DataCorePlugin.GameData.LastLapTime': null });

@@ -49,9 +49,6 @@ PLAYER_ROW_EDGE = "#8CF4A73A"
 #: formulas que a incorporam tambem. "Offline Testing" e a string do treino
 #: livre solo, conferida na API do SimHub em 2026-10-11.
 #:
-#: `[GameRawData.Telemetry.IsOnTrack]` e `[...LapCurrentLapTime]` estao
-#: confirmados no dump de telemetria (existem, tipos batem).
-#:
 #: Preambulo comum: calcula `inPractice` a partir da sessao atual. Os tres
 #: formulas que precisam da condicao (o proprio modo Practice, e as duas
 #: negacoes em Standings/Relative) prefixam este texto e so trocam o
@@ -61,31 +58,37 @@ _SESSION_TYPE_LOOKUP = (
 )
 IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 
-#: O SimHub entrega booleanos como `true` (JS) ou 'True' (texto), nunca
-#: 'TRUE' -- comparar com 'TRUE' deixava o Relative sempre escondido.
-#: Normaliza tudo para texto maiusculo antes de comparar.
-#:
-#: Em replay o iRacing reporta `IsOnTrack` falso (o piloto nao esta no
-#: carro), o que deixava a coluna presa no Standings. `IsReplayPlaying`
-#: (docs/propriedades.txt) conta como "na pista" para o Relative aparecer.
-NOT_ON_TRACK_JS = (
-    "!(String($prop('DataCorePlugin.GameRunning')).toUpperCase() == 'TRUE' && "
-    "(String($prop('GameRawData.Telemetry.IsOnTrack')).toUpperCase() == 'TRUE' || "
-    "String($prop('GameRawData.Telemetry.IsReplayPlaying')).toUpperCase() == 'TRUE'))")
-#: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
-#: acabou de ser completada.
-JUST_COMPLETED_LAP_JS = (
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') >= 0 && "
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') < 4"
+#: Quando o Standings toma o lugar do Relative -- so tres situacoes:
+#:   - garagem: `IsInGarage`, ou fora do carro (`IsOnTrack` falso) sem
+#:     replay rodando -- em replay o iRacing tambem da `IsOnTrack` falso;
+#:   - esperando no grid: `SessionState` 1 GetInCar ou 2 Warmup (numero ou
+#:     nome do enum);
+#:   - 5 s depois de completar cada volta (`Lap` sobe com o carro na pista
+#:     ou em replay).
+#: Fora disso, Relative. Booleanos normalizados por `states.BASE` (`yes`).
+STANDINGS_TIME = 5.0
+_STANDINGS_CHECK = (
+    states.BASE
+    + f"var replay = yes($prop('{states.TELEMETRY}IsReplayPlaying'));\r\n"
+    f"var garage = yes($prop('{states.TELEMETRY}IsInGarage')) || "
+    "(!onTrack && !replay);\r\n"
+    f"var ss = $prop('{states.TELEMETRY}SessionState');\r\n"
+    "var ssn = num(ss);\r\n"
+    "var grid = ssn === 1 || ssn === 2 || "
+    "(ssn == null && ss != null && /^(GetInCar|Warmup)$/i.test(String(ss)));\r\n"
+    "var sl = root.sl;\r\n"
+    "if (sl == null) { sl = root.sl = { lap: lap, until: 0 }; }\r\n"
+    f"if (lap > sl.lap && (onTrack || replay)) sl.until = now + {int(STANDINGS_TIME * 1000)};\r\n"
+    "sl.lap = lap;\r\n"
+    "var standings = garage || grid || now < sl.until;\r\n"
 )
-_STANDINGS_OR_JUST_LAPPED = f"(({NOT_ON_TRACK_JS}) || ({JUST_COMPLETED_LAP_JS}))"
 SHOW_STANDINGS_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && {_STANDINGS_OR_JUST_LAPPED};"
+    _SESSION_TYPE_LOOKUP + _STANDINGS_CHECK
+    + "return !inPractice && standings;"
 )
 SHOW_RELATIVE_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && !{_STANDINGS_OR_JUST_LAPPED};"
+    _SESSION_TYPE_LOOKUP + _STANDINGS_CHECK
+    + "return !inPractice && !standings;"
 )
 
 #: Altura de linha do relative -- sete linhas (3 a frente, eu, 3 atras) no
