@@ -2,7 +2,8 @@
 
 O wireframe pede "telemetria em cima, embaixo todas as infos". Dai as tres
 faixas: o grafico de entradas ocupa o topo, uma linha de tiles traz o que o
-piloto ajusta ou consome durante a volta (bias, combustivel, vento) e o rodape
+piloto ajusta ou consome durante a volta (bias, combustivel, condicoes da
+pista) e o rodape
 guarda o que so se consulta entre voltas (voltas, incidentes, SoF, tempo).
 
 A hierarquia e a das referencias: rotulo em caixa alta cinza em cima, numero
@@ -13,7 +14,7 @@ from simhub.bindings import formatted, js, ncalc
 from simhub.model import ImageItem, Layer, RectangleItem
 from simhub.theme import (
     BIAS, BIAS_DOWN, BIAS_UP, CYAN, GUTTER, ORANGE, PADDING, SIZE_LABEL,
-    SIZE_VALUE_SM, TEXT, TEXT_TERTIARY, TILE,
+    SIZE_VALUE_SM, TEXT, TEXT_TERTIARY, TILE, MONO_ADVANCE,
 )
 from . import layout as grid
 from .widgets import LEFT, caption, separators, tile, value_unit
@@ -32,14 +33,43 @@ CHART_HEIGHT = PANEL.width * CHART_NATIVE[1] / CHART_NATIVE[0]
 FOOTER_HEIGHT = grid.BOTTOM_BAR_HEIGHT
 STATS_HEIGHT = PANEL.height - CHART_HEIGHT - FOOTER_HEIGHT - GUTTER * 2
 
-#: O ultimo campo do rodape e o unico com cinco glifos (`00:00`); com cinco
-#: colunas iguais ele corta no meio. Os outros quatro sao de dois digitos.
-FOOTER_WEIGHTS = (1.0, 1.0, 1.0, 1.0, 1.4)
+#: Linha de stats depois do bias: combustivel e condicoes da pista. O
+#: exemplo tem o formato do valor real e define a largura da celula; o
+#: ultimo campo e o espaco extra no rotulo (em caracteres) -- o do vento
+#: abriga a seta da direcao.
+STATS_FIELDS = [
+    ("Fuel Target", "FPL target", "2.30",
+     "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "0.00", 0.0),
+    ("Fuel Last", "FPL last", "2.30",
+     "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "0.00", 0.0),
+    ("Wind", "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 4.5),
+    ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", 0.0),
+    ("Air", "Air", "00", "[AirTemperature]", "00", 0.0),
+    ("Rain", "Rain", "00",
+     "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, 0.0),
+]
 
-#: A primeira coluna da linha de stats carrega o bias, que e o dado mais
-#: consultado ali, entao ganha mais largura e um numero maior que as outras
-#: tres.
-BIAS_WIDTH = 148.0
+#: Rodape: a sessao, mais a hora e o grip que vieram do rodape da direita
+#: (hoje dos setores).
+FOOTER_FIELDS = [
+    ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
+    ("Left", "Left", "00", "[RemainingLaps]", "00", None),
+    ("Inc", "Inc", "00",
+     "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
+    ("SoF", "SoF", "34",
+     "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
+    ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
+    ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
+    ("Grip", "Grip", "00",
+     "[GameRawData.CurrentSessionInfo.SessionTrackRubberState]", None, None),
+]
+
+#: Recuo das pontas das duas fileiras e o piso do respiro entre campos.
+FOOTER_INSET = 10.0
+ROW_MIN_GAP = 11.0
+
+#: O bias e o dado mais consultado da linha de stats: numero maior que os
+#: outros.
 BIAS_SIZE = 38.0
 STAT_SIZE = 28.0
 
@@ -140,28 +170,6 @@ def stat(region, label, value, expression, unit=None, *, name,
     ]
 
 
-def cells(region, widths):
-    """Celulas de um cartao: `widths` fixa a largura das primeiras (None
-    reparte o resto por igual). Cada celula depois da primeira comeca
-    `CARD_INSET` depois do filete."""
-    inner = region.inset(top=CARD_INSET, bottom=CARD_INSET,
-                         left=CARD_INSET, right=CARD_INSET)
-    fixed = sum(w for w in widths if w is not None)
-    flexible = sum(1 for w in widths if w is None)
-    share = (inner.width - fixed) / flexible if flexible else 0.0
-    out, x = [], inner.x
-    for width in widths:
-        span = width if width is not None else share
-        out.append(grid.Region(x, inner.y, span, inner.height))
-        x += span
-    return out
-
-
-def padded(cell, first):
-    """O conteudo da celula, recuado do filete (menos na primeira)."""
-    return cell if first else cell.inset(left=CARD_INSET)
-
-
 def wind_arrow(region):
     """Seta que gira com a direcao do vento, encostada no rotulo.
 
@@ -188,17 +196,53 @@ def wind_arrow(region):
     )
 
 
+def fitted(region, widths, *, inset, min_gap):
+    """Celulas da largura do proprio conteudo, com o que sobra repartido em
+    respiros iguais entre elas e o filete no meio de cada respiro.
+
+    Devolve as celulas, as posicoes dos filetes (para `separators`) e o
+    respiro, que tambem serve de folga para a caixa do valor: o SimHub nao
+    mede texto, e um valor maior que o exemplo nao deve quebrar linha.
+    """
+    inner = region.inset(top=CARD_INSET, bottom=CARD_INSET,
+                         left=inset, right=inset)
+    gap = (inner.width - sum(widths)) / (len(widths) - 1)
+    assert gap >= min_gap, f"fileira nao cabe: respiro de {gap:.1f}"
+    columns, x = [], inner.x
+    for width in widths:
+        columns.append(grid.Region(x, inner.y, width, inner.height))
+        x += width + gap
+    rules = [grid.Region(cell.x - gap / 2, region.y, 0.0, region.height)
+             for cell in columns]
+    return columns, rules, gap
+
+
+def content_width(label, sample, size, extra=0.0):
+    """Largura de um campo: o rotulo ou o valor, o que for maior."""
+    return max(len(label) * SIZE_LABEL + extra, len(sample) * size) * MONO_ADVANCE
+
+
 def stats_row(region):
-    """Bias, combustivel e vento: o que muda ao longo da volta."""
-    columns = cells(region, (BIAS_WIDTH, None, None, None))
-    bias, target, last, wind = (padded(c, i == 0) for i, c in enumerate(columns))
+    """O que muda ao longo da volta: bias, combustivel e as condicoes da
+    pista (vento, asfalto, ar, chuva).
+
+    Sem unidades -- o rotulo ja diz o que e, e a largura que elas ocupavam e
+    o que permite trazer as condicoes da pista para ca.
+    """
+    widths = [content_width("Brake bias", "55.6", BIAS_SIZE),
+              *(content_width(label, sample, STAT_SIZE, extra)
+                for _, label, sample, *_, extra in STATS_FIELDS)]
+    columns, rules, gap = fitted(region, widths, inset=FOOTER_INSET,
+                                 min_gap=ROW_MIN_GAP)
+    boxes = [grid.Region(c.x, c.y, c.width + gap / 2, c.height) for c in columns]
+    bias = boxes[0]
     value_box = grid.Region(bias.x - 2.0, bias.bottom - BIAS_SIZE * 0.85,
                             4 * BIAS_SIZE * 0.6 + 4.0, BIAS_SIZE * 0.85)
     flash_bg = BIAS_FLASH_BG_ALPHA
 
-    return [
+    items = [
         tile(region, name="Car Tile"),
-        *separators(columns, region),
+        *separators(rules, region),
         # Fundo do brilho, atras do numero: so tinge enquanto ele brilha.
         RectangleItem(
             name="Brake Bias Flash",
@@ -215,46 +259,36 @@ def stats_row(region):
             bindings={"BackgroundColor": bias_flash(
                 "biasBg", "#00F4A73A", BIAS_UP, BIAS_DOWN, alpha=flash_bg)},
         ),
-        *stat(bias, "Brake bias", "55.6", "[BrakeBias]", "%",
+        *stat(bias, "Brake bias", "55.6", "[BrakeBias]",
               name="Brake Bias", format_string="0.0", value_size=BIAS_SIZE,
               color=BIAS,
               color_binding=bias_flash("biasText", BIAS, BIAS_UP, BIAS_DOWN)),
-        *stat(target, "FPL target", "2.30",
-              "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "L",
-              name="Fuel Target", format_string="0.00"),
-        *stat(last, "FPL last", "2.30",
-              "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "L",
-              name="Fuel Last", format_string="0.00"),
-        *stat(wind, "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6",
-              "KM/H", name="Wind", format_string="00",
-              extra=[wind_arrow(wind)]),
     ]
+    for cell, box, (name, label, sample, expression, fmt, extra) in zip(
+            columns[1:], boxes[1:], STATS_FIELDS):
+        items += stat(box, label, sample, expression, name=name,
+                      format_string=fmt,
+                      extra=[wind_arrow(cell)] if extra else ())
+    return items
 
 
 def footer_row(region):
     """Contexto da sessao: consultado entre voltas, nao dentro delas.
 
-    Um unico cartao por baixo dos cinco campos, separados por filetes --
-    no mesmo tratamento do OTS e do rodape da direita. As tres faixas
-    inferiores formam assim uma barra inferior unica.
+    Um unico cartao, com os campos separados por filetes -- no mesmo
+    tratamento do OTS e do rodape da direita. As tres faixas inferiores
+    formam assim uma barra inferior unica.
     """
-    total = sum(FOOTER_WEIGHTS)
-    inner_width = region.width - CARD_INSET * 2
-    columns = cells(region, tuple(inner_width * w / total for w in FOOTER_WEIGHTS))
-    fields = [
-        ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
-        ("Left", "Left", "00", "[RemainingLaps]", "00", None),
-        ("Inc", "Inc", "00",
-         "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
-        ("SoF", "SoF", "34",
-         "[IRacingExtraProperties.iRacing_Class_SoF]/100", "00", None),
-        ("Time", "Time", "00:00", "[SessionTimeLeft]", "mm\\.ss", CYAN),
-    ]
-    items = [tile(region, name="Footer Tile"), *separators(columns, region)]
-    for index, (cell, (name, label, sample, expression, fmt, color)) in enumerate(
-            zip(columns, fields)):
-        items += stat(padded(cell, index == 0), label, sample, expression,
-                      name=name, format_string=fmt, value_size=SIZE_VALUE_SM,
+    widths = [content_width(label, sample, SIZE_VALUE_SM)
+              for _, label, sample, *_ in FOOTER_FIELDS]
+    columns, rules, gap = fitted(region, widths, inset=FOOTER_INSET,
+                                 min_gap=ROW_MIN_GAP)
+    items = [tile(region, name="Footer Tile"), *separators(rules, region)]
+    for cell, (name, label, sample, expression, fmt, color) in zip(
+            columns, FOOTER_FIELDS):
+        box = grid.Region(cell.x, cell.y, cell.width + gap / 2, cell.height)
+        items += stat(box, label, sample, expression, name=name,
+                      format_string=fmt, value_size=SIZE_VALUE_SM,
                       color=color or TEXT)
     return items
 
