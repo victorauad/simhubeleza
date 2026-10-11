@@ -154,7 +154,8 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
                  color=accent,
                  bindings={"Text": at("Car Number", "Text")}
                  if not me else {"Text": at("Car Number", "Text")}),
-        rel_text("Name", NAME_X, NAME_W, "Lorem ipsum", align=LEFT, top=top,
+        rel_text("Name", NAME_X, NAME_W,
+                 "Victor Auad" if me else "Lorem ipsum", align=LEFT, top=top,
                  color=PLAYER if me else TEXT, font=FONT,
                  bindings={"Text": at("Name", "Text")} if not me else None),
         rel_text("Last Lap", LAP_X, LAP_W, "0:00.00", align=RIGHT, top=top,
@@ -222,12 +223,13 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
 
 def relative():
     """Os tres carros a frente, o jogador, e os tres atras."""
+    # Repetitions conta as copias extras: 2 = a linha base + 2 = 3 carros.
     return Layer(
         rel_row("Relative/Driver Ahead Repeat", "Driver Ahead Repeat",
-                rel_top(ME_INDEX - 1), repetitions=3, offset=-REL_ROW),
+                rel_top(ME_INDEX - 1), repetitions=2, offset=-REL_ROW),
         rel_row("Relative/Me", "Me", rel_top(ME_INDEX), me=True),
         rel_row("Relative/Driver Behind Repeat", "Driver Behind Repeat",
-                rel_top(ME_INDEX + 1), repetitions=3, offset=REL_ROW),
+                rel_top(ME_INDEX + 1), repetitions=2, offset=REL_ROW),
         name="Relative",
         Group=True, Repetitions=0, Visible=True,
         BlinkPhasisInverted=False, RenderingSkip=0,
