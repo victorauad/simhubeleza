@@ -117,6 +117,15 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   com o carro neutro numa curva longa a barra deve ficar perto do meio; se
   não ficar, ajustar `STEERING_RATIO` primeiro.
 
+- **Setores** (`src/dash/sectors.py`): rodapé da direita. Setor atual em
+  cima (destacado, tempo e delta vivos), os dois anteriores embaixo (apagados
+  quando são da volta passada); ao lado LAST (+delta), BEST e OPT. Referência:
+  melhor volta da sessão -- o SimHub só guarda setores dela. Nulo/zero vira
+  N/A; setor ou delta acima de 99 s vira OFF. O delta do setor atual é o
+  `SessionBestLiveDeltaSeconds` menos o valor na entrada do setor (em `root`).
+  As condições da pista foram para a coluna esquerda: TRACK/AIR/RAIN na linha
+  do bias (que perdeu as unidades), HOUR/GRIP no rodapé.
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta
@@ -138,7 +147,10 @@ O que merece olhar primeiro, por ordem de risco:
 3. **Barra de balanço** — conferir os sinais de `VelocityY`/`YawRate`/
    `SteeringWheelAngle` (se a barra for para o lado errado numa curva, o
    sinal de algum deles está trocado) e calibrar `STEERING_RATIO`.
-4. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
+4. **Setores** — `currentlapgetsectortime`/`lastlapgetsectortime`/
+   `sessionbestlapgetsectortime`/`bestsectortime` chamadas de dentro do JS e
+   `SectorsCount` no iRacing (pode ficar em 3 em pista com mais setores).
+5. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
    coluna), então ficou menor que a do original. Conferir legibilidade em
    pista, não parado no menu.
 

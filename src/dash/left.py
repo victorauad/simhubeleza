@@ -42,7 +42,7 @@ STATS_FIELDS = [
      "[DataCorePlugin.Computed.Fuel_LastLapConsumption]", "0.00", 0.0),
     ("Fuel Last", "FPL last", "2.30",
      "[DataCorePlugin.Computed.Fuel_LitersPerLap]", "0.00", 0.0),
-    ("Wind", "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 4.5),
+    ("Wind", "Wind", "32", "[GameRawData.Telemetry.WindVel]*3.6", "00", 3.0),
     ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", 0.0),
     ("Air", "Air", "00", "[AirTemperature]", "00", 0.0),
     ("Rain", "Rain", "00",
@@ -219,7 +219,7 @@ def fitted(region, widths, *, inset, min_gap):
 
 def content_width(label, sample, size, extra=0.0):
     """Largura de um campo: o rotulo ou o valor, o que for maior."""
-    return max(len(label) * SIZE_LABEL + extra, len(sample) * size) * MONO_ADVANCE
+    return max((len(label) + extra) * SIZE_LABEL, len(sample) * size) * MONO_ADVANCE
 
 
 def stats_row(region):

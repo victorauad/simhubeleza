@@ -16,7 +16,7 @@ Standings e Relative usam a mesma grade de colunas e a mesma altura de linha,
 entao trocar entre os dois nao reposiciona a leitura: a posicao continua na
 esquerda, os tempos na direita.
 
-O rodape e fixo em qualquer modo -- hora, pista, ar, grip e chuva.
+O rodape e fixo em qualquer modo: os setores contra a melhor volta.
 """
 
 from simhub.bindings import formatted, js, ncalc
@@ -28,7 +28,7 @@ from simhub.theme import (
     TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
-from . import leaderboard
+from . import leaderboard, sectors
 from .generated.formulas import FORMULAS, binding as original
 from .widgets import CENTER, LEFT, RIGHT, caption, separators, text, tile
 
@@ -358,46 +358,12 @@ def practice():
 
 
 def footer():
-    """Condicoes da pista. Um unico cartao, igual ao rodape da esquerda e ao
-    OTS -- as tres faixas formam uma barra inferior continua."""
+    """Setores contra a melhor volta. Um unico cartao, igual ao rodape da
+    esquerda e ao OTS -- as tres faixas formam uma barra inferior continua.
+    As condicoes da pista que moravam aqui foram para a coluna esquerda."""
     region = grid.Region(PANEL.x, BODY.bottom + GUTTER, PANEL.width,
                          leaderboard.FOOTER_HEIGHT)
-    inner = region.inset(left=PADDING, right=PADDING)
-    # Hour e o unico campo de cinco glifos da fileira -- ver FOOTER_WEIGHTS
-    # na coluna esquerda, que resolve o mesmo problema do outro lado.
-    cells = inner.columns(5, gutter=GUTTER, weights=(1.4, 1.0, 1.0, 1.0, 1.0))
-    fields = [
-        ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
-        ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
-        ("Air", "Air", "00", "[AirTemperature]", "00", None),
-        ("Grip", "Grip", "00",
-         "[GameRawData.CurrentSessionInfo.SessionTrackRubberState]", None, None),
-        ("Rain", "Rain", "00",
-         "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, None),
-    ]
-    items = [tile(region, name="Footer Tile"),
-             *separators(cells, region)]
-    for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
-        cell_inner = cell.inset(left=PADDING, right=PADDING)
-        label_height = SIZE_LABEL + 6.0
-        body = grid.Region(cell_inner.x, cell_inner.y + label_height + 2.0,
-                           cell_inner.width, cell_inner.height - label_height - 8.0)
-        items += [
-            caption(cell_inner.x, cell_inner.y + PADDING * 0.75,
-                    cell_inner.width, label, name=f"{name} Label"),
-            text(body.x, body.y, body.width, body.height, sample, name=name,
-                 size=SIZE_VALUE_SM, color=color or TEXT, weight=WEIGHT_VALUE,
-                 align=LEFT,
-                 bindings={"Text": formatted(expression, fmt) if fmt
-                           else ncalc(expression)}),
-        ]
-    return Layer(
-        *items,
-        name="Data",
-        Group=True, Repetitions=0, Visible=True,
-        BlinkPhasisInverted=False, RenderingSkip=0,
-        MinimumRefreshIntervalMS=0.0,
-    )
+    return sectors.layer(region)
 
 
 def layer():
