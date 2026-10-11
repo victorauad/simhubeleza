@@ -21,13 +21,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from dash.fallback import unwrap  # noqa: E402
-from dash.states import SESSION_TYPE_JS  # noqa: E402
-
-#: Propriedades do original que nao existem no SimHub, trocadas de proposito
-#: pelo caminho certo (conferido na API local -- docs/propriedades.txt).
-PROPERTY_FIXES = [
-    (re.compile(r"\$prop\((['\"])SessionTypeName\1\)"), SESSION_TYPE_JS),
-]
+from dash.fixes import fix  # noqa: E402
+from dash.fixes import AUDIT as PROPERTY_FIXES  # noqa: E402
 
 
 def fixed(expression):
@@ -37,9 +32,7 @@ def fixed(expression):
     pontas de cada trecho entre literais, entao trocar uma propriedade muda
     onde os trechos comecam e deixa sobra de espaco diferente dos dois lados.
     """
-    for pattern, replacement in PROPERTY_FIXES:
-        expression = pattern.sub(lambda _: replacement, expression)
-    return squeeze(expression)
+    return squeeze(fix(expression, PROPERTY_FIXES))
 
 
 def squeeze(expression):
@@ -131,8 +124,8 @@ def main(argv=None):
              and squeeze(colorless(e)) not in corrected_shapes]
 
     if corrected:
-        print(f"CORRIGIDAS ({len(corrected)}) -- propriedade inexistente trocada "
-              "pela certa (PROPERTY_FIXES):")
+        print(f"CORRIGIDAS ({len(corrected)}) -- propriedade trocada de proposito "
+              "pela certa (dash/fixes.py):")
         for expression in corrected:
             print(f"  {', '.join(old[expression][:3])}")
         print()

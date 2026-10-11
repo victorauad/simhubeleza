@@ -12,7 +12,7 @@ A barra e um pente, como as da barra superior: trilho, gauge e uma mascara
 (`OtsComb`, gerada por `tools/make_combs.py`).
 """
 
-from simhub.bindings import formatted, ncalc
+from simhub.bindings import ncalc
 from simhub.model import ImageItem, LinearGaugeItem, Layer
 from simhub.theme import (
     CORNER_RADIUS_TILE, OTS_ACTIVE, OTS_BLOCKED, OTS_COOLDOWN, OTS_READY,
@@ -60,6 +60,14 @@ def state_formula(box, ready, active, cooldown, blocked, fallback):
 #: Cor do estado -- usada pelo texto, pelo numero e pela barra, para os tres
 #: mudarem juntos e o estado ser legivel pela cor antes da palavra.
 COLOR = state_formula("transparent", READY, ACTIVE, COOLDOWN, BLOCKED, BLOCKED)
+
+#: Recarga em curso (o estado COOL): o numero passa a contar a recarga em vez
+#: do tempo de overtake que sobra, e o rotulo acompanha.
+COOLING = ("[DahlDesign.SF23.OTCooldownActive] && "
+           "![DahlDesign.SF23.OTActive]")
+SECONDS = (f"if({COOLING}, format([DahlDesign.SF23.OTCooldownTimer], '000'), "
+           "format([DahlDesign.SF23.OTTimeLeft], '000'))")
+SECONDS_CAPTION = f"if({COOLING}, 'S COOL', 'S LEFT')"
 
 #: A palavra do estado. 'transparent' no box some com o texto, como no original.
 LABEL = state_formula("PITLANE", "READY", "ACTIVE", "COOL", "N/A", BLOCKED)
@@ -123,7 +131,8 @@ def layer():
         caption(INNER.x, INNER.y, half, "Push to pass",
                 name="OTS Caption", size=SIZE_LABEL),
         caption(INNER.x + half, INNER.y, half, "S left",
-                name="OTS Left Caption", size=SIZE_LABEL, align=RIGHT),
+                name="OTS Left Caption", size=SIZE_LABEL, align=RIGHT,
+                bindings={"Text": ncalc(SECONDS_CAPTION)}),
         text(value.x, value.y, half, value.height,
              "READY", name="Status", size=SIZE_VALUE_SM, weight=WEIGHT_VALUE,
              align=LEFT, bindings={
@@ -135,7 +144,7 @@ def layer():
              "200", name="OTS Left", size=SIZE_VALUE_SM, weight=WEIGHT_VALUE,
              align=RIGHT,
              bindings={
-                 "Text": formatted("[DahlDesign.SF23.OTTimeLeft]", "000"),
+                 "Text": ncalc(SECONDS),
              }),
         *bar(COMB_AREA),
         name="OTS",

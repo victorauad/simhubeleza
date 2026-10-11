@@ -37,7 +37,7 @@ MODES = {
     "practice": ({"Practice"}, {"Lap Data": 9}),
 }
 
-#: Avisos da barra superior -- os dez chips de `top_bar.CHIPS`. Cada entrada
+#: Avisos da barra superior -- os chips de `top_bar.CHIPS`. Cada entrada
 #: gera um preview `flag-<slug>.html` com so aquele aviso ligado, os demais
 #: desligados: em pista eles sao excludentes, e empilhados de uma vez o chip
 #: vira sopa.
@@ -52,6 +52,11 @@ FLAGS = {
     "flag-overlap": "Flag Overlap",
     "flag-car-left": "Flag Car Left",
     "flag-car-right": "Flag Car Right",
+    "flag-checkered": "Flag Checkered",
+    "flag-red": "Flag Red",
+    "flag-repair": "Flag Repair",
+    "flag-slow-car": "Flag Slow Car",
+    "flag-speeding": "Flag Speeding",
 }
 
 #: Estados do RPMLed que so existem sob formula -- o Figma desenha os dois,

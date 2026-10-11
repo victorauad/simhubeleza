@@ -55,7 +55,9 @@ STATS_FIELDS = [
 #: (hoje dos setores).
 FOOTER_FIELDS = [
     ("Laps", "Laps", "00", "[CompletedLaps]", "00", None),
-    ("Left", "Left", "00", "[RemainingLaps]", "00", None),
+    # Estimado pelo plugin tambem em corrida por tempo (RemainingLaps fica 0).
+    ("Left", "Left", "00", "[IRacingExtraProperties.iRacing_LapsRemaining]",
+     "00", None),
     ("Inc", "Inc", "00",
      "[GameRawData.Telemetry.PlayerCarMyIncidentCount]", "00", ORANGE),
     ("SoF", "SoF", "34",

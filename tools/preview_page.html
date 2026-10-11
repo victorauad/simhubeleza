@@ -216,6 +216,11 @@
     <button class="tab" role="tab" id="tab-flag-overlap" aria-controls="view-flag-overlap" aria-selected="false">Overlap</button>
     <button class="tab" role="tab" id="tab-flag-dirt" aria-controls="view-flag-dirt" aria-selected="false">Dirt</button>
     <button class="tab" role="tab" id="tab-flag-incident" aria-controls="view-flag-incident" aria-selected="false">Incident</button>
+    <button class="tab" role="tab" id="tab-flag-checkered" aria-controls="view-flag-checkered" aria-selected="false">Checker</button>
+    <button class="tab" role="tab" id="tab-flag-red" aria-controls="view-flag-red" aria-selected="false">Red</button>
+    <button class="tab" role="tab" id="tab-flag-repair" aria-controls="view-flag-repair" aria-selected="false">Repair</button>
+    <button class="tab" role="tab" id="tab-flag-slow-car" aria-controls="view-flag-slow-car" aria-selected="false">Slow car</button>
+    <button class="tab" role="tab" id="tab-flag-speeding" aria-controls="view-flag-speeding" aria-selected="false">Speeding</button>
   </nav>
 
   <nav role="tablist" aria-label="Estados do RPMLed">
@@ -246,6 +251,11 @@
       <iframe id="view-flag-overlap" src="flag-overlap.html" title="Input overlap" hidden></iframe>
       <iframe id="view-flag-dirt" src="flag-dirt.html" title="Pneu sujo" hidden></iframe>
       <iframe id="view-flag-incident" src="flag-incident.html" title="Incidente" hidden></iframe>
+      <iframe id="view-flag-checkered" src="flag-checkered.html" title="Bandeira quadriculada" hidden></iframe>
+      <iframe id="view-flag-red" src="flag-red.html" title="Bandeira vermelha" hidden></iframe>
+      <iframe id="view-flag-repair" src="flag-repair.html" title="Reparo obrigatorio" hidden></iframe>
+      <iframe id="view-flag-slow-car" src="flag-slow-car.html" title="Carro lento a frente" hidden></iframe>
+      <iframe id="view-flag-speeding" src="flag-speeding.html" title="Excesso no pit" hidden></iframe>
       <iframe id="view-shift-light" src="shift-light.html" title="Shift light" hidden></iframe>
       <iframe id="view-pit-limiter" src="pit-limiter.html" title="Pit limiter" hidden></iframe>
       <iframe id="view-state-damage" src="state-damage.html" title="Estado Damage" hidden></iframe>
@@ -304,10 +314,20 @@
       "Spotter: <code>CarLeftRight</code> nos valores 3, 4 e 6. Mesma pendencia de validacao."],
     "flag-overlap": ["Input overlap",
       "Acelerador e freio pressionados juntos: <code>if([Throttle]&gt;5 &amp;&amp; [Brake]&gt;5,1,0)</code>. Nao depende de propriedade nova."],
-    "flag-dirt": ["Pneu sujo",
-      "Desenhado no Figma, declarado no codigo e <strong>desligado</strong>: nao ha propriedade clara para carro sujo."],
+    "flag-dirt": ["Pista suja",
+      "Bandeira de detritos do iRacing: <code>SessionFlagsDetails.Isdebris</code>. Estava desligado por falta de propriedade; o relatorio de propriedades do SimHub trouxe o bit da bandeira."],
     "flag-incident": ["Incidente",
-      "Mesma situacao do Dirt: existe como chip, sem formula que o acione."],
+      "Acende por 3 s quando o contador de incidentes do jogador sobe: <code>isincreasing(3000, [PlayerCarMyIncidentCount])</code>, funcao nativa do NCalc."],
+    "flag-checkered": ["Bandeira quadriculada",
+      "Fim da sessao: <code>[Flag_Checkered]</code>, no mesmo formato das outras bandeiras do SimHub."],
+    "flag-red": ["Bandeira vermelha",
+      "Sessao interrompida: <code>SessionFlagsDetails.Isred</code>. Fica por cima de todos os outros avisos."],
+    "flag-repair": ["Reparo obrigatorio",
+      "A meatball do iRacing (preta com disco laranja): <code>SessionFlagsDetails.Isrepair</code>. Tem que ir ao box."],
+    "flag-slow-car": ["Carro lento a frente",
+      "Carro lento ou parado no caminho: <code>iRacing_SlowCarAhead</code> ou <code>iRacing_StoppedCarAhead</code> (iRacing Extra Properties). Acima da amarela, abaixo da vermelha."],
+    "flag-speeding": ["Excesso no pit",
+      "Acima do limite no pit lane: <code>DahlDesign.PitSpeeding</code>. No ciano do limitador, para ler como coisa de box."],
     "shift-light": ["Shift light",
       "Os quatro LEDs do RPM viram roxo na faixa de troca — o mesmo roxo que acende o brilho da marcha. Fora dela, a rampa é azul e clareia para fora nos dois lados."],
     "pit-limiter": ["Pit limiter",

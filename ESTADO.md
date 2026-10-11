@@ -26,7 +26,7 @@ Preview como imagem (Chromium já instalado no ambiente):
   "file:///home/user/simhubeleza/build/preview.html"
 ```
 
-Página de revisão publicada (20 abas: 4 modos da coluna direita, 10 avisos da
+Página de revisão publicada (25 abas: 4 modos da coluna direita, 15 avisos da
 barra superior, 2 estados do RPMLed e 4 estados temporários, montadas sobre
 `build/modes/`):
 <https://claude.ai/artifact/7E9k77H5zjfvoEHtYdjqC9>
@@ -289,8 +289,7 @@ Resolveu quase tudo que estava pendente.
   confirmação direta ainda.
 - ~~`PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed`~~ — não existe;
   substituído pela medição no próprio dash (ver a seção acima).
-- Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
-  propriedade clara para eles.
+- Os chips **DIRT** e **INCIDENT** agora estão ligados (ver abaixo).
 - **Temperatura da pista por volta**: não há histórico indexado por volta
   dessa variável no `PersistantTrackerPlugin` — o próprio dash grava
   (`right.TRACK_LOG_JS`) a última leitura válida de cada volta na virada de
@@ -332,6 +331,31 @@ Dois defeitos achados e corrigidos:
 - No widget de telemetria, a caixa do rótulo `100` começava 8px acima do grupo
   e saía 4px por cima do widget; os badges de pedal vazavam 2px por baixo.
   Ambos ajustados em `src/dash/generated/telemetry.py` sem tocar em fórmula.
+
+- **Correções e inclusões a partir de `docs/propriedades-simhub-completo.md`**
+  (relatório das DLLs do SimHub 9.10.6, commit `42ee1a8`):
+  - `src/dash/fixes.py`: trocas deliberadas de propriedade, aplicadas pelo
+    build (`TREE`) e reconhecidas pela auditoria (`AUDIT`, que aparecem como
+    CORRIGIDAS). Prefixo `iRacingExtraProperties.` em minúscula (vinha do
+    original, na linha do jogador do leaderboard/overflow) virou
+    `IRacingExtraProperties.`.
+  - Volta inválida: o traço vermelho no zero do delta lê
+    `iRacing_Player_CurrentLapIsClean` (a condição antiga, última < melhor,
+    não detectava volta inválida).
+  - Número do delta: `GameData.DeltaToSessionBest` (o mesmo da barra fina),
+    em vez da cópia legada `GameData.NewData.*`. Continua nulo sem volta de
+    referência, então mostra N/A.
+  - `Left` no rodapé: `iRacing_LapsRemaining` (estima também por tempo).
+  - OTS: na recarga, o número conta `DahlDesign.SF23.OTCooldownTimer` e o
+    rótulo vira `S COOL`.
+  - Avisos: DIRT = `SessionFlagsDetails.Isdebris`; INCIDENT =
+    `isincreasing(3000, PlayerCarMyIncidentCount)`; novos CHECKER
+    (`Flag_Checkered`), SPEEDING (`DahlDesign.PitSpeeding`), REPAIR
+    (`Isrepair`, meatball), SLOW CAR (`iRacing_SlowCarAhead`/
+    `iRacing_StoppedCarAhead`) e RED FLAG (`Isred`, no topo da pilha).
+  - **A conferir em pista:** `isincreasing` com atraso em ms; os booleanos
+    dos plugins (`isnull(..., false)`) chegando como bool e não texto; a
+    unidade do `OTCooldownTimer` (assumido segundos).
 
 ## O que ainda falta
 

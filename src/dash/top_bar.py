@@ -17,8 +17,10 @@ from simhub.model import (
 )
 from simhub.theme import (
     BRAKE, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
-    FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN, FLAG_INCIDENT,
-    FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_WHITE, FLAG_YELLOW, PANEL as PANEL_COLOR,
+    FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_CHECKERED, FLAG_DIRT, FLAG_GREEN,
+    FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_RED, FLAG_REPAIR,
+    FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, ORANGE,
+    PANEL as PANEL_COLOR,
     SIZE_HERO, SIZE_LABEL, SLOWER, SURFACE_RAISED, TEXT, TEXT_DIM,
     TEXT_ON_LIGHT, THROTTLE, TILE, rounded,
 )
@@ -186,10 +188,10 @@ def pedal(side, label, prop, color):
 
 # --- Chip de aviso -----------------------------------------------------------
 #
-# Os dez avisos do Figma vivem no mesmo chip, dentro da fileira de LEDs e
+# Os avisos vivem no mesmo chip, dentro da fileira de LEDs e
 # espelhado nos dois lados. Cada um e (nome, rotulo, fundo, cor do texto,
-# formula) -- formula None fica declarado e desligado, por nao haver
-# propriedade conhecida que o acione.
+# formula) -- formula None fica declarado e desligado. As propriedades novas
+# vem de `docs/propriedades-simhub-completo.md`.
 #
 # A ordem importa: irmaos posteriores desenham por cima, entao a lista vai do
 # aviso menos urgente para o mais urgente. Se dois acenderem juntos (bandeira
@@ -209,9 +211,25 @@ def proximity(*values):
     return " || ".join(f"[{FLAG_PROP}]={value}" for value in values)
 
 
+def raw_flag(bit):
+    """Bit de `SessionFlags` ja separado pelo SimHub em booleano."""
+    return ("if(isnull([GameRawData.Telemetry.SessionFlagsDetails."
+            f"Is{bit}], false), 1, 0)")
+
+
+def boolean(*props):
+    """Uma ou mais propriedades booleanas de plugin; nulo conta como falso."""
+    return "if(" + " || ".join(f"isnull([{p}], false)" for p in props) + ", 1, 0)"
+
+
+#: Incidente novo: o contador do jogador subiu nos ultimos 3 s.
+INCIDENT = ("if(isincreasing(3000, isnull("
+            "[GameRawData.Telemetry.PlayerCarMyIncidentCount], 0)), 1, 0)")
+
+
 CHIPS = [
-    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT, None),
-    ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, None),
+    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT, raw_flag("debris")),
+    ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, INCIDENT),
     ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT,
      "if([Throttle]>5 && [Brake]>5,1,0)"),
     ("Flag Car Left", "LEFT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
@@ -221,9 +239,18 @@ CHIPS = [
     ("Flag Blue", "BLUE", FLAG_BLUE, TEXT, flag("Flag_Blue")),
     ("Flag Green", "GREEN", FLAG_GREEN, TEXT_ON_LIGHT, flag("Flag_Green")),
     ("Flag White", "WHITE", FLAG_WHITE, TEXT_ON_LIGHT, flag("Flag_White")),
+    ("Flag Checkered", "CHECKER", FLAG_CHECKERED, TEXT,
+     flag("Flag_Checkered")),
+    ("Flag Speeding", "SPEEDING", FLAG_SPEEDING, TEXT_ON_LIGHT,
+     boolean("DahlDesign.PitSpeeding")),
     ("Flag Black", "BLACK", FLAG_BLACK, TEXT, flag("Flag_Black")),
+    ("Flag Repair", "REPAIR", FLAG_REPAIR, ORANGE, raw_flag("repair")),
     ("Flag Yellow", "YLW FLAG", FLAG_YELLOW, TEXT_ON_LIGHT,
      flag("Flag_Yellow")),
+    ("Flag Slow Car", "SLOW CAR", FLAG_SLOW_CAR, TEXT_ON_LIGHT,
+     boolean("IRacingExtraProperties.iRacing_SlowCarAhead",
+             "IRacingExtraProperties.iRacing_StoppedCarAhead")),
+    ("Flag Red", "RED FLAG", FLAG_RED, TEXT, raw_flag("red")),
 ]
 
 #: Nomes dos chips, na ordem em que aparecem -- consumido pelo preview de
@@ -289,7 +316,8 @@ def chips(side):
 
 #: Formula do delta: sinal explicito e duas casas, para o numero nao "pular"
 #: de largura enquanto o piloto anda.
-DELTA_PROP = "[DataCorePlugin.GameData.NewData.DeltaToSessionBest]"
+#: O mesmo que a barra fina le; `GameData.NewData.*` e a copia legada.
+DELTA_PROP = "[DataCorePlugin.GameData.DeltaToSessionBest]"
 DELTA_TEXT = (
     f"if({DELTA_PROP} < 0, '-' + format(abs({DELTA_PROP}), '0.00'), \r\n\r\n"
     f"if({DELTA_PROP} >= 100, '+' + format({DELTA_PROP}, '0.00'), "
@@ -389,11 +417,12 @@ def delta():
         delta_gauge("Delta-Green", thin_right, FASTER, -0.5, -0.25,
                     alignment=0, radius=rounded(radius=(0, 2, 2, 0))),
         # O zero, por cima do pente. Ganha uma segunda passagem em vermelho:
-        # e o aviso de volta invalidada.
+        # e o aviso de volta invalidada (a volta atual deixou de ser limpa).
         marker("Zero", zero, TEXT),
         marker("Invalid Lap", zero, SLOWER, visible=False, bindings={
-            "Visible": ncalc("if([LastLapTime] < [BestLapTime] && "
-                             "timespantoseconds([LastLapTime]) != 0, 1, 0)")}),
+            "Visible": ncalc(
+                "if(isnull([IRacingExtraProperties."
+                "iRacing_Player_CurrentLapIsClean], true), 0, 1)")}),
         name="Delta",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
         RenderingSkip=0, MinimumRefreshIntervalMS=0.0,

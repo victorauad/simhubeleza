@@ -44,7 +44,7 @@ FIELD_SIZE = "$prop('PlayerClassOpponentsCount')"
 
 #: Quantas linhas renderizar. O trecho comentado e a versao anterior da regra,
 #: preservada pelo autor original.
-ROWS_EXPRESSION = f"""//if([iRacingExtraProperties.iRacing_Player_PositionInClass] <= 11, 13, 3)
+ROWS_EXPRESSION = f"""//if([IRacingExtraProperties.iRacing_Player_PositionInClass] <= 11, 13, 3)
 
 var index;
 if ({FIELD_SIZE} - {PLAYER_POSITION} <= 5) {{
@@ -259,7 +259,7 @@ def last_lap_difference():
         bindings={
             "Text": js(f"""var lapdiff;
 
-if (repeatindex() == $prop('iRacingExtraProperties.iRacing_Player_PositionInClass') && $prop('iRacingExtraProperties.iRacing_Player_PositionInClass') != 0) {{
+if (repeatindex() == $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') && $prop('IRacingExtraProperties.iRacing_Player_PositionInClass') != 0) {{
 
 \treturn '';
 \t

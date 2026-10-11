@@ -88,7 +88,7 @@ BIAS_DOWN = RED
 
 # --- Chips de aviso da barra superior ----------------------------------------
 #
-# Dez avisos no mesmo chip, um por vez. Cada um e um par (fundo, texto): o
+# Quinze avisos no mesmo chip, um por vez. Cada um e um par (fundo, texto): o
 # fundo carrega o significado a distancia, o texto so precisa de contraste.
 
 FLAG_GREEN = GREEN
@@ -100,6 +100,11 @@ FLAG_DIRT = "#FF8B5E34"       # marrom terra: pista suja
 FLAG_INCIDENT = RED           # vermelho: incidente ja levado
 FLAG_PROXIMITY = ORANGE       # spotter: carro na esquerda / na direita
 FLAG_OVERLAP = "#FFD946EF"    # magenta: acelerador e freio juntos
+FLAG_CHECKERED = SURFACE_RAISED  # grafite com texto claro: fim da sessao
+FLAG_RED = RED                # sessao interrompida
+FLAG_REPAIR = "#FF050607"     # meatball: preto com o disco laranja no texto
+FLAG_SLOW_CAR = AMBER         # carro lento/parado a frente
+FLAG_SPEEDING = CYAN          # ciano do pit: acima do limite no pit lane
 
 # --- Tipografia --------------------------------------------------------------
 
