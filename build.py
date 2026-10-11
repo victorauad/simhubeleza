@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import ots, rpmled, top_bar, weather  # noqa: E402
+from dash import fallback, ots, rpmled, top_bar, weather  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from simhub.build import (  # noqa: E402
@@ -71,13 +71,15 @@ def main(argv):
         image_entry(name)
         for name in (*top_bar.IMAGES, *ots.IMAGES, *weather.IMAGES)]
 
+    # Nenhum campo de texto fica em branco por falta de dado: vira N/A.
     write_dashboard(
         out_dir, DASH_NAME,
-        shell, main_dash.SCREEN, main_dash.items(),
+        shell, main_dash.SCREEN, fallback.apply(main_dash.items()),
         metadata=METADATA,
     )
     for name, widget_shell, widget_screen, widget_items in WIDGETS:
-        write_dashboard(out_dir, name, widget_shell, widget_screen, widget_items)
+        write_dashboard(out_dir, name, widget_shell, widget_screen,
+                        fallback.apply(widget_items))
 
     copy_support_files(
         out_dir,

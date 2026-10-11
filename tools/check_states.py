@@ -28,7 +28,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from dash import lap_review, right, states  # noqa: E402
+from dash import fallback, lap_review, right, states  # noqa: E402
+from simhub.bindings import js  # noqa: E402
 
 BUTTON = "InputStatus.JoystickPlugin.Wheel_B14"
 
@@ -51,7 +52,15 @@ def formulas():
         "myAvg": expr(lap_review.collector_mine(
             "return fmtLap(me.n ? me.sum / me.n : null);")),
         "aheadAvg": expr(lap_review.collector_other(-1)),
-        "fuelLog": right.FUEL_LOG_JS,
+        # Com o envelope de N/A do build, como vai para o .djson.
+        "fuelLog": fallback.wrap_js(right.FUEL_LOG_JS),
+        "naValue": fallback.wrap_js("return $prop('X');"),
+        "naRow": fallback.wrap_js("return $prop('X');", "$prop('Row') != 0"),
+        "naTwin": fallback._twin(
+            {"Name": "LastLapDifference", "Bindings": {"Visible": js(
+                "if ($prop('Show')) return 1; else return 0;")}},
+            fallback.HIDDEN["Standings/Leaderboard/LastLapDifference"],
+        )["Bindings"]["Visible"]["Formula"]["Expression"],
     }
 
 
@@ -225,6 +234,7 @@ expect('media do piloto a frente (sem 99.0)', run.aheadAvg(), '1:22.300');
 
 // 10. Consumo por volta no lap log, com root compartilhado entre as linhas
 // e com um root por linha (o SimHub nao documenta qual dos dois).
+const num = v => (typeof v === 'number' ? +v.toFixed(2) : v);
 for (const shared of [true, false]) {
   const fn = new Function('root', '$prop', 'repeatindex', F.fuelLog);
   const roots = [{}, {}, {}];
@@ -237,14 +247,41 @@ for (const shared of [true, false]) {
   set({ [T_ + 'Lap']: 4 }); rows();
   set({ [T_ + 'FuelLevel']: 46.6 }); rows();
   set({ [T_ + 'Lap']: 5 });
-  expect('volta medida; a que estava pela metade fica em branco' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.3, '', '']);
+  expect('volta medida; a que estava pela metade fica N/A' + tag, rows().map(num), [2.3, 'N/A', 'N/A']);
   set({ [T_ + 'FuelLevel']: 44.2 }); rows();
   set({ [T_ + 'Lap']: 6 });
-  expect('duas voltas medidas' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.4, 2.3, '']);
+  expect('duas voltas medidas' + tag, rows().map(num), [2.4, 2.3, 'N/A']);
   set({ [T_ + 'FuelLevel']: 60.0 }); rows();           // reabasteceu no meio da volta
   set({ [T_ + 'FuelLevel']: 59.0 }); rows();
   set({ [T_ + 'Lap']: 7 });
-  expect('volta com reabastecimento fica fora' + tag, rows().map(v => v === '' ? v : +v.toFixed(2)), [2.31, 2.4, 2.3]);
+  expect('volta com reabastecimento fica fora' + tag, rows().map(num), [2.31, 2.4, 2.3]);
+  set({ [T_ + 'Lap']: 2, 'DataCorePlugin.Computed.Fuel_LastLapConsumption': null });
+  expect('volta sem medida: N/A; volta que nao existe: vazio' + tag, rows().map(num), ['N/A', '', '']);
+}
+
+// 11. Envelope de N/A (dash/fallback.py): dado ausente nunca fica em branco;
+// vazio so quando a formula diz que a linha nao existe.
+const na = (vals) => { set(vals); return [run.naValue(), run.naRow()]; };
+base({});
+expect('propriedade ausente vira N/A', na({ Row: 1 }), ['N/A', 'N/A']);
+expect('NaN vira N/A', na({ X: NaN, Row: 1 }), ['N/A', 'N/A']);
+expect('zero e valor, nao N/A', na({ X: 0, Row: 1 }), [0, 0]);
+expect("'' de proposito continua vazio", na({ X: '', Row: 1 }), ['', '']);
+expect('linha que nao existe fica vazia', na({ X: null, Row: 0 }), ['N/A', '']);
+
+// 12. Gemeo N/A de campo que o original esconde sem dado (diferenca de
+// volta do leaderboard): aparece so na linha de outro piloto.
+{
+  const fn = new Function('root', '$prop', 'repeatindex', 'format', F.naTwin);
+  const pad = (v) => ('0' + v).slice(-2);
+  const twin = (row) => fn({}, $prop, () => row, pad);
+  base({ 'IRacingExtraProperties.iRacing_Player_PositionInClass': 2,
+    [B + '00_PositionInClass']: 1, [B + '01_PositionInClass']: 2, [B + '02_PositionInClass']: 0 });
+  set({ Show: 0 });
+  expect('escondido: N/A no outro piloto, vazio na minha linha e na vaga',
+    [twin(1), twin(2), twin(3)], [1, 0, 0]);
+  set({ Show: 1 });
+  expect('com dado: o gemeo some', [twin(1), twin(2), twin(3)], [0, 0, 0]);
 }
 
 console.log(fails ? `\n${fails} falha(s)` : '\ntudo ok');

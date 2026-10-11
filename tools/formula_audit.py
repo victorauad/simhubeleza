@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from dash.fallback import unwrap  # noqa: E402
 from dash.states import SESSION_TYPE_JS  # noqa: E402
 
 #: Propriedades do original que nao existem no SimHub, trocadas de proposito
@@ -87,6 +88,8 @@ def collect(folder):
             for target, binding in (node.get("Bindings") or {}).items():
                 expression = (binding.get("Formula") or {}).get("Expression")
                 if expression:
+                    # O envelope de N/A (dash/fallback.py) nao e logica nova.
+                    expression = unwrap(expression)
                     found[normalize(expression)].append(f"{path.stem}{here}.{target}")
             for child in (node.get("Childrens") or []):
                 walk(child, here)

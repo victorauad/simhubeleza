@@ -182,6 +182,13 @@ O que merece olhar primeiro, por ordem de risco:
 - `None` é valor literal nos construtores; use `OFF` para omitir um campo.
 - Plugins exigidos no SimHub: **DahlDesign** (OTS do SF23),
   **IRacingExtraProperties** (leaderboard de classe), **PersistantTrackerPlugin**.
+- **Nenhum campo de texto fica em branco por falta de dado: mostra N/A**
+  (pedido do usuário). O build aplica isso a todo `Text` (`src/dash/fallback.py`):
+  formula JS que devolve null/undefined/NaN vira N/A, NCalc ganha
+  `isnull(..., 'N/A')`, e os campos que o original escondia sem dado ganham
+  um gêmeo "N/A". `''` devolvido de propósito continua vazio — reservado para
+  linha que não existe (volta futura, posição vaga, carro que não há). Fórmula
+  nova: para "sem dado", devolva `null`, nunca `''`.
 
 ## Pendências conhecidas
 

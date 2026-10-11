@@ -258,7 +258,9 @@ LAP_INVALID = "(($prop('GameRawData.Telemetry.Lap') - repeatindex()) < 1)"
 #: reabastecimento (o tanque subiu em algum momento) ou que pulou contagem.
 #: A atualizacao e chaveada pelo numero da volta, entao da no mesmo se o
 #: `root` for compartilhado entre as repeticoes da linha ou um por repeticao.
-#: Sem medida, a linha mais recente cai no `Fuel_LastLapConsumption`.
+#: Sem medida, a linha mais recente cai no `Fuel_LastLapConsumption`; sem
+#: nenhuma das duas a volta mostra N/A (null -> envelope do fallback.py).
+#: Vazio so na linha de uma volta que ainda nao existe.
 FUEL_LOG_JS = (
     "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
     "var fuel = Number($prop('GameRawData.Telemetry.FuelLevel'));\r\n"
@@ -278,7 +280,7 @@ FUEL_LOG_JS = (
     "var v = h[n];\r\n"
     "if (v == null && repeatindex() == 1) "
     "v = Number($prop('DataCorePlugin.Computed.Fuel_LastLapConsumption'));\r\n"
-    "return (v == null || isNaN(v) || v <= 0) ? '' : v;"
+    "return (v == null || isNaN(v) || v <= 0) ? null : v;"
 )
 
 
@@ -320,6 +322,7 @@ def practice():
     delta_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
+        "\tif (d == null || isNaN(d)) { return null; }\r\n"
         "\tif (Math.abs(d) < 0.005) { return '0.00'; }\r\n"
         "\tif (d < 0) { return '-' + format(Math.abs(d), '0.00'); }\r\n"
         "\telse { return '+' + format(d, '0.00'); }"
@@ -333,10 +336,10 @@ def practice():
     #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
     #: variavel (so o `PersistantTrackerPlugin` tem `PreviousLap_XX_*` para
     #: tempo e delta) -- entao so a volta mais recente mostra a leitura
-    #: atual; as demais ficam em branco em vez de repetir um valor errado.
+    #: atual; as demais mostram N/A em vez de repetir um valor errado.
     track_body = (
         "\tif (repeatindex() == 1) { return $prop('GameRawData.Telemetry.TrackTemp'); }\r\n"
-        "\telse { return ''; }"
+        "\telse { return null; }"
     )
     return Layer(
         tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),

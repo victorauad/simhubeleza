@@ -86,14 +86,14 @@ SAMPLE = {
 #: (numero, tempo, pista, delta, combustivel)
 LAP_LOG = [
     ("13", "1:32.90", "31", "+0.42", "2.33"),
-    ("12", "1:32.61", "", "+0.13", "2.31"),
-    ("11", "1:32.48", "", "0.00", "2.30"),
-    ("10", "1:32.87", "", "+0.39", "2.34"),
-    ("09", "1:33.21", "", "+0.73", ""),
-    ("08", "1:32.70", "", "+0.22", "2.29"),
-    ("07", "1:33.48", "", "+1.00", "2.38"),
-    ("06", "1:32.95", "", "+0.47", "2.32"),
-    ("05", "1:34.10", "", "+1.62", "2.41"),
+    ("12", "1:32.61", "N/A", "+0.13", "2.31"),
+    ("11", "1:32.48", "N/A", "0.00", "2.30"),
+    ("10", "1:32.87", "N/A", "+0.39", "2.34"),
+    ("09", "1:33.21", "N/A", "+0.73", "N/A"),
+    ("08", "1:32.70", "N/A", "+0.22", "2.29"),
+    ("07", "1:33.48", "N/A", "+1.00", "2.38"),
+    ("06", "1:32.95", "N/A", "+0.47", "2.32"),
+    ("05", "1:34.10", "N/A", "+1.62", "2.41"),
 ]
 LAP_BEST = "11"
 LAP_COLUMNS = ("LapNumber", "LapTime", "LapTrackTemp", "LapDelta", "LapFuel")
@@ -168,7 +168,9 @@ def render(mode, visible, repetitions, out_dir, work, flag=None, led=None,
         name = node.get("Name")
         if name in SAMPLE:
             node.update(SAMPLE[name])
-        if name in HIDDEN:
+        # Gemeos "N/A" (dash/fallback.py) so aparecem sem dado; o preview
+        # mostra os campos com dado de exemplo.
+        if name in HIDDEN or (name or "").endswith(" N/A"):
             node["Visible"] = False
             node.pop("Bindings", None)
         if name in MODE_LAYERS:
