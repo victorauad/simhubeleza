@@ -18,6 +18,33 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from dash.states import SESSION_TYPE_JS  # noqa: E402
+
+#: Propriedades do original que nao existem no SimHub, trocadas de proposito
+#: pelo caminho certo (conferido na API local -- docs/propriedades.txt).
+PROPERTY_FIXES = [
+    (re.compile(r"\$prop\((['\"])SessionTypeName\1\)"), SESSION_TYPE_JS),
+]
+
+
+def fixed(expression):
+    """Forma de comparacao do original com as propriedades corrigidas.
+
+    Sem nenhum espaco fora de literais: o `normalize` apara espaco so nas
+    pontas de cada trecho entre literais, entao trocar uma propriedade muda
+    onde os trechos comecam e deixa sobra de espaco diferente dos dois lados.
+    """
+    for pattern, replacement in PROPERTY_FIXES:
+        expression = pattern.sub(lambda _: replacement, expression)
+    return squeeze(expression)
+
+
+def squeeze(expression):
+    parts = re.split(r"('[^']*'|\"[^\"]*\")", expression)
+    return "".join(p if i % 2 else re.sub(r"\s+", "", p)
+                   for i, p in enumerate(parts))
 
 
 def normalize(expression):
@@ -91,8 +118,21 @@ def main(argv=None):
     new_by_shape = {colorless(e): e for e in new}
     restyled = [e for e in removed if colorless(e) in new_by_shape]
     removed = [e for e in removed if colorless(e) not in new_by_shape]
-    added = [e for e in added
-             if colorless(e) not in {colorless(x) for x in restyled}]
+    # E as que so trocaram uma propriedade inexistente pela certa.
+    new_squeezed = {squeeze(colorless(e)) for e in new}
+    corrected = [e for e in removed if colorless(fixed(e)) in new_squeezed]
+    removed = [e for e in removed if e not in corrected]
+    restyled_shapes = {colorless(x) for x in restyled}
+    corrected_shapes = {colorless(fixed(x)) for x in corrected}
+    added = [e for e in added if colorless(e) not in restyled_shapes
+             and squeeze(colorless(e)) not in corrected_shapes]
+
+    if corrected:
+        print(f"CORRIGIDAS ({len(corrected)}) -- propriedade inexistente trocada "
+              "pela certa (PROPERTY_FIXES):")
+        for expression in corrected:
+            print(f"  {', '.join(old[expression][:3])}")
+        print()
 
     if restyled:
         print(f"RESTILIZADAS ({len(restyled)}) -- mesma logica, cores novas:")

@@ -32,18 +32,33 @@ from simhub.bindings import js
 
 TELEMETRY = "GameRawData.Telemetry."
 
+#: Expressao JS com o tipo da sessao atual: 'Race', 'Practice',
+#: 'Lone Qualify', 'Offline Testing'... O YAML do iRacing fica sob
+#: `GameRawData.SessionData.` (sem o prefixo, `$prop` devolve nulo -- conferido
+#: na API do SimHub) e nao tem `CurrentSessionNum`; o indice da sessao atual e
+#: o `SessionNum` da telemetria, e `SessionsNN` comeca em 01.
+SESSION_TYPE_JS = (
+    "$prop('GameRawData.SessionData.SessionInfo.Sessions' + "
+    f"('0' + ((Number($prop('{TELEMETRY}SessionNum')) || 0) + 1)).slice(-2) "
+    "+ '.SessionType')"
+)
+
 # --- Configuracao da instalacao do usuario ---------------------------------
 #
 # Preencher com o que aparece em Available properties no SimHub. Enquanto
 # estiver `None`, o gatilho/campo correspondente fica desligado (N/A).
 
-#: Botao "Damage Report" no volante, lido pelo SimHub. Ex.:
-#: "InputStatus.JoystickPlugin.Simucube_2_Pro_B14".
-DAMAGE_BUTTON = None
-#: Temperaturas do provedor ligado em Settings > System Infos (HWiNFO Pro,
-#: Aida64 ou Afterburner).
-CPU_TEMP = None
-GPU_TEMP = None
+#: Botao "Damage Report" no volante, lido pelo SimHub. No `controls.cfg` do
+#: iRacing, `SPCCDamageReport` esta no Volante_PRS-Formula com mascara 0x8000
+#: (bit 15). O SimHub numera a partir de 0: os B22/B23 que ele usa para trocar
+#: de tela caem nos bits 22/23 do iRacing (MGUK fixed dec/inc). A conferir
+#: apertando o botao em Available properties.
+DAMAGE_BUTTON = "InputStatus.JoystickPlugin.Volante_PRS-Formula_B15"
+#: Temperaturas do provedor ligado em Settings > System Infos -- aqui o MSI
+#: Afterburner (CPU_temperature_Degrees, GPU1_temperature_Degrees). Ficam
+#: nulas enquanto o Afterburner nao estiver rodando.
+CPU_TEMP = "SystemInfosProvider.MainCPUTemp"
+GPU_TEMP = "SystemInfosProvider.MainGPUTemp"
 
 # --- Duracoes (s) ----------------------------------------------------------
 
@@ -119,9 +134,7 @@ def left_prelude():
     ms = {key: int(value * 1000) for key, value in DURATION.items()}
     return (
         BASE
-        + "var sn = (num($prop('SessionInfo.CurrentSessionNum')) || 0) + 1;\r\n"
-        "var race = $prop('SessionInfo.Sessions0' + sn + '.SessionType') "
-        "== 'Race';\r\n"
+        + f"var race = {SESSION_TYPE_JS} == 'Race';\r\n"
         f"var repair = (num($prop('{TELEMETRY}PitRepairLeft')) || 0) + "
         f"(num($prop('{TELEMETRY}PitOptRepairLeft')) || 0);\r\n"
         + FLAGS

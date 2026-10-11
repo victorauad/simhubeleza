@@ -70,11 +70,12 @@ for (const k of Object.keys(F)) {
   run[k] = () => fn(root, $prop, timespantoseconds, format);
 }
 const T_ = 'GameRawData.Telemetry.';
+const S_ = 'GameRawData.SessionData.SessionInfo.';
 function base(over) {
   P = Object.assign({
     [T_ + 'Lap']: 5, [T_ + 'OnPitRoad']: false, [T_ + 'IsOnTrack']: true,
-    'SessionInfo.CurrentSessionNum': 2,
-    'SessionInfo.Sessions03.SessionType': 'Race',
+    [T_ + 'SessionNum']: 2,
+    [S_ + 'Sessions03.SessionType']: 'Race',
     [T_ + 'PitRepairLeft']: 0, [T_ + 'PitOptRepairLeft']: 0,
     [T_ + 'EngineWarnings']: 0, [BUTTON]: false,
     'DataCorePlugin.GameData.LastLapTime': 82.5,
@@ -119,7 +120,7 @@ expect('review acaba aos 5 s', tick(200), null);
 fresh(); base({ [T_ + 'OnPitRoad']: true }); state();
 set({ [T_ + 'Lap']: 6 });
 expect('volta pelo pit -> nada', tick(100), null);
-fresh(); base({ 'SessionInfo.Sessions03.SessionType': 'Practice' }); state();
+fresh(); base({ [S_ + 'Sessions03.SessionType']: 'Practice' }); state();
 set({ [T_ + 'Lap']: 6 });
 expect('treino -> nada', tick(100), null);
 
@@ -132,7 +133,7 @@ expect('weather acaba aos 10 s', tick(200), null);
 fresh(); base({ [T_ + 'IsOnTrack']: false }); state();
 set({ [T_ + 'IsOnTrack']: true });
 expect('entrou no carro em corrida -> weather', tick(100), 'weather');
-fresh(); base({ [T_ + 'IsOnTrack']: false, 'SessionInfo.Sessions03.SessionType': 'Practice' }); state();
+fresh(); base({ [T_ + 'IsOnTrack']: false, [S_ + 'Sessions03.SessionType']: 'Practice' }); state();
 set({ [T_ + 'IsOnTrack']: true });
 expect('entrou no carro em treino -> nada', tick(100), null);
 

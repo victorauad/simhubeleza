@@ -12,7 +12,7 @@ feitas, direto em código (sem passar pelo canvas antes):
 
 | Módulo | O quê |
 |---|---|
-| `src/dash/states.py` | prelúdio JS dos gatilhos, prioridade, durações, cadência e a configuração da instalação (`DAMAGE_BUTTON`, `CPU_TEMP`, `GPU_TEMP`, hoje `None`) |
+| `src/dash/states.py` | prelúdio JS dos gatilhos, prioridade, durações, cadência e a configuração da instalação (`DAMAGE_BUTTON`, `CPU_TEMP`, `GPU_TEMP`, preenchidas em 2026-10-11 -- ver `docs/propriedades.txt`) |
 | `src/dash/new_lap_info.py` | rodapé da direita; `right.footer()` alterna com os setores |
 | `src/dash/lap_review.py` | estado + coletores (`Lap Review Live`) |
 | `src/dash/weather.py` | estado + setas de tendência (`Weather Live`) |

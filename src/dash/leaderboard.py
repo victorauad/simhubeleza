@@ -16,6 +16,7 @@ from simhub.theme import (
     SLOWER as THEME_SLOWER, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
 )
 from . import layout as grid
+from . import states
 from .generated.formulas import binding as original
 
 #: Area util da coluna, e quanto dela sobra para as linhas depois do rodape.
@@ -345,7 +346,7 @@ def gap():
         SpecialCharsWidth=8.0,
         special_chars=".,",
         bindings={
-            "Text": js(f"""if ($prop('SessionTypeName') == 'Race') {{
+            "Text": js(f"""if ({states.SESSION_TYPE_JS} == 'Race') {{
 
 \tif ({driver('PositionInClass')} != 0) {{
 \t\t
@@ -386,7 +387,7 @@ def gap():
 
 \treturn 'White';
 \t
-}} else if ($prop("SessionTypeName") == 'Race' && {driver('IsConnected')} == false) {{
+}} else if ({states.SESSION_TYPE_JS} == 'Race' &&{driver('IsConnected')} == false) {{
 
 \treturn '{DISCONNECTED}';
 \t

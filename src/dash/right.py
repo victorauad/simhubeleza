@@ -42,16 +42,12 @@ PLAYER_ROW_EDGE = "#8CF4A73A"
 
 #: Condicoes que decidem qual modo aparece.
 #:
-#: `[SessionTypeName]` nao existe -- nao aparece no dump de
-#: `SampleSessionData.json` nem em `SampleTelemetry.json`, nem foi usada uma
-#: vez sequer no dashboard original. O caminho real, confirmado no dump:
-#: `SessionInfo.CurrentSessionNum` (indice da sessao atual) mais
-#: `SessionInfo.Sessions0<n>.SessionType` (o texto, por sessao do fim de
-#: semana). NCalc nao indexa propriedade dinamicamente, entao a checagem so
-#: existe em JS -- por tabela, os dois formulas que a incorporam tambem.
-#: A string exata de uma sessao de treino livre solo ("Offline Testing")
-#: segue sem confirmacao: nenhum dos dois dumps recebidos era desse tipo de
-#: sessao.
+#: `[SessionTypeName]` nao existe. O tipo da sessao vem de
+#: `states.SESSION_TYPE_JS` (`GameRawData.SessionData.SessionInfo.SessionsNN`
+#: indexado pelo `SessionNum` da telemetria). NCalc nao indexa propriedade
+#: dinamicamente, entao a checagem so existe em JS -- por tabela, os dois
+#: formulas que a incorporam tambem. "Offline Testing" e a string do treino
+#: livre solo, conferida na API do SimHub em 2026-10-11.
 #:
 #: `[GameRawData.Telemetry.IsOnTrack]` e `[...LapCurrentLapTime]` estao
 #: confirmados no dump de telemetria (existem, tipos batem).
@@ -61,9 +57,7 @@ PLAYER_ROW_EDGE = "#8CF4A73A"
 #: negacoes em Standings/Relative) prefixam este texto e so trocam o
 #: `return` final.
 _SESSION_TYPE_LOOKUP = (
-    "\tvar n = $prop('SessionInfo.CurrentSessionNum') + 1;\r\n"
-    "\tvar inPractice = $prop('SessionInfo.Sessions0' + n + '.SessionType') "
-    "== 'Offline Testing';\r\n"
+    f"\tvar inPractice = {states.SESSION_TYPE_JS} == 'Offline Testing';\r\n"
 )
 IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 

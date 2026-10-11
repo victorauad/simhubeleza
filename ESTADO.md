@@ -200,6 +200,31 @@ O que merece olhar primeiro, por ordem de risco:
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
 
+### Propriedades do SimHub — conferidas na máquina do usuário (2026-10-11)
+
+Lista completa em `docs/propriedades.txt` (dumps, `RSC.iRacingExtraProperties.txt`,
+provedor de sistema, joystick e o que os dashboards instalados usam), com o
+resultado de cada consulta à API local (`localhost:8888/api/GetProperty/<nome>`).
+**Isto substitui as conclusões da seção abaixo onde houver conflito:**
+
+- **O tipo de sessão estava com o caminho errado.** `SessionInfo.*` sem prefixo
+  não resolve, e `CurrentSessionNum` não existe no SimHub. Agora há uma
+  expressão só, `states.SESSION_TYPE_JS`
+  (`GameRawData.SessionData.SessionInfo.SessionsNN.SessionType` indexado por
+  `GameRawData.Telemetry.SessionNum`), usada em `states.py`, `right.py` e no
+  `Gap` do `leaderboard.py` (que ainda lia `SessionTypeName`). O
+  `formula_audit.py` lista essas trocas como CORRIGIDAS (`PROPERTY_FIXES`).
+- Strings confirmadas: `'Race'`, `'Practice'`, `'Lone Qualify'` e
+  **`'Offline Testing'`** (treino solo).
+- `Flag_Black`, `Flag_Blue`, `CarLeftRight`, `LapsSinceLastPit`: existem.
+- `PreviousLap_NN_FuelConsumed`: não respondeu fora de sessão (enquanto
+  `_DeltaToSessionBest` respondeu) — provavelmente não existe; conferir em pista.
+- `states.DAMAGE_BUTTON` = `..._B15`, deduzido do `controls.cfg` do iRacing
+  (`SPCCDamageReport`, máscara 0x8000) — conferir apertando o botão.
+  `CPU_TEMP`/`GPU_TEMP` vêm do MSI Afterburner, que precisa estar aberto.
+- Ambiente Windows: Python 3.12 e Node 24 instalados; rodar com `python`
+  (não `python3`).
+
 ### Propriedades do SimHub — validadas com dumps reais do usuário
 
 O usuário mandou dois dumps da própria instalação: `SampleTelemetry.json`
