@@ -15,10 +15,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tools"))
 
 from dash import diag, fallback, fixes, ots, rpmled, top_bar, weather  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
+from check_types import check as check_types  # noqa: E402
 from simhub.build import (  # noqa: E402
     copy_support_files, image_entry, verify_fonts, write_dashboard,
 )
@@ -113,6 +115,13 @@ def build(out_root, dash_name, extra=(), dash_id=None):
         for suffix in (".djson.png", ".djson.00.png"):
             (out_dir / f"{DASH_NAME}{suffix}").rename(
                 out_dir / f"{dash_name}{suffix}")
+
+    # Decimal em campo inteiro derruba o Editar/Executar do SimHub.
+    bad = check_types([out_dir])
+    if bad:
+        print("campo inteiro com valor nao inteiro:\n  " + "\n  ".join(bad),
+              file=sys.stderr)
+        return 1
 
     files = sum(1 for _ in out_dir.rglob("*") if _.is_file())
     print(f"gerado: {out_dir}  ({files} arquivos)")
