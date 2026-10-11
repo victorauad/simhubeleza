@@ -61,10 +61,12 @@ _SESSION_TYPE_LOOKUP = (
 )
 IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 
-NOT_ON_TRACK = ("!([DataCorePlugin.GameRunning] && "
-               "[GameRawData.Telemetry.IsOnTrack]='TRUE')")
-NOT_ON_TRACK_JS = ("!($prop('DataCorePlugin.GameRunning') && "
-                   "$prop('GameRawData.Telemetry.IsOnTrack') == 'TRUE')")
+#: O SimHub entrega booleanos como `true` (JS) ou 'True' (texto), nunca
+#: 'TRUE' -- comparar com 'TRUE' deixava o Relative sempre escondido.
+#: Normaliza tudo para texto maiusculo antes de comparar.
+NOT_ON_TRACK_JS = (
+    "!(String($prop('DataCorePlugin.GameRunning')).toUpperCase() == 'TRUE' && "
+    "String($prop('GameRawData.Telemetry.IsOnTrack')).toUpperCase() == 'TRUE')")
 #: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
 #: acabou de ser completada.
 JUST_COMPLETED_LAP_JS = (

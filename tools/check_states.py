@@ -7,7 +7,8 @@ e o relogio simulados, quadro a quadro, nos cenarios das regras:
   - carregar o dash nao dispara nada;
   - Lap Review so em corrida, so com volta fechada fora do pit, por 5 s;
   - Weather na saida do pit e ao entrar no carro numa corrida, por 10 s;
-  - Damage no botao (3 s), em reparo que cresce e em aviso novo (5 s);
+  - Damage no botao (3 s), em reparo que cresce e em aviso novo (5 s) --
+    so 3 s depois de entrar na pista, e pressao com motor desligado nao conta;
   - prioridade Damage > Weather > Lap Review, com retomada;
   - grafico e setores escondidos exatamente quando o estado aparece;
   - coletores: voltas e media do stint (minha e dos outros).
@@ -122,6 +123,8 @@ function expect(label, got, want) {
   console.log((ok ? 'ok   ' : 'FAIL ') + label + (ok ? '' : `  (veio ${JSON.stringify(got)}, esperava ${JSON.stringify(want)})`));
 }
 function tick(ms) { T += ms; return state(); }
+// Passa a janela de assentamento (3 s apos entrar na pista) sem nada.
+function settle() { tick(3000); }
 function fresh() {
   STORE = new Map(); CLOCK = true;
   for (const k of Object.keys(F)) {
@@ -169,23 +172,34 @@ set({ [BUTTON]: true });
 expect('botao -> damage', tick(100), 'damage');
 expect('segurar o botao nao estende', tick(2800), 'damage');
 expect('damage do botao acaba aos 3 s', tick(200), null);
-fresh(); base(); state();
+fresh(); base(); state(); settle();
 set({ [T_ + 'PitOptRepairLeft']: 12 });
 expect('reparo cresceu -> damage', tick(100), 'damage');
 expect('damage de dano novo aos 4.9 s', tick(4800), 'damage');
 expect('acaba aos 5 s', tick(200), null);
 set({ [T_ + 'PitOptRepairLeft']: 4 });
 expect('reparo diminuindo (no pit) -> nada', tick(100), null);
-fresh(); base(); state();
+fresh(); base(); state(); settle();
 set({ [T_ + 'EngineWarnings']: 0x40 });
 expect('aviso novo -> damage', tick(100), 'damage');
 expect('aviso persistente nao redispara', tick(5000), null);
 set({ [T_ + 'EngineWarnings']: 0x40 | 0x10 });
 expect('limitador nao conta como dano', tick(100), null);
 
-fresh(); base({ [T_ + 'EngineWarnings']: 'PitSpeedLimiter' }); state();
+fresh(); base({ [T_ + 'EngineWarnings']: 'PitSpeedLimiter' }); state(); settle();
 set({ [T_ + 'EngineWarnings']: 'PitSpeedLimiter, OilTempWarning' });
 expect('aviso como nome de enum -> damage', tick(100), 'damage');
+
+// Grid: dash carregado / carro posto na pista com motor desligado.
+fresh(); base({ 'GameRawData.Telemetry.RPM': 0 }); state(); settle();
+set({ [T_ + 'EngineWarnings']: 0x02 | 0x04 });
+expect('motor desligado: pressao baixa nao e dano', tick(100), null);
+set({ [T_ + 'EngineWarnings']: 0x02 | 0x04 | 0x08, 'GameRawData.Telemetry.RPM': 900 });
+expect('motor morto (stalled): pressao baixa nao e dano', tick(100), null);
+fresh(); base({ [T_ + 'IsOnTrack']: false }); state();
+set({ [T_ + 'IsOnTrack']: true, [T_ + 'EngineWarnings']: 0x40 });
+expect('aviso logo ao entrar na pista nao e damage', tick(100) === 'damage', false);
+expect('nem depois de assentar', tick(3000) === 'damage', false);
 
 // 6. Prioridade e retomada.
 fresh(); base({ [T_ + 'OnPitRoad']: true }); state();
@@ -195,7 +209,7 @@ set({ [BUTTON]: true });
 expect('damage cobre weather', tick(1900), 'damage');
 set({ [BUTTON]: false });
 expect('weather volta depois do damage', tick(3000), 'weather');
-fresh(); base(); state();
+fresh(); base(); state(); settle();
 set({ [T_ + 'Lap']: 6 });
 expect('review', tick(100), 'review');
 set({ [T_ + 'PitRepairLeft']: 40 });

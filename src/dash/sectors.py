@@ -17,7 +17,9 @@ Regras de exibicao: valor nulo ou zero vira "N/A"; tempo de setor acima de
 O delta do setor atual e o delta ao vivo da volta menos o valor que ele
 tinha quando o setor comecou, guardado em `root` -- comeca em zero a cada
 setor e anda com a pilotagem. Os setores completos sao tempo do setor menos
-o mesmo setor da melhor volta, sem estado.
+o mesmo setor da melhor volta; quando o SimHub nao tem os setores dela
+(sem melhor volta registrada), usam o delta que o setor atual publicou ao
+fechar, no armazenamento compartilhado.
 """
 
 from simhub.bindings import js, ncalc
@@ -27,6 +29,7 @@ from simhub.theme import (
     TEXT_TERTIARY, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
+from . import states
 from .widgets import LEFT, RIGHT, caption, separators, text, tile
 
 VALUE_SIZE = 21.0
@@ -41,6 +44,9 @@ MIN_GAP = 11.0
 #: anda a ~20 Hz; o resto so muda na troca de setor ou de volta (~6 Hz).
 SKIP_LIVE = 2
 SKIP_SLOW = 9
+
+#: Por quanto tempo o delta guardado de um setor fechado vale (ms).
+KEEP_MS = 300_000
 
 NA, OFF_TEXT = "N/A", "OFF"
 LIMIT = 99.0
@@ -76,9 +82,16 @@ PRELUDE = (
     "var back = function (r) { var k = i - r; "
     "return k >= 1 ? { s: k, t: sec(currentlapgetsectortime(k, false)) } "
     ": { s: n + k, t: sec(lastlapgetsectortime(n + k, false)) }; };\r\n"
-    "var sectorDelta = function (b) { "
+    # Delta guardado pelo setor atual quando ele fechou (ver
+    # LIVE_DELTA_BODY); vale por KEEP_MS.
+    f"var kept = function (s) {{ if (!{states.HAS_SHARED}) return null; "
+    f"var at = Number(getsharedvalueordefault('{states.SHARED}', 'st' + s, 0)); "
+    f"if (!at || Date.now() - at > {KEEP_MS}) return null; "
+    f"var v = getsharedvalueordefault('{states.SHARED}', 'sd' + s, null); "
+    "return v == null || v === '' ? null : Number(v); };\r\n"
+    "var sectorDelta = function (b) { if (b.t == null) return null; "
     "var best = sec(sessionbestlapgetsectortime(b.s, false)); "
-    "return (b.t == null || best == null) ? null : b.t - best; };\r\n"
+    "return best != null ? b.t - best : kept(b.s); };\r\n"
 )
 
 
@@ -96,10 +109,19 @@ def color_script(body, places):
 
 
 #: Delta do setor atual: delta ao vivo menos o que ele era na entrada do
-#: setor. A troca de setor zera a base.
+#: setor. A troca de setor zera a base -- e antes publica o delta final do
+#: setor que fechou (o ultimo valor visto, porque o delta ao vivo zera na
+#: troca de volta), para os setores completos usarem quando o SimHub nao tem
+#: os setores da melhor volta.
 LIVE_DELTA_BODY = (
     f"var live = $prop('{LIVE_DELTA}');\r\n"
-    "if (root.i !== i) { root.i = i; root.base = live == null ? 0 : live; }\r\n"
+    "if (root.i !== i) {\r\n"
+    f"  if (root.i != null && {states.HAS_SHARED}) {{ "
+    f"setsharedvalue('{states.SHARED}', 'sd' + root.i, "
+    "root.last == null ? '' : root.last - root.base); "
+    f"setsharedvalue('{states.SHARED}', 'st' + root.i, Date.now()); }}\r\n"
+    "  root.i = i; root.base = live == null ? 0 : live; }\r\n"
+    "root.last = live;\r\n"
     "var d = live == null ? null : live - root.base;"
 )
 

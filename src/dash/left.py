@@ -153,7 +153,9 @@ def chart():
         Width=PANEL.width, Height=CHART_HEIGHT,
         Visible=True,
         BlinkPhasisInverted=False,
-        RenderingSkip=states.SKIP_GATE,
+        # Sem skip: o grafico amostra a cada quadro desenhado, e pular
+        # quadros aqui deixava as curvas em degraus.
+        RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
         # Some (e deixa de ser desenhado) enquanto um estado temporario
         # ocupa o lugar dele -- ver states.py.

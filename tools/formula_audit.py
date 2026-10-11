@@ -40,6 +40,8 @@ INTENDED = [
     ("Right Component/Data/LP Value8.Text", "chuva sempre 'NA' -> numero"),
     ("/OTS/Status.Text", "OTS: recarga antes de READY"),
     ("/OTS/OTS Gauge.GaugeColor", "OTS: recarga antes de READY"),
+    ("/Gas & Brake/Brake Value.Text", "pedal: dois digitos inteiros, sem decimal"),
+    ("/Gas & Brake/Gas Value.Text", "pedal: dois digitos inteiros, sem decimal"),
 ]
 
 

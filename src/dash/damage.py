@@ -60,7 +60,7 @@ SAMPLE_WARN = states.WARN_OIL_T
 DATA = (
     f"var mand = num($prop('{T}PitRepairLeft')) || 0;\r\n"
     f"var opt = num($prop('{T}PitOptRepairLeft')) || 0;\r\n"
-    f"var warn = flags($prop('{T}EngineWarnings'));\r\n"
+    "var warn = engineWarn();\r\n"
     "var total = mand + opt;\r\n"
     f"var level = total <= 0 ? ((warn & {ENGINE}) ? 1 : 0) : total < {MINOR} "
     f"? 1 : total < {MODERATE} ? 2 : 3;\r\n"

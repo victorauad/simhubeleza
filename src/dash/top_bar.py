@@ -176,12 +176,12 @@ def pedal(side, label, prop, color):
                     alignment=2 if side is LEFT else 0,
                     radius=rounded(radius=0), prop=prop),
         comb_mask(f"{label} Comb", PEDAL_COMB[side], bar),
-        # Some com o pedal solto (0) e mostra "00" com ele no fundo (100),
-        # para o numero nunca passar de dois digitos.
+        # Some com o pedal solto (<1) e mostra sempre dois digitos inteiros
+        # ("05", "47"); o fundo (>=99.5, que arredondaria para 100) vira "00".
         text(value.x, value.y, value.width, value.height, "00",
              name=f"{label} Value", size=PEDAL_VALUE_SIZE, color=color,
              weight="Bold", align=CENTER,
-             bindings={"Text": ncalc(f"if([{prop}]=100,'00',[{prop}])"),
+             bindings={"Text": ncalc(f"if([{prop}]>=99.5,'00',format([{prop}],'00'))"),
                        "Visible": ncalc(f"if([{prop}]<1,0,1)")}),
     ]
 

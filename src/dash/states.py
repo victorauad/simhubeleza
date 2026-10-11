@@ -116,6 +116,14 @@ REPAIR_STEP = 0.5
 #: morto, limitador e corte de giro ficam de fora.
 WARN_WATER, WARN_FUEL_P, WARN_OIL_P = 0x01, 0x02, 0x04
 WARN_OIL_T, WARN_MAND_REP, WARN_OPT_REP = 0x40, 0x80, 0x100
+#: Motor morto (0x08). Com ele, ou com o giro abaixo de `IDLE_RPM`, as
+#: pressoes de oleo e combustivel acendem sem dano nenhum -- e o que acontece
+#: ao entrar no carro no grid. Nesses casos as duas pressoes sao ignoradas.
+WARN_STALLED = 0x08
+IDLE_RPM = 300
+#: Depois de carregar o dash ou entrar no carro, por quanto tempo (s) a
+#: leitura so vira referencia e nao conta como dano novo.
+SETTLE = 3.0
 DAMAGE_WARNINGS = (WARN_WATER | WARN_FUEL_P | WARN_OIL_P | WARN_OIL_T
                    | WARN_MAND_REP | WARN_OPT_REP)
 
@@ -155,7 +163,15 @@ FLAGS = (
     f"if (s.indexOf('oiltemp') >= 0) f |= {WARN_OIL_T}; "
     f"if (s.indexOf('mandrep') >= 0) f |= {WARN_MAND_REP}; "
     f"if (s.indexOf('optrep') >= 0) f |= {WARN_OPT_REP}; "
+    f"if (s.indexOf('stalled') >= 0) f |= {WARN_STALLED}; "
     "return f; };\r\n"
+    # Avisos do motor, sem as pressoes quando o motor esta parado.
+    "var engineWarn = function () { "
+    f"var w = flags($prop('{TELEMETRY}EngineWarnings')); "
+    f"var rpm = num($prop('{TELEMETRY}RPM')); "
+    f"if ((w & {WARN_STALLED}) || (rpm != null && rpm < {IDLE_RPM})) "
+    f"w &= ~{WARN_OIL_P | WARN_FUEL_P}; "
+    "return w; };\r\n"
 )
 
 
@@ -168,26 +184,30 @@ def _button_read():
 def _left_compute():
     """Calcula `state` (e `session`) a partir das propriedades e do `root`."""
     ms = {key: int(value * 1000) for key, value in DURATION.items()}
+    ms["settle"] = int(SETTLE * 1000)
     return (
         f"var session = {SESSION_TYPE_JS};\r\n"
         "var race = session == 'Race';\r\n"
         f"var repair = (num($prop('{TELEMETRY}PitRepairLeft')) || 0) + "
         f"(num($prop('{TELEMETRY}PitOptRepairLeft')) || 0);\r\n"
         + FLAGS
-        + f"var warn = flags($prop('{TELEMETRY}EngineWarnings')) "
-        f"& {DAMAGE_WARNINGS};\r\n"
+        + f"var warn = engineWarn() & {DAMAGE_WARNINGS};\r\n"
         + _button_read()
         + "var st = root.st;\r\n"
         "if (st == null) { st = root.st = { lap: lap, pit: onPit, "
         "track: onTrack, repair: repair, warn: warn, btn: btn, "
-        "damage: 0, weather: 0, review: 0 }; }\r\n"
+        "damage: 0, weather: 0, review: 0, settle: now + "
+        f"{ms['settle']} }}; }}\r\n"
+        # Entrou no carro: o reparo e os avisos de agora sao a referencia.
+        f"if (onTrack && !st.track) st.settle = now + {ms['settle']};\r\n"
+        "var settled = now >= st.settle;\r\n"
         # Damage: botao (borda de subida), reparo que cresceu em pista, ou
         # aviso novo.
         f"if (btn && !st.btn) st.damage = Math.max(st.damage, now + "
         f"{ms['damage_button']});\r\n"
-        f"if (onTrack && repair > st.repair + {REPAIR_STEP}) "
+        f"if (settled && onTrack && repair > st.repair + {REPAIR_STEP}) "
         f"st.damage = Math.max(st.damage, now + {ms['damage_new']});\r\n"
-        f"if ((warn & ~st.warn) != 0) st.damage = Math.max(st.damage, now + "
+        f"if (settled && (warn & ~st.warn) != 0) st.damage = Math.max(st.damage, now + "
         f"{ms['damage_new']});\r\n"
         # Weather: saiu do pit, ou entrou no carro numa corrida (o "Race"
         # que leva ao grid).

@@ -337,6 +337,10 @@ def items():
             ),
             ChartItem(
                 name='brake',
+                # Janela curta (~8 s a 30 amostras/s): com 600 pontos o
+                # grafico cobria ~20 s e as curvas viravam degraus.
+                PointsCount=240.0,
+                RenderingSkip=1,
                 bindings={
                     "CurrentValue": ncalc('[Brake]'),
                 },
@@ -344,6 +348,10 @@ def items():
             ChartItem(
                 name='[Throttle]',
                 LineColor='#FF1DAF4D',
+                # Janela curta (~8 s a 30 amostras/s): com 600 pontos o
+                # grafico cobria ~20 s e as curvas viravam degraus.
+                PointsCount=240.0,
+                RenderingSkip=1,
                 bindings={
                     "CurrentValue": ncalc('[Throttle]'),
                 },
