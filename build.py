@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Gera a pasta DashTemplates completa a partir do codigo.
 
-Uso:  python3 build.py [--diag] [destino]
+Uso:  python3 build.py [--diag] [--name=NOME] [destino]
 
 Sem argumento, escreve em build/. Passe o caminho da pasta DashTemplates do
 SimHub para instalar direto. `--diag` gera tambem `iRacing_Dashboard_00_Diag`,
 o mesmo dash com a faixa de medicao de desempenho (dash/diag.py).
+`--name=NOME` gera so o dash normal com outro nome e outro Id, para instalar
+ao lado do atual sem sobrescrever.
 """
 import sys
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -55,8 +58,16 @@ WIDGETS = [
 
 
 def main(argv):
-    args = [a for a in argv[1:] if a != "--diag"]
+    names = [a.split("=", 1)[1] for a in argv[1:] if a.startswith("--name=")]
+    args = [a for a in argv[1:] if not a.startswith("--")]
     out_root = Path(args[0]) if args else ROOT / "build"
+    if names:
+        # O SimHub identifica o dash pelo Id e mostra o nome da pasta: outro
+        # nome precisa de outro Id, ou a importacao sobrescreve o instalado.
+        name = names[0]
+        return build(out_root, name,
+                     dash_id=str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                            f"simhubeleza/{name}")))
     code = build(out_root, DASH_NAME)
     if code == 0 and "--diag" in argv:
         code = build(out_root, diag.DASH_NAME, extra=[diag.layer()],
