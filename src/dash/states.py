@@ -165,6 +165,65 @@ BASE = (
 )
 
 
+#: Validade da volta em andamento (Boolean do IRacingExtraProperties: cai
+#: para falso no primeiro corte de pista ou incidente da volta).
+LAP_CLEAN = "IRacingExtraProperties.iRacing_Player_CurrentLapIsClean"
+#: Logo depois da virada de `Lap` a propriedade ainda pode trazer o valor da
+#: volta que acabou: leituras dentro dessa janela nao contam para a nova.
+VALID_GRACE_MS = 1000
+#: Quantas voltas o gravador publica (o log mostra 9).
+VALID_KEEP = 20
+
+#: Gravador da validade por volta (requer BASE). O SimHub so diz se a volta
+#: *atual* esta limpa; o historico e do proprio dash: a volta fica invalida
+#: se alguma leitura dela deu falso, e e gravada na virada de `Lap` (so se
+#: a volta foi observada e a contagem nao pulou). Define `validOf(n)` (1, 0
+#: ou null para a volta `n`) e `validNow()` (a volta em andamento).
+#: `validOf` le primeiro o publicado por `valid_recorder()` -- sempre
+#: visivel, enxerga voltas em que o consumidor estava escondido -- e cai no
+#: gravador local se a publicacao estiver velha.
+VALIDITY = (
+    f"var cl = $prop('{LAP_CLEAN}');\r\n"
+    "var known = cl != null && cl !== '';\r\n"
+    "var vr = root.vr;\r\n"
+    "if (vr == null || lap < vr.lap) vr = root.vr = "
+    "{ lap: lap, h: {}, dirty: false, seen: false, at: 0 };\r\n"
+    "if (lap > vr.lap) {\r\n"
+    "\tif (lap == vr.lap + 1 && vr.seen) vr.h[vr.lap] = vr.dirty ? 0 : 1;\r\n"
+    "\tvr.lap = lap; vr.dirty = false; vr.seen = false; vr.at = now;\r\n"
+    "}\r\n"
+    f"if (known && now - vr.at > {VALID_GRACE_MS}) "
+    "{ vr.seen = true; if (!yes(cl)) vr.dirty = true; }\r\n"
+    "var validNow = function () { if (!known) return null; "
+    f"if (now - vr.at <= {VALID_GRACE_MS}) return vr.dirty ? 0 : 1; "
+    "return (vr.dirty || !yes(cl)) ? 0 : 1; };\r\n"
+    "var validOf = function (n) {\r\n"
+    f"\tif ({HAS_SHARED} && now - (num({shared_get('lvat', '0')}) || 0) "
+    f"< {STALE_MS}) {{\r\n"
+    f"\t\tvar s = String({shared_get('lvh', chr(39) * 2)} || '');\r\n"
+    "\t\tif (s.indexOf(',' + n + ':1,') >= 0) return 1;\r\n"
+    "\t\tif (s.indexOf(',' + n + ':0,') >= 0) return 0;\r\n"
+    "\t}\r\n"
+    "\tvar v = vr.h[n]; return v == null ? null : v;\r\n"
+    "};\r\n"
+)
+
+
+def valid_recorder():
+    """`Text` de um item sempre visivel e vazio: grava a validade de cada
+    volta e publica as ultimas `VALID_KEEP` como ',12:1,13:0,'."""
+    return js(
+        BASE + VALIDITY
+        + f"if ({HAS_SHARED}) {{\r\n"
+        "\tvar out = ',';\r\n"
+        f"\tfor (var k = lap - {VALID_KEEP}; k < lap; k++) "
+        "if (vr.h[k] != null) out += k + ':' + vr.h[k] + ',';\r\n"
+        f"\t{shared_set('lvh', 'out')}; {shared_set('lvat', 'now')};\r\n"
+        "}\r\n"
+        "return '';"
+    )
+
+
 #: `EngineWarnings` como numero ou como nomes do enum (o SimHub pode
 #: entregar qualquer um dos dois, ex. "OilTempWarning, PitSpeedLimiter").
 FLAGS = (

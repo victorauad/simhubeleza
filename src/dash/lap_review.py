@@ -214,6 +214,18 @@ def layer(region):
     items = [
         *rules,
         caption(last.x, band.y, last.width, "Last", name="Review Last Label"),
+        # Validade da ultima volta, no rotulo sobre o delta.
+        caption(last.x + lap_w + 8.0, band.y, mono(6, DELTA_SIZE) + 4.0,
+                "Valid", name="Review Last Valid", align=RIGHT,
+                bindings={"Text": js(
+                    states.BASE + states.VALIDITY
+                    + "var v = validOf(lap - 1);\r\n"
+                    "return v == null ? 'N/A' : (v ? 'VALID' : 'INVALID');"),
+                    "TextColor": js(
+                    states.BASE + states.VALIDITY
+                    + "var v = validOf(lap - 1);\r\n"
+                    f"if (v == null) return '{TEXT_TERTIARY}';\r\n"
+                    f"return v ? '{TEXT_SECONDARY}' : '{SLOWER}';")}),
         text(last.x, value_y, lap_w + 4.0, value_h, "1:22.8",
              name="Review Last", size=P1_SIZE, weight=WEIGHT_VALUE,
              bindings={"Text": js(states.FORMAT + "return fmtLap(sec("

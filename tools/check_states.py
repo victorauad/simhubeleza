@@ -59,6 +59,11 @@ def formulas():
         # Com o envelope de N/A do build, como vai para o .djson.
         "fuelLog": fallback.wrap_js(right.FUEL_LOG_JS),
         "trackLog": fallback.wrap_js(right.TRACK_LOG_JS),
+        "validRec": expr(states.valid_recorder()),
+        "validLog": fallback.wrap_js(right.VALID_LOG_JS + right.VALID_TEXT),
+        "validNow": fallback.wrap_js(
+            states.BASE + states.VALIDITY
+            + "var v = validNow(); return v == null ? null : v;"),
         "naValue": fallback.wrap_js("return $prop('X');"),
         "naRow": fallback.wrap_js("return $prop('X');", "$prop('Row') != 0"),
         "naTwin": fallback._twin(
@@ -364,6 +369,33 @@ for (const shared of [true, false]) {
   expect('pista: leitura sumiu, fica a ultima valida' + tag, rows(), [32, 31, 'N/A']);
   set({ [T_ + 'Lap']: 2 });
   expect('pista: sessao nova zera; sem leitura, N/A' + tag, rows(), ['N/A', '', '']);
+}
+
+// 10c. Validade por volta: o gravador sempre visivel publica; o lap log
+// (root por linha) e o "Now" leem. Volta suja em qualquer leitura = INV.
+{
+  const C = 'IRacingExtraProperties.iRacing_Player_CurrentLapIsClean';
+  const fn = new Function('root', '$prop', 'repeatindex', F.validLog);
+  const roots = [{}, {}, {}];
+  const rows = () => [1, 2, 3].map(r => fn(roots[r - 1], $prop, () => r));
+  const step = (ms) => { T += ms; run.validRec(); return rows(); };
+  STORE = new Map();
+  base({ [T_ + 'Lap']: 3, [C]: true });
+  expect('validade: dash recem-aberto, nada gravado', step(0), ['N/A', 'N/A', '']);
+  step(2000); set({ [T_ + 'Lap']: 4 }); step(100);
+  expect('validade: volta 3 so foi vista pela metade e conta', step(2000), ['OK', 'N/A', 'N/A']);
+  expect('validade: volta atual limpa', run.validNow(), 1);
+  set({ [C]: false }); step(2000);
+  expect('validade: volta atual suja', run.validNow(), 0);
+  set({ [C]: true }); step(2000);
+  expect('validade: volta suja continua INV mesmo limpando depois', run.validNow(), 0);
+  set({ [T_ + 'Lap']: 5 }); step(100);
+  expect('validade: virada de volta (janela de graca)', run.validNow(), 1);
+  expect('validade: log com a volta suja', step(2000), ['INV', 'OK', 'N/A']);
+  set({ [T_ + 'Lap']: 7 }); step(100); step(2000);
+  expect('validade: contagem pulou 5 -> 7, voltas 5 e 6 ficam N/A', rows(), ['N/A', 'N/A', 'INV']);
+  set({ [C]: null }); step(2000);
+  expect('validade: sem a propriedade, Now fica N/A', run.validNow(), 'N/A');
 }
 
 // 11. Envelope de N/A (dash/fallback.py): dado ausente nunca fica em branco;

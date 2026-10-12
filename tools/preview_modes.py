@@ -23,7 +23,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-from simhub.theme import FASTER, SLOWER, TEXT_TERTIARY as NEUTRAL  # noqa: E402
+from simhub.theme import (  # noqa: E402
+    FASTER, SLOWER, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_TERTIARY as NEUTRAL,
+)
 BUILD = ROOT / "build" / "iRacing_Dashboard_00"
 
 #: modo -> (camadas visiveis, repeticoes por camada repetidora)
@@ -88,20 +90,21 @@ SAMPLE = {
 #: render estatico repetiria a mesma linha nove vezes; aqui a camada vira
 #: nove copias com os valores escritos. Temperatura e combustivel sao
 #: gravados pelo dash por volta; a volta 9 teve reabastecimento (N/A).
-#: (numero, tempo, pista, delta, combustivel)
+#: (numero, tempo, pista, delta, combustivel, validade)
 LAP_LOG = [
-    ("13", "1:32.9", "31", "+0.4", "2.33"),
-    ("12", "1:32.6", "31", "+0.1", "2.31"),
-    ("11", "1:32.5", "31", "0.0", "2.30"),
-    ("10", "1:32.9", "30", "+0.4", "2.34"),
-    ("09", "1:33.2", "30", "+0.7", "N/A"),
-    ("08", "1:32.7", "30", "+0.2", "2.29"),
-    ("07", "1:33.5", "30", "+1.0", "2.38"),
-    ("06", "1:33.0", "29", "+0.5", "2.32"),
-    ("05", "1:34.1", "29", "+1.6", "2.41"),
+    ("13", "1:32.9", "31", "+0.4", "2.33", "OK"),
+    ("12", "1:32.6", "31", "+0.1", "2.31", "OK"),
+    ("11", "1:32.5", "31", "0.0", "2.30", "OK"),
+    ("10", "1:32.9", "30", "+0.4", "2.34", "INV"),
+    ("09", "1:33.2", "30", "+0.7", "N/A", "OK"),
+    ("08", "1:32.7", "30", "+0.2", "2.29", "OK"),
+    ("07", "1:33.5", "30", "+1.0", "2.38", "INV"),
+    ("06", "1:33.0", "29", "+0.5", "2.32", "OK"),
+    ("05", "1:34.1", "29", "+1.6", "2.41", "N/A"),
 ]
 LAP_BEST = "11"
-LAP_COLUMNS = ("LapNumber", "LapTime", "LapTrackTemp", "LapDelta", "LapFuel")
+LAP_COLUMNS = ("LapNumber", "LapTime", "LapTrackTemp", "LapDelta", "LapFuel",
+               "LapValid")
 
 
 def expand_lap_log(layer):
@@ -120,6 +123,10 @@ def expand_lap_log(layer):
             if child["Name"] == "LapDelta":
                 child["TextColor"] = (NEUTRAL if values[3] == "0.00" else FASTER
                                       if values[3].startswith("-") else SLOWER)
+            if child["Name"] == "LapValid":
+                child["TextColor"] = (SLOWER if values[5] == "INV" else
+                                      TEXT_TERTIARY if values[5] == "N/A"
+                                      else TEXT_SECONDARY)
             if values[0] == LAP_BEST and child["Name"] in ("LapNumber", "LapTime"):
                 child["TextColor"] = "#FFB56CFF"
         rows.append(row)

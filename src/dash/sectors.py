@@ -148,6 +148,10 @@ OPT_BODY = (
 )
 
 
+def valid_script(body):
+    return js(states.BASE + states.VALIDITY + body)
+
+
 def sector_number(r):
     """NCalc: o numero do setor `r` posicoes atras do atual."""
     index = f"[{GAME}CurrentSectorIndex]"
@@ -284,6 +288,24 @@ def layer(region):
         value(l_time, rows[2], "1:21.9", "Optimal Lap",
               bindings={"Text": script(OPT_BODY)}, skip=SKIP_SLOW),
     ]
+
+    # Validade, nas celulas livres da coluna de delta: a ultima volta e a
+    # volta em andamento (gravador em states.VALIDITY).
+    for row, word, expression, sample in ((rows[1], "Last", "validOf(lap - 1)",
+                                           "OK"),
+                                          (rows[2], "Now", "validNow()", "OK")):
+        valid = f"var v = {expression};\r\n"
+        items += [
+            label(l_delta, row, word, f"Valid {word} Label"),
+            value(l_delta, row, sample, f"Valid {word}",
+                  color=TEXT_SECONDARY,
+                  bindings={"Text": valid_script(
+                      valid + "return v == null ? 'N/A' : (v ? 'OK' : 'INV');"),
+                      "TextColor": valid_script(
+                      valid + f"if (v == null) return '{TEXT_TERTIARY}';\r\n"
+                      f"return v ? '{TEXT_SECONDARY}' : '{SLOWER}';")},
+                  skip=SKIP_SLOW),
+        ]
 
     return Layer(
         *items,

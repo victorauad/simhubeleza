@@ -289,8 +289,9 @@ LOG_HEADER_SIZE = SIZE_LABEL + 1.5
 LOG_NUM_W = 40.0
 LOG_TIME_W = 92.0
 LOG_TRACK_W = 76.0
-LOG_DELTA_W = 90.0
-LOG_FUEL_W = 90.0
+LOG_DELTA_W = 80.0
+LOG_FUEL_W = 80.0
+LOG_VALID_W = 56.0
 
 
 #: Guarda comum: sem volta suficiente ainda, a linha fica em branco -- mesma
@@ -355,6 +356,19 @@ TRACK_LOG_JS = (
 )
 
 
+#: Validade de cada volta do log (gravador em `states.VALIDITY`). Vazio so
+#: na linha de uma volta que ainda nao existe; sem gravacao, N/A.
+VALID_LOG_JS = (
+    states.BASE + states.VALIDITY
+    + "var n = lap - repeatindex();\r\n"
+    "var v = n < 1 ? null : validOf(n);\r\n"
+)
+VALID_TEXT = ("if (n < 1) return '';\r\n"
+              "return v == null ? 'N/A' : (v ? 'OK' : 'INV');")
+VALID_COLOR = (f"if (v == null) return '{TEXT_TERTIARY}';\r\n"
+               f"return v ? '{TEXT_SECONDARY}' : '{SLOWER}';")
+
+
 def lap_js(body, format_string=None):
     """Formula JS de uma coluna nova do log: `body` e o codigo dentro do
     `else` (a guarda de volta invalida ja fica por fora)."""
@@ -379,6 +393,8 @@ def practice():
     track_x = time_x + LOG_TIME_W + GUTTER
     delta_x = track_x + LOG_TRACK_W + GUTTER
     fuel_x = delta_x + LOG_DELTA_W + GUTTER
+    valid_x = fuel_x + LOG_FUEL_W + GUTTER
+    assert valid_x + LOG_VALID_W <= inner.right, "lap log nao cabe"
 
     columns = [
         ("#", LOG_NUM_W, num_x, RIGHT),
@@ -386,6 +402,7 @@ def practice():
         ("Track", LOG_TRACK_W, track_x, RIGHT),
         ("Delta", LOG_DELTA_W, delta_x, RIGHT),
         ("Fuel", LOG_FUEL_W, fuel_x, RIGHT),
+        ("Valid", LOG_VALID_W, valid_x, RIGHT),
     ]
 
     #: Delta zero (a propria melhor volta) fica sem sinal e em cinza:
@@ -441,6 +458,12 @@ def practice():
                  color=TEXT_SECONDARY,
                  bindings={"Text": js(FUEL_LOG_JS, jsext=3,
                                            format_string="0.00")}),
+            text(valid_x, rows.y, LOG_VALID_W, LOG_ROW, "OK",
+                 name="LapValid", size=LOG_SIZE, align=RIGHT,
+                 color=TEXT_SECONDARY,
+                 bindings={"Text": js(VALID_LOG_JS + VALID_TEXT, jsext=3),
+                           "TextColor": js(VALID_LOG_JS + VALID_COLOR,
+                                           jsext=3)}),
             name="Lap Data",
             Group=True, Repetitions=LOG_ROWS, PrepareRepetitions=True,
             RepeatTopOffset=LOG_ROW,
@@ -474,6 +497,10 @@ def layer():
         # O corpo (tabela, relative ou log) e o rodape sao dois tiles, como
         # no canvas -- a coluna em si nao tem fundo.
         tile(BODY, name="Background", color=TILE),
+        # Gravador da validade das voltas: sempre visivel e vazio, publica
+        # para o log, os setores e o Lap Review (states.VALIDITY).
+        states.gate(text(BODY.x, BODY.y, 1.0, 1.0, "", name="Lap Validity Recorder",
+                         bindings={"Text": states.valid_recorder()})),
         *footer(),
         leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),
