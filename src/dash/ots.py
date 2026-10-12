@@ -16,7 +16,7 @@ from simhub.bindings import ncalc
 from simhub.model import ImageItem, LinearGaugeItem, Layer
 from simhub.theme import (
     CORNER_RADIUS_TILE, OTS_ACTIVE, OTS_BLOCKED, OTS_COOLDOWN, OTS_READY,
-    SIZE_LABEL, SIZE_VALUE_SM, TRACK, WEIGHT_VALUE,
+    SIZE_LABEL_FOOTER, SIZE_VALUE_FOOTER, TRACK, WEIGHT_VALUE,
 )
 from . import layout as grid
 from .widgets import LEFT, RIGHT, caption, text, tile
@@ -123,7 +123,7 @@ def bar(region):
 
 def layer():
     """A faixa do push-to-pass inteira."""
-    value_top = INNER.y + SIZE_LABEL + 6.0
+    value_top = INNER.y + SIZE_LABEL_FOOTER + 6.0
     value = grid.Region(INNER.x, value_top, INNER.width,
                         COMB_AREA.y - 6.0 - value_top)
     half = value.width / 2
@@ -131,19 +131,19 @@ def layer():
     return Layer(
         tile(PANEL, name="OTS Tile", radius=CORNER_RADIUS_TILE),
         caption(INNER.x, INNER.y, half, "Push to pass",
-                name="OTS Caption", size=SIZE_LABEL),
+                name="OTS Caption", size=SIZE_LABEL_FOOTER),
         caption(INNER.x + half, INNER.y, half, "S left",
-                name="OTS Left Caption", size=SIZE_LABEL, align=RIGHT,
+                name="OTS Left Caption", size=SIZE_LABEL_FOOTER, align=RIGHT,
                 bindings={"Text": ncalc(SECONDS_CAPTION)}),
         text(value.x, value.y, half, value.height,
-             "READY", name="Status", size=SIZE_VALUE_SM, weight=WEIGHT_VALUE,
+             "READY", name="Status", size=SIZE_VALUE_FOOTER, weight=WEIGHT_VALUE,
              align=LEFT, bindings={
                  "Text": ncalc(LABEL),
                  "TextColor": ncalc(COLOR),
                  "BlinkEnabled": ncalc(ACTIVE_BLINK),
              }),
         text(value.x + half, value.y, half, value.height,
-             "200", name="OTS Left", size=SIZE_VALUE_SM, weight=WEIGHT_VALUE,
+             "200", name="OTS Left", size=SIZE_VALUE_FOOTER, weight=WEIGHT_VALUE,
              align=RIGHT,
              bindings={
                  "Text": ncalc(SECONDS),

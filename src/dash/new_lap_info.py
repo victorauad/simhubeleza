@@ -19,7 +19,7 @@ zero.
 from simhub.bindings import js
 from simhub.model import Layer
 from simhub.theme import (
-    AMBER, MONO_ADVANCE, RED, SIZE_LABEL, SIZE_VALUE, TEXT, TEXT_TERTIARY,
+    AMBER, MONO_ADVANCE, RED, SIZE_LABEL_FOOTER, SIZE_VALUE, TEXT, TEXT_TERTIARY,
 )
 from . import states
 from .widgets import labeled, spread, tile
@@ -48,7 +48,8 @@ FIELDS = [
 
 
 def width(label, sample):
-    return max(len(label) * SIZE_LABEL, len(sample) * VALUE_SIZE) * MONO_ADVANCE
+    return (max(len(label) * SIZE_LABEL_FOOTER, len(sample) * VALUE_SIZE)
+            * MONO_ADVANCE)
 
 
 def value_formula(expression):
@@ -82,7 +83,7 @@ def layer(region):
             cells, FIELDS):
         for item in labeled(
                 cell, label, sample, name=f"Sys {name}", size=VALUE_SIZE,
-                slack=gap / 2,
+                slack=gap / 2, label_size=SIZE_LABEL_FOOTER,
                 bindings={"Text": value_formula(expression),
                           "TextColor": color_formula(expression, warn, bad,
                                                      high)}):

@@ -14,7 +14,7 @@ from simhub.bindings import formatted, ncalc
 from simhub.model import ImageItem, Layer, RectangleItem
 from simhub.theme import (
     BIAS, BIAS_DOWN, BIAS_UP, CYAN, GUTTER, ORANGE, PADDING, SIZE_LABEL,
-    SIZE_VALUE_SM, TEXT, TEXT_TERTIARY, TILE, MONO_ADVANCE,
+    SIZE_LABEL_FOOTER, SIZE_VALUE_FOOTER, TEXT, TEXT_TERTIARY, TILE, MONO_ADVANCE,
 )
 from . import damage, lap_review, states, weather
 from . import layout as grid
@@ -77,6 +77,7 @@ FOOTER_FIELDS = [
 #: Recuo das pontas das duas fileiras e o piso do respiro entre campos.
 FOOTER_INSET = 10.0
 ROW_MIN_GAP = 11.0
+NA = "N/A"
 
 #: O bias e o dado mais consultado da linha de stats: numero maior que os
 #: outros.
@@ -165,13 +166,14 @@ def chart():
 
 def stat(region, label, value, expression, unit=None, *, name,
          format_string=None, value_size=STAT_SIZE, unit_color=TEXT_TERTIARY,
-         color=TEXT, extra=(), align=LEFT, color_binding=None):
+         color=TEXT, extra=(), align=LEFT, color_binding=None,
+         label_size=SIZE_LABEL):
     """Rotulo em cima, valor grande embaixo -- alinhados na mesma borda.
 
     Varios `stat()` dividem um unico cartao de fundo, separados por
     filetes: o cartao e desenhado por quem monta a fileira.
     """
-    label_height = SIZE_LABEL + 6.0
+    label_height = label_size + 6.0
     body = grid.Region(region.x, region.y + label_height,
                        region.width, region.height - label_height)
     binding = (formatted(expression, format_string) if format_string
@@ -181,7 +183,8 @@ def stat(region, label, value, expression, unit=None, *, name,
         bindings["TextColor"] = color_binding
     return [
         caption(region.x, region.y, region.width, label,
-                name=f"{name} Label", size=SIZE_LABEL, align=align),
+                name=f"{name} Label", size=label_size, align=align,
+                height=label_height),
         *value_unit(body, value, unit or "", name=name,
                     value_size=value_size, unit_color=unit_color, color=color,
                     unit_width=0.0 if not unit else None, align=align,
@@ -237,9 +240,10 @@ def fitted(region, widths, *, inset, min_gap):
     return columns, rules, gap
 
 
-def content_width(label, sample, size, extra=0.0):
+def content_width(label, sample, size, extra=0.0, label_size=SIZE_LABEL):
     """Largura de um campo: o rotulo ou o valor, o que for maior."""
-    return max((len(label) + extra) * SIZE_LABEL, len(sample) * size) * MONO_ADVANCE
+    return (max((len(label) + extra) * label_size, len(sample) * size)
+            * MONO_ADVANCE)
 
 
 def stats_row(region):
@@ -299,8 +303,11 @@ def footer_row(region):
     tratamento do OTS e do rodape da direita. As tres faixas inferiores
     formam assim uma barra inferior unica.
     """
-    widths = [content_width(label, sample, SIZE_VALUE_SM)
-              for _, label, sample, *_ in FOOTER_FIELDS]
+    # O SoF mede pelo "N/A" (3 caracteres), nao pelo exemplo: sem SoF o
+    # valor nao pode invadir o filete do vizinho.
+    widths = [content_width(label, NA if name == "SoF" else sample,
+                            SIZE_VALUE_FOOTER, label_size=SIZE_LABEL_FOOTER)
+              for name, label, sample, *_ in FOOTER_FIELDS]
     columns, rules, gap = fitted(region, widths, inset=FOOTER_INSET,
                                  min_gap=ROW_MIN_GAP)
     items = [tile(region, name="Footer Tile"), *separators(rules, region)]
@@ -308,8 +315,8 @@ def footer_row(region):
             columns, FOOTER_FIELDS):
         box = grid.Region(cell.x, cell.y, cell.width + gap / 2, cell.height)
         items += stat(box, label, sample, expression, name=name,
-                      format_string=fmt, value_size=SIZE_VALUE_SM,
-                      color=color or TEXT)
+                      format_string=fmt, value_size=SIZE_VALUE_FOOTER,
+                      color=color or TEXT, label_size=SIZE_LABEL_FOOTER)
     return items
 
 

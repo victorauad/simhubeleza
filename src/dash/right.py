@@ -25,7 +25,7 @@ from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
     BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FASTER, FONT, GUTTER,
     SLOWER,
-    PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
+    MONO_ADVANCE, PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
     TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
@@ -96,13 +96,23 @@ SHOW_RELATIVE_JS = (
 REL_ROWS = 7
 REL_ROW = BODY.height / REL_ROWS
 
-#: Colunas, da esquerda para a direita.
-POS_X, POS_W = BODY.x, 40.0
-NUM_X, NUM_W = BODY.x + 44.0, 40.0
-NAME_X = BODY.x + 90.0
+#: Tamanho do texto das linhas. Com o dash reduzido na frente do volante o
+#: relative e lido de relance; 22 px ocupa ~54% da linha (40.7 px) e ainda
+#: deixa o filete do cartao respirando.
+REL_SIZE = 22.0
+
+#: Colunas, da esquerda para a direita. Larguras medidas pelo avanco da
+#: Arame Mono (0.6 em) no REL_SIZE: posicao "18." e numero "128" com 3
+#: caracteres, volta "0:00.00" com 7, gap "122.2" com 5.
+_GLYPH = REL_SIZE * MONO_ADVANCE
+POS_X, POS_W = BODY.x, 3 * _GLYPH + 6.0
+NUM_X, NUM_W = POS_X + POS_W + 4.0, 3 * _GLYPH + 4.0
+NAME_X = NUM_X + NUM_W + 8.0
 BAR_X, BAR_W = BODY.right - 8.0, 8.0
-GAP_X, GAP_W = BODY.right - 76.0, 62.0
-LAP_X, LAP_W = BODY.right - 166.0, 84.0
+GAP_W = 5 * _GLYPH + 2.0
+GAP_X = BAR_X - 4.0 - GAP_W
+LAP_W = 7 * _GLYPH + 4.0
+LAP_X = GAP_X - 8.0 - LAP_W
 NAME_W = LAP_X - NAME_X - 8.0
 
 
@@ -115,7 +125,7 @@ def rel_top(index):
 ME_INDEX = 3
 
 
-def rel_text(name, left, width, sample, *, align, size=16.0,
+def rel_text(name, left, width, sample, *, align, size=REL_SIZE,
              color=TEXT_SECONDARY, top, bindings=None, mono=False, font=None):
     extra = {"font": font} if font else {}
     return text(left, top, width, REL_ROW, sample, name=name, size=size,

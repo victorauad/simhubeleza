@@ -240,16 +240,18 @@ def spread(region, widths, *, inset_x, inset_y, min_gap, name="Spread"):
 
 
 def labeled(region, label, sample, *, name, size, color=TEXT,
-            bindings=None, label_bindings=None, align=LEFT, slack=0.0):
+            bindings=None, label_bindings=None, align=LEFT, slack=0.0,
+            label_size=SIZE_LABEL):
     """Rotulo em caixa alta em cima, valor embaixo, na mesma borda.
 
     `slack` alarga a caixa do valor para a direita: o SimHub nao mede texto,
     e um valor maior que o exemplo nao deve quebrar linha.
     """
-    label_height = SIZE_LABEL + 6.0
+    label_height = label_size + 6.0
     return [
         caption(region.x, region.y, region.width + slack, label,
-                name=f"{name} Label", align=align, bindings=label_bindings),
+                name=f"{name} Label", align=align, size=label_size,
+                height=label_size + 6.0, bindings=label_bindings),
         text(region.x, region.y + label_height, region.width + slack,
              region.height - label_height, sample, name=name, size=size,
              color=color, weight=WEIGHT_VALUE, align=align,

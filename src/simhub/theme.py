@@ -128,6 +128,12 @@ SIZE_UNIT = 11.0              # unidade colada ao valor
 SIZE_LABEL = 10.5             # rotulo em caixa alta
 SIZE_LABEL_SM = 10.0
 
+#: Barra inferior (rodape esquerdo, OTS, setores, New Lap Info). O dash fica
+#: reduzido na frente do volante, e a barra e lida de relance: rotulo e valor
+#: maiores que no resto do dash, limitados pela largura das fileiras.
+SIZE_LABEL_FOOTER = 12.5
+SIZE_VALUE_FOOTER = 30.0
+
 WEIGHT_VALUE = "Bold"
 WEIGHT_UNIT = "Normal"
 WEIGHT_LABEL = "Normal"

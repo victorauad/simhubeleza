@@ -25,7 +25,7 @@ fechar, no armazenamento compartilhado.
 from simhub.bindings import js, ncalc
 from simhub.model import Layer, RectangleItem
 from simhub.theme import (
-    FASTER, MONO_ADVANCE, PLAYER, SIZE_LABEL, SLOWER, TEXT, TEXT_SECONDARY,
+    FASTER, MONO_ADVANCE, PLAYER, SIZE_LABEL_FOOTER, SLOWER, TEXT, TEXT_SECONDARY,
     TEXT_TERTIARY, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
@@ -164,7 +164,7 @@ def previous_lap(r):
 def widths():
     """Larguras das colunas: rotulo, tempo, delta -- setores e voltas."""
     glyph = VALUE_SIZE * MONO_ADVANCE
-    label = SIZE_LABEL * MONO_ADVANCE
+    label = SIZE_LABEL_FOOTER * MONO_ADVANCE
     return ((3 * label, 6 * glyph, 6 * glyph),
             (4 * label, 8 * glyph, 6 * glyph))
 
@@ -196,7 +196,8 @@ def value(region, row, sample, name, *, bindings, color=TEXT, skip):
 def label(region, row, content, name, *, color=TEXT_SECONDARY, bindings=None,
           skip=SKIP_SLOW):
     item = caption(region.x, row.y, region.width, content, name=name,
-                   color=color, height=row.height, bindings=bindings)
+                   size=SIZE_LABEL_FOOTER, color=color, height=row.height,
+                   bindings=bindings)
     item["RenderingSkip"] = skip
     return item
 
