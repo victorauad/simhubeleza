@@ -315,14 +315,14 @@ def chips(side):
 
 # --- Delta -------------------------------------------------------------------
 
-#: Formula do delta: sinal explicito e uma casa, para o numero nao "pular"
+#: Formula do delta: sinal explicito e duas casas, para o numero nao "pular"
 #: de largura enquanto o piloto anda.
 #: O mesmo que a barra fina le; `GameData.NewData.*` e a copia legada.
 DELTA_PROP = "[DataCorePlugin.GameData.DeltaToSessionBest]"
 DELTA_TEXT = (
-    f"if({DELTA_PROP} < 0, '-' + format(abs({DELTA_PROP}), '0.0'), \r\n\r\n"
-    f"if({DELTA_PROP} >= 100, '+' + format({DELTA_PROP}, '0.0'), "
-    f"'+' + format({DELTA_PROP}, '0.0')))"
+    f"if({DELTA_PROP} < 0, '-' + format(abs({DELTA_PROP}), '0.00'), \r\n\r\n"
+    f"if({DELTA_PROP} >= 100, '+' + format({DELTA_PROP}, '0.00'), "
+    f"'+' + format({DELTA_PROP}, '0.00')))"
 )
 
 PROGRESS_PROP = "PersistantTrackerPlugin.SessionBestLiveDeltaProgressSeconds"

@@ -77,7 +77,7 @@ SAMPLE = {
     "Progress-Green": {"Value": -0.03},
     "Delta-Red": {"Value": 0.0},
     "Delta-Green": {"Value": -0.24},
-    "Delta Value": {"Text": "-0.2", "TextColor": "#FF34D27B"},
+    "Delta Value": {"Text": "-0.24", "TextColor": "#FF34D27B"},
     "GearText": {"DesignerText": "4"},
     "Speed": {"Text": "218"},
     "Rpm": {"Text": "985"},

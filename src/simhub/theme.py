@@ -28,7 +28,7 @@ TRACK = SURFACE_RAISED
 
 #: Valores: cinza claro, legivel com o dash reduzido mas sem peso -- o unico
 #: branco verdadeiro e a marcha (GEAR), para ela ser a primeira leitura.
-TEXT = "#FFC9CED4"
+TEXT = "#FFB0B6BD"
 GEAR = "#FFFFFFFF"
 TEXT_SECONDARY = "#FF9AA0A8"  # rotulos
 TEXT_TERTIARY = "#FF6B717A"   # unidades, dado desligado

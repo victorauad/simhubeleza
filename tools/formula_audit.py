@@ -42,7 +42,7 @@ INTENDED = [
     ("/OTS/OTS Gauge.GaugeColor", "OTS: recarga antes de READY"),
     ("/Gas & Brake/Brake Value.Text", "pedal: dois digitos inteiros, sem decimal"),
     ("/Gas & Brake/Gas Value.Text", "pedal: dois digitos inteiros, sem decimal"),
-    ("/Delta/Delta Value.Text", "delta em s.f (uma casa)"),
+    ("/Delta/Delta Value.Text", "delta em s.ff (duas casas)"),
     ("/Relative/Driver Ahead Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
     ("/Relative/Driver Behind Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
     ("/Relative/Me/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
