@@ -133,6 +133,16 @@ def rel_text(name, left, width, sample, *, align, size=REL_SIZE,
                 char_width=14.0 if mono else None, bindings=bindings, **extra)
 
 
+#: Volta do relative em segundos: o plugin entrega "mm:ss.fff" em texto (ou
+#: um TimeSpan, no caso do jogador); zero ou vazio vira N/A no `fmtLap`.
+LAP_PARSE = (
+    "var lapsec = function (v) { if (typeof v === 'string') { "
+    "var m = /^(\\d+):(\\d+(?:\\.\\d+)?)$/.exec(v.trim()); "
+    "if (m) { var s = Number(m[1]) * 60 + Number(m[2]); "
+    "return s > 0 ? s : null; } } return sec(v); };\r\n"
+)
+
+
 def rel_row(prefix, name, top, *, repetitions=None, offset=None,
             visible_from=None, me=False):
     """Uma linha do relative -- repetida para frente e para tras do jogador.
@@ -143,6 +153,12 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
     def at(node, target, **extra):
         return original(f"{prefix}/{node}", target, **extra)
 
+    side = "Ahead" if "Ahead" in prefix else "Behind"
+    lap_prop = ("$prop('LastLapTime')" if me else
+                f"$prop('IRacingExtraProperties.RLB_{side}_LastLapTime_0'"
+                "+repeatindex())")
+    gap_prop = (f"$prop('IRacingExtraProperties.RLB_{side}_RelativeGapToPlayer_0'"
+                "+repeatindex())")
     accent = PLAYER if me else TEXT_SECONDARY
     items = [
         RectangleItem(
@@ -168,9 +184,11 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
                  "Victor Auad" if me else "Lorem ipsum", align=LEFT, top=top,
                  color=PLAYER if me else TEXT, font=FONT,
                  bindings={"Text": at("Name", "Text")} if not me else None),
-        rel_text("Last Lap", LAP_X, LAP_W, "0:00.00", align=RIGHT, top=top,
+        rel_text("Last Lap", LAP_X, LAP_W, "0:00.0", align=RIGHT, top=top,
                  mono=True,
-                 bindings={"Text": at("Last Lap", "Text"),
+                 bindings={"Text": js(states.FORMAT + LAP_PARSE
+                                      + f"return fmtLap(lapsec({lap_prop}));",
+                                      jsext=3, format_string=""),
                            "Visible": at("Last Lap", "Visible")}),
     ]
 
@@ -183,7 +201,10 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         items.append(
             rel_text("Gap", GAP_X, GAP_W, "22.2", align=RIGHT, top=top,
                      mono=True, color=TEXT,
-                     bindings={"Text": at("Gap", "Text"),
+                     bindings={"Text": js(
+                         f"var g = parseFloat({gap_prop});\r\n"
+                         "if (g == null || isNaN(g)) return 'N/A';\r\n"
+                         "return g.toFixed(1);", jsext=3, format_string=""),
                                "Visible": at("Gap", "Visible")}))
         items.append(RectangleItem(
             name="Gap Color",
@@ -368,14 +389,14 @@ def practice():
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
         "\tif (d == null || isNaN(d)) { return null; }\r\n"
-        "\tif (Math.abs(d) < 0.005) { return '0.00'; }\r\n"
-        "\tif (d < 0) { return '-' + format(Math.abs(d), '0.00'); }\r\n"
-        "\telse { return '+' + format(d, '0.00'); }"
+        "\tif (Math.abs(d) < 0.05) { return '0.0'; }\r\n"
+        "\tif (d < 0) { return '-' + format(Math.abs(d), '0.0'); }\r\n"
+        "\telse { return '+' + format(d, '0.0'); }"
     )
     delta_color_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
-        f"\tif (Math.abs(d) < 0.005) {{ return '{TEXT_TERTIARY}'; }}\r\n"
+        f"\tif (Math.abs(d) < 0.05) {{ return '{TEXT_TERTIARY}'; }}\r\n"
         f"\tif (d < 0) {{ return '{FASTER}'; }} else {{ return '{SLOWER}'; }}"
     )
     return Layer(
@@ -389,17 +410,23 @@ def practice():
                  color=TEXT_SECONDARY,
                  bindings={"Text": at("LapNumber", "Text"),
                            "TextColor": at("LapNumber", "TextColor")}),
-            text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.00",
+            text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.0",
                  name="LapTime", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
-                 bindings={"Text": at("LapTime", "Text"),
+                 bindings={"Text": js(
+                     states.FORMAT
+                     + "if (($prop('GameRawData.Telemetry.Lap') - repeatindex())"
+                     " < 1) return '';\r\n"
+                     "return fmtLap(sec($prop('PersistantTrackerPlugin."
+                     "PreviousLap_0' + (repeatindex() - 1))));",
+                     jsext=3, format_string=""),
                            "TextColor": at("LapTime", "TextColor")}),
             text(track_x, rows.y, LOG_TRACK_W, LOG_ROW, "32",
                  name="LapTrackTemp", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT_TERTIARY,
                  bindings={"Text": js(TRACK_LOG_JS, jsext=3,
                                       format_string="00")}),
-            text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.12",
+            text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.1",
                  name="LapDelta", size=SIZE_LABEL + 3.0, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
                  bindings={"Text": lap_js(delta_body),

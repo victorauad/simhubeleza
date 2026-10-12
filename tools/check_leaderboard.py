@@ -169,7 +169,7 @@ function grid() {
   P['GameRawData.SessionData.SessionInfo.Sessions01.SessionType'] = pick(['Race', 'Practice']);
 }
 
-const counts = { compared: 0, colors: 0, noLap: 0, rounding: 0, session: 0 };
+const counts = { compared: 0, colors: 0, noLap: 0, rounding: 0, session: 0, format: 0 };
 const fails = [];
 function compare(key, extraInfo) {
   let a, b;
@@ -188,6 +188,14 @@ function compare(key, extraInfo) {
       (P['GameRawData.CurrentSessionInfo.SessionType'] ||
        P['GameRawData.SessionData.SessionInfo.Sessions01.SessionType']) === 'Race') {
     counts.session++; return;
+  }
+  // Tempos e deltas em uma casa (m:ss.f / s.f): o mesmo numero, arredondado.
+  if (typeof a === 'string' && typeof b === 'string' && /(Gap|LastLapDifference)\.Text$/.test(key)) {
+    const val = (t) => { const m = /^([+-]?)(?:(\d+):)?(\d+(?:\.\d+)?)$/.exec(t.trim());
+      return m ? (m[1] === '-' ? -1 : 1) * ((m[2] ? +m[2] * 60 : 0) + +m[3]) : null; };
+    const va = val(a), vb = val(b);
+    if (va !== null && vb !== null && !/\.\d\d/.test(b) && Math.abs(va - vb) <= 0.0501 &&
+        a.trim()[0] === b.trim()[0]) { counts.format++; return; }
   }
   if (key === 'Leaderboard/Gap.Text' && typeof a === 'string' && a.startsWith('+')) {
     const idx = R - 1;

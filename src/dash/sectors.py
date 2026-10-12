@@ -11,7 +11,8 @@ A referencia e a melhor volta da sessao, a mesma do delta da barra de cima:
 o SimHub so guarda tempos por setor dela (nao ha setores da melhor volta de
 todos os tempos).
 
-Regras de exibicao: valor nulo ou zero vira "N/A"; tempo de setor acima de
+Regras de exibicao: valor nulo ou zero vira "N/A" (delta zerado e "0.0");
+tempos em m:ss.f (setor abaixo de um minuto em ss.f), deltas em s.f; setor acima de
 99 s vira "OFF" (o delta continua); delta acima de 99 s tambem vira "OFF".
 
 O delta do setor atual e o delta ao vivo da volta menos o valor que ele
@@ -63,20 +64,18 @@ PRELUDE = (
     "return (s == null || s == 0 || isNaN(s)) ? null : s; };\r\n"
     f"var n = $prop('{GAME}SectorsCount') || 3;\r\n"
     f"var i = $prop('{GAME}CurrentSectorIndex') || 0;\r\n"
+    + states.FMT_TIME +
     "var fmtSector = function (s) { if (s == null) return 'N/A'; "
-    f"if (s > {LIMIT}) return 'OFF'; return s.toFixed(3); }};\r\n"
-    "var fmtDelta = function (d, p) { if (d == null) return 'N/A'; "
-    "var r = Number(d.toFixed(p)); if (r == 0) return 'N/A'; "
+    f"if (s > {LIMIT}) return 'OFF'; return fmtTime(s); }};\r\n"
+    "var fmtDelta = function (d) { if (d == null) return 'N/A'; "
+    "var r = Number(d.toFixed(1)); if (r == 0) return '0.0'; "
     f"if (Math.abs(r) > {LIMIT}) return 'OFF'; "
-    "return (r > 0 ? '+' : '') + r.toFixed(p); };\r\n"
-    "var colorDelta = function (d, p) { if (d == null) return 'na'; "
-    "var r = Number(d.toFixed(p)); "
+    "return (r > 0 ? '+' : '') + r.toFixed(1); };\r\n"
+    "var colorDelta = function (d) { if (d == null) return 'na'; "
+    "var r = Number(d.toFixed(1)); "
     f"if (r == 0 || Math.abs(r) > {LIMIT}) return 'na'; "
     "return r < 0 ? 'fast' : 'slow'; };\r\n"
-    "var fmtLap = function (s) { if (s == null) return 'N/A'; "
-    "var ms = Math.round(s * 1000); var m = Math.floor(ms / 60000); "
-    "var r = (ms - m * 60000) / 1000; "
-    "return m + ':' + (r < 10 ? '0' : '') + r.toFixed(3); };\r\n"
+    "var fmtLap = function (s) { return s == null ? 'N/A' : fmtTime(s); };\r\n"
     # Setor completo `r` posicoes atras do atual: da volta atual se ainda
     # cabe nela, senao da volta passada.
     "var back = function (r) { var k = i - r; "
@@ -99,10 +98,10 @@ def script(body):
     return js(PRELUDE + body)
 
 
-def color_script(body, places):
+def color_script(body):
     """Formula de cor de um delta: `body` define `d`."""
     return script(
-        f"{body}\r\nvar c = colorDelta(d, {places});\r\n"
+        f"{body}\r\nvar c = colorDelta(d);\r\n"
         f"return c == 'fast' ? '{FASTER}' : c == 'slow' ? '{SLOWER}' "
         f": '{TEXT_TERTIARY}';"
     )
@@ -233,17 +232,17 @@ def layer(region):
         label(s_label.inset(left=4.0), rows[0], "S2", "Sector Now Label",
               color=PLAYER, bindings={"Text": ncalc(
                   f"'S' + format([{GAME}CurrentSectorIndex], '0')")}),
-        value(s_time, rows[0], "22.752", "Sector Now Time",
+        value(s_time, rows[0], "22.8", "Sector Now Time",
               bindings={"Text": script(LIVE_TIME_BODY)}, skip=SKIP_LIVE),
-        value(s_delta, rows[0], "+1.72", "Sector Now Delta", color=SLOWER,
-              bindings={"Text": script(LIVE_DELTA_BODY + "\r\nreturn fmtDelta(d, 2);"),
-                        "TextColor": color_script(LIVE_DELTA_BODY, 2)},
+        value(s_delta, rows[0], "+1.7", "Sector Now Delta", color=SLOWER,
+              bindings={"Text": script(LIVE_DELTA_BODY + "\r\nreturn fmtDelta(d);"),
+                        "TextColor": color_script(LIVE_DELTA_BODY)},
               skip=SKIP_LIVE),
     ]
 
     # Os dois setores anteriores: apagados quando sao da volta passada.
-    samples = (("S1", "13.795", "+1.41", SLOWER),
-               ("S3", "11.181", "-0.64", FASTER))
+    samples = (("S1", "13.8", "+1.4", SLOWER),
+               ("S3", "11.2", "-0.6", FASTER))
     for r, row, (num, time_sample, delta_sample, delta_color) in zip(
             (1, 2), rows[1:], samples):
         body = f"var d = sectorDelta(back({r}));"
@@ -260,29 +259,29 @@ def layer(region):
                   skip=SKIP_SLOW),
             value(s_delta, row, delta_sample, f"Sector {r} Delta",
                   color=delta_color,
-                  bindings={"Text": script(body + "\r\nreturn fmtDelta(d, 2);"),
-                            "TextColor": color_script(body, 2)},
+                  bindings={"Text": script(body + "\r\nreturn fmtDelta(d);"),
+                            "TextColor": color_script(body)},
                   skip=SKIP_SLOW),
         ]
 
     # Voltas.
     items += [
         label(l_label, rows[0], "Last", "Last Label"),
-        value(l_time, rows[0], "1:22.821", "Last Lap",
+        value(l_time, rows[0], "1:22.8", "Last Lap",
               bindings={"Text": script(
                   f"return fmtLap(sec($prop('{GAME}LastLapTime')));")},
               skip=SKIP_SLOW),
-        value(l_delta, rows[0], "+0.722", "Last Delta", color=SLOWER,
-              bindings={"Text": script(LAST_DELTA_BODY + "\r\nreturn fmtDelta(d, 3);"),
-                        "TextColor": color_script(LAST_DELTA_BODY, 3)},
+        value(l_delta, rows[0], "+0.7", "Last Delta", color=SLOWER,
+              bindings={"Text": script(LAST_DELTA_BODY + "\r\nreturn fmtDelta(d);"),
+                        "TextColor": color_script(LAST_DELTA_BODY)},
               skip=SKIP_SLOW),
         label(l_label, rows[1], "Best", "Best Label"),
-        value(l_time, rows[1], "1:22.099", "Best Lap",
+        value(l_time, rows[1], "1:22.1", "Best Lap",
               bindings={"Text": script(
                   f"return fmtLap(sec($prop('{GAME}BestLapTime')));")},
               skip=SKIP_SLOW),
         label(l_label, rows[2], "Opt", "Opt Label"),
-        value(l_time, rows[2], "1:21.910", "Optimal Lap",
+        value(l_time, rows[2], "1:21.9", "Optimal Lap",
               bindings={"Text": script(OPT_BODY)}, skip=SKIP_SLOW),
     ]
 

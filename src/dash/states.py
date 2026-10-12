@@ -315,26 +315,34 @@ def content(item):
     return item
 
 
+#: Tempo em texto, a regra do dash todo: volta em m:ss.f, abaixo de um minuto
+#: (setor) em ss.f. Arredonda no decimo antes de quebrar em minutos, para
+#: 59.96 virar "1:00.0" e nao "0:60.0".
+FMT_TIME = (
+    "var fmtTime = function (s) { var t = Math.round(s * 10); "
+    "var m = Math.floor(t / 600); var r = t - m * 600; "
+    "var ss = Math.floor(r / 10) + '.' + (r % 10); "
+    "return m > 0 ? m + ':' + (r < 100 ? '0' : '') + ss : ss; };\r\n"
+)
+
 #: Formatos comuns, com as mesmas regras dos setores: nulo ou zero vira N/A,
-#: acima de 99 s vira OFF.
+#: acima de 99 s vira OFF. Delta sempre com um decimal (s.f).
 FORMAT = (
     "var sec = function (v) { if (v == null || v === '') return null; "
     "var s = typeof v === 'number' ? v : timespantoseconds(v); "
     "return (s == null || s <= 0 || isNaN(s)) ? null : s; };\r\n"
-    "var fmtLap = function (s) { if (s == null) return 'N/A'; "
-    "var ms = Math.round(s * 1000); var m = Math.floor(ms / 60000); "
-    "var r = (ms - m * 60000) / 1000; "
-    "return m + ':' + (r < 10 ? '0' : '') + r.toFixed(3); };\r\n"
-    "var fmtDelta = function (d, p) { if (d == null) return 'N/A'; "
-    "var r = Number(d.toFixed(p)); if (r == 0) return (0).toFixed(p); "
+    + FMT_TIME +
+    "var fmtLap = function (s) { return s == null ? 'N/A' : fmtTime(s); };\r\n"
+    "var fmtDelta = function (d) { if (d == null) return 'N/A'; "
+    "var r = Number(d.toFixed(1)); if (r == 0) return '0.0'; "
     "if (Math.abs(r) > 99) return 'OFF'; "
-    "return (r > 0 ? '+' : '') + r.toFixed(p); };\r\n"
+    "return (r > 0 ? '+' : '') + r.toFixed(1); };\r\n"
 )
 
 
-def color_delta(expression, places, faster, slower, neutral):
-    """JS: cor de um delta (negativo = mais rapido)."""
+def color_delta(expression, faster, slower, neutral):
+    """JS: cor de um delta (negativo = mais rapido), no decimo que aparece."""
     return (f"var d = {expression}; if (d == null) return '{neutral}'; "
-            f"var r = Number(d.toFixed({places})); "
+            "var r = Number(d.toFixed(1)); "
             f"if (r == 0 || Math.abs(r) > 99) return '{neutral}'; "
             f"return r < 0 ? '{faster}' : '{slower}';")

@@ -58,12 +58,12 @@ AHEAD = (-3, -2, -1)
 BEHIND = (1, 2, 3)
 
 SAMPLES = {
-    -3: ("P2", "Tomoki Nojiri", "1:22.388", "-0.072", "1:22.705"),
-    -2: ("P3", "Ritomo Miyata", "1:22.517", "+0.057", "1:22.861"),
-    -1: ("P4", "Nirei Fukuzumi", "1:22.940", "+0.480", "1:22.912"),
-    1: ("P6", "Sho Tsuboi", "1:22.611", "+0.151", "1:22.990"),
-    2: ("P7", "Ren Sato", "1:23.274", "+0.814", "1:23.102"),
-    3: ("P8", "Kakunoshin Ohta", "1:22.990", "+0.530", "1:23.311"),
+    -3: ("P2", "Tomoki Nojiri", "1:22.4", "-0.1", "1:22.7"),
+    -2: ("P3", "Ritomo Miyata", "1:22.5", "+0.1", "1:22.9"),
+    -1: ("P4", "Nirei Fukuzumi", "1:22.9", "+0.5", "1:22.9"),
+    1: ("P6", "Sho Tsuboi", "1:22.6", "+0.2", "1:23.0"),
+    2: ("P7", "Ren Sato", "1:23.3", "+0.8", "1:23.1"),
+    3: ("P8", "Kakunoshin Ohta", "1:23.0", "+0.5", "1:23.3"),
 }
 
 
@@ -214,25 +214,25 @@ def layer(region):
     items = [
         *rules,
         caption(last.x, band.y, last.width, "Last", name="Review Last Label"),
-        text(last.x, value_y, lap_w + 4.0, value_h, "1:22.821",
+        text(last.x, value_y, lap_w + 4.0, value_h, "1:22.8",
              name="Review Last", size=P1_SIZE, weight=WEIGHT_VALUE,
              bindings={"Text": js(states.FORMAT + "return fmtLap(sec("
                                   f"$prop('{GAME}LastLapTime')));")}),
         text(last.x + lap_w + 8.0, value_y, mono(6, DELTA_SIZE) + 4.0,
-             value_h, "+0.722", name="Review Last Delta", size=DELTA_SIZE,
+             value_h, "+0.7", name="Review Last Delta", size=DELTA_SIZE,
              color=SLOWER, weight=WEIGHT_VALUE,
              bindings={
                  "Text": js(states.FORMAT
                             + f"var l = sec($prop('{GAME}LastLapTime'));"
                             f" var b = {MY_BEST};\r\n"
                             "return fmtDelta(l == null || b == null ? null "
-                            ": l - b, 3);"),
+                            ": l - b);"),
                  "TextColor": js(states.FORMAT
                                  + f"var l = sec($prop('{GAME}LastLapTime'));"
                                  f" var b = {MY_BEST};\r\n"
                                  + states.color_delta(
                                      "l == null || b == null ? null : l - b",
-                                     3, FASTER, SLOWER, TEXT_TERTIARY)),
+                                     FASTER, SLOWER, TEXT_TERTIARY)),
              }),
         caption(avg.x, band.y, avg.width, "Stint avg",
                 name="Review Avg Label"),
@@ -286,9 +286,9 @@ def layer(region):
                  name=f"Review {k:+d} Delta", size=ROW_SIZE, align=RIGHT,
                  color=FASTER if delta_s.startswith("-") else SLOWER,
                  bindings={
-                     "Text": row_formula(k, f"return fmtDelta({delta_expr}, 3);"),
+                     "Text": row_formula(k, f"return fmtDelta({delta_expr});"),
                      "TextColor": row_formula(k, states.color_delta(
-                         delta_expr, 3, FASTER, SLOWER, TEXT_TERTIARY)),
+                         delta_expr, FASTER, SLOWER, TEXT_TERTIARY)),
                  }),
         ]
     shown = Layer(
@@ -301,7 +301,7 @@ def layer(region):
     )
 
     live = [
-        text(avg.x, value_y, avg.width + gap / 2, value_h, "1:22.940",
+        text(avg.x, value_y, avg.width + gap / 2, value_h, "1:22.9",
              name="Review Stint Avg", size=P1_SIZE, weight=WEIGHT_VALUE,
              color=TEXT, bindings={"Text": collector_mine(
                  "return fmtLap(me.n ? me.sum / me.n : null);")}),

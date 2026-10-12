@@ -303,7 +303,7 @@ lapDone(83.0);
 set({ [T_ + 'Lap']: P[T_ + 'Lap'] + 1 }); T += 100;
 const lapsShown = run.myLaps(), avgShown = run.myAvg();
 expect('voltas do stint (review)', lapsShown, '4');
-expect('media sem a volta de saida', avgShown, '1:22.500');
+expect('media sem a volta de saida', avgShown, '1:22.5');
 // No SimHub os dois coletores rodam em todo quadro: aqui tambem.
 set({ [T_ + 'OnPitRoad']: true }); T += 6000; run.myLaps(); run.myAvg();
 set({ [T_ + 'OnPitRoad']: false }); T += 100; run.myLaps(); run.myAvg();
@@ -319,7 +319,7 @@ fresh(); base({ 'IRacingExtraProperties.iRacing_Player_PositionInClass': 2,
 run.aheadAvg();
 for (const t of [82.4, 99.0, 82.2]) { set({ [B + '00_LastLapTime']: t }); T += 2100; run.aheadAvg(); }
 set({ [T_ + 'Lap']: 6 }); T += 2100;
-expect('media do piloto a frente (sem 99.0)', run.aheadAvg(), '1:22.300');
+expect('media do piloto a frente (sem 99.0)', run.aheadAvg(), '1:22.3');
 
 // 10. Consumo por volta no lap log, com root compartilhado entre as linhas
 // e com um root por linha (o SimHub nao documenta qual dos dois).

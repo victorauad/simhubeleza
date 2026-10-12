@@ -175,6 +175,18 @@ CENTIS = ("var cs = function (v) { var s = timespantoseconds(v); "
           "return Math.floor((s % 3600) * 100 + 1e-6); };\r\n")
 
 
+#: Gap do SimHub reescrito no padrao do dash: segundos em s.f, acima de um
+#: minuto em m:ss.f; o que nao e numero (voltas de diferenca, "1L") passa
+#: como veio.
+GAP = (states.FMT_TIME
+       + "var gap = function (v) { if (v == null) return v; "
+       "var t = String(v).trim(); "
+       "var m = /^([+-]?)(?:(\\d+):)?(\\d+(?:\\.\\d+)?)$/.exec(t); "
+       "if (!m) return t; "
+       "var s = (m[2] ? Number(m[2]) * 60 : 0) + Number(m[3]); "
+       "return m[1] + fmtTime(s); };\r\n")
+
+
 def formulas(overflow):
     """Bindings de cada coluna da linha: {(controle, alvo): binding}."""
     o = overflow
@@ -207,7 +219,7 @@ def formulas(overflow):
             + LAST_DIFF
             + "if (diff < 0) { var a = Math.abs(diff); "
             "return '-' + format(a, a >= 100 ? '0' : '0.0') + ' '; }\r\n"
-            "return '+' + format(diff, diff >= 100 ? '0' : '0.00') + ' ';",
+            "return '+' + format(diff, diff >= 100 ? '0' : '0.0') + ' ';",
             jsext=3, format_string="mm\\:ss\\.ff"),
         ("LastLapDifference", "Visible"): row_js(
             o, "if ($prop('GameRawData.Telemetry.Lap') <= 2) return 0;\r\n"
@@ -220,10 +232,10 @@ def formulas(overflow):
             + LAST_DIFF
             + f"return diff < 0 ? '{FASTER}' : '{SLOWER}';", jsext=3),
         ("Gap", "Text"): row_js(
-            o, "return d('PositionInClass') != 0 ? d('GapToLeaderString') : '';"
+            o, GAP + "return d('PositionInClass') != 0 ? gap(d('GapToLeaderString')) : '';"
             if o else
-            f"if ({states.SESSION_TYPE} == 'Race') "
-            "return d('PositionInClass') != 0 ? d('GapToLeaderString') : '';\r\n"
+            GAP + f"if ({states.SESSION_TYPE} == 'Race') "
+            "return d('PositionInClass') != 0 ? gap(d('GapToLeaderString')) : '';\r\n"
             "if (repeatindex() == 1) return ' 0.0';\r\n"
             + CENTIS
             + "var mine = cs(d('BestLapTime'));\r\n"
@@ -299,7 +311,7 @@ def last_lap_difference(top=None):
     duas primeiras voltas, quando ainda nao ha tempo valido para comparar.
     """
     return row_text(
-        "LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE, "-0.00", align=2,
+        "LastLapDifference", DIFF_X, DIFF_WIDTH, ROW_TEXT_SIZE, "-0.0", align=2,
         color=FASTER,
         UseMonospacedText=True,
         char_width=14.0,

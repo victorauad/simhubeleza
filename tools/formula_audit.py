@@ -42,6 +42,13 @@ INTENDED = [
     ("/OTS/OTS Gauge.GaugeColor", "OTS: recarga antes de READY"),
     ("/Gas & Brake/Brake Value.Text", "pedal: dois digitos inteiros, sem decimal"),
     ("/Gas & Brake/Gas Value.Text", "pedal: dois digitos inteiros, sem decimal"),
+    ("/Delta/Delta Value.Text", "delta em s.f (uma casa)"),
+    ("/Relative/Driver Ahead Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Driver Behind Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Me/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Driver Ahead Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
+    ("/Relative/Driver Behind Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
+    ("/Practice/Lap Data/LapTime.Text", "volta em m:ss.f, N/A sem volta"),
 ]
 
 
