@@ -5,15 +5,15 @@
 <style>
   :root {
     color-scheme: dark;
-    --ground: #08090b;
-    --surface: #131519;
-    --raised: #1b1f25;
-    --hairline: #232830;
-    --text: #e9ecf0;
-    --muted: #868d98;
-    --dim: #5b626c;
-    --accent: #64d2ff;
-    --warn: #ff9f0a;
+    --ground: #0c0e11;
+    --surface: #15181c;
+    --raised: #1c2025;
+    --hairline: #24292f;
+    --text: #eceef0;
+    --muted: #9aa0a8;
+    --dim: #6b717a;
+    --accent: #f4a73a;
+    --warn: #ff8a1f;
     --sans: "Funnel Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   }
@@ -102,7 +102,7 @@
   .tab[aria-selected="true"] {
     background: var(--accent);
     border-color: var(--accent);
-    color: #04202c;
+    color: #1a1206;
   }
   .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -182,18 +182,18 @@
     <p class="eyebrow">Super Formula SF23 · iRacing · 1280×517</p>
     <h1>Painel SF23</h1>
     <p class="lede">
-      Render estático do dashboard gerado por código. É o HTML lendo o mesmo
+      Render estático do dashboard gerado por código, já na paleta Grafite do
+      canvas de refino. É o HTML lendo o mesmo
       <code style="font-family:var(--mono);font-size:13px">.djson</code> que o SimHub lê — posição, cor e tipografia são as reais.
-      As fórmulas não são avaliadas, então os números são os valores de projeto.
-      Das 103 fórmulas do dashboard original, 101 seguem intactas: as duas que
-      saíram escondiam o número do pedal em repouso, e o Figma pede que o
-      <code style="font-family:var(--mono);font-size:13px">00</code> fique visível.
+      As fórmulas não são avaliadas: pedais, delta, marcha, velocidade e RPM
+      mostram uma telemetria de exemplo (freio 37, acelerador 72, marcha 4).
+      Todas as 103 fórmulas do dashboard original seguem no código.
     </p>
     <dl class="specs">
-      <div><dt>Controles</dt><dd>224</dd></div>
-      <div><dt>Bindings</dt><dd>189</dd></div>
-      <div><dt>Fórmulas preservadas</dt><dd>101 / 103</dd></div>
-      <div><dt>Módulos</dt><dd>10</dd></div>
+      <div><dt>Controles</dt><dd>464</dd></div>
+      <div><dt>Bindings</dt><dd>321</dd></div>
+      <div><dt>Fórmulas preservadas</dt><dd>103 / 103</dd></div>
+      <div><dt>Módulos</dt><dd>16</dd></div>
       <div><dt>Esforço manual no editor</dt><dd>0</dd></div>
     </dl>
   </header>
@@ -216,11 +216,23 @@
     <button class="tab" role="tab" id="tab-flag-overlap" aria-controls="view-flag-overlap" aria-selected="false">Overlap</button>
     <button class="tab" role="tab" id="tab-flag-dirt" aria-controls="view-flag-dirt" aria-selected="false">Dirt</button>
     <button class="tab" role="tab" id="tab-flag-incident" aria-controls="view-flag-incident" aria-selected="false">Incident</button>
+    <button class="tab" role="tab" id="tab-flag-checkered" aria-controls="view-flag-checkered" aria-selected="false">Checker</button>
+    <button class="tab" role="tab" id="tab-flag-red" aria-controls="view-flag-red" aria-selected="false">Red</button>
+    <button class="tab" role="tab" id="tab-flag-repair" aria-controls="view-flag-repair" aria-selected="false">Repair</button>
+    <button class="tab" role="tab" id="tab-flag-slow-car" aria-controls="view-flag-slow-car" aria-selected="false">Slow car</button>
+    <button class="tab" role="tab" id="tab-flag-speeding" aria-controls="view-flag-speeding" aria-selected="false">Speeding</button>
   </nav>
 
   <nav role="tablist" aria-label="Estados do RPMLed">
     <button class="tab" role="tab" id="tab-shift-light" aria-controls="view-shift-light" aria-selected="false">Shift light</button>
     <button class="tab" role="tab" id="tab-pit-limiter" aria-controls="view-pit-limiter" aria-selected="false">Pit limiter</button>
+  </nav>
+
+  <nav role="tablist" aria-label="Estados temporarios dos componentes laterais">
+    <button class="tab" role="tab" id="tab-state-damage" aria-controls="view-state-damage" aria-selected="false">Damage</button>
+    <button class="tab" role="tab" id="tab-state-review" aria-controls="view-state-review" aria-selected="false">Lap Review</button>
+    <button class="tab" role="tab" id="tab-state-weather" aria-controls="view-state-weather" aria-selected="false">Weather</button>
+    <button class="tab" role="tab" id="tab-state-new-lap" aria-controls="view-state-new-lap" aria-selected="false">New Lap Info</button>
   </nav>
 
   <div class="stage">
@@ -239,8 +251,17 @@
       <iframe id="view-flag-overlap" src="flag-overlap.html" title="Input overlap" hidden></iframe>
       <iframe id="view-flag-dirt" src="flag-dirt.html" title="Pneu sujo" hidden></iframe>
       <iframe id="view-flag-incident" src="flag-incident.html" title="Incidente" hidden></iframe>
+      <iframe id="view-flag-checkered" src="flag-checkered.html" title="Bandeira quadriculada" hidden></iframe>
+      <iframe id="view-flag-red" src="flag-red.html" title="Bandeira vermelha" hidden></iframe>
+      <iframe id="view-flag-repair" src="flag-repair.html" title="Reparo obrigatorio" hidden></iframe>
+      <iframe id="view-flag-slow-car" src="flag-slow-car.html" title="Carro lento a frente" hidden></iframe>
+      <iframe id="view-flag-speeding" src="flag-speeding.html" title="Excesso no pit" hidden></iframe>
       <iframe id="view-shift-light" src="shift-light.html" title="Shift light" hidden></iframe>
       <iframe id="view-pit-limiter" src="pit-limiter.html" title="Pit limiter" hidden></iframe>
+      <iframe id="view-state-damage" src="state-damage.html" title="Estado Damage" hidden></iframe>
+      <iframe id="view-state-review" src="state-review.html" title="Estado Lap Review" hidden></iframe>
+      <iframe id="view-state-weather" src="state-weather.html" title="Estado Weather" hidden></iframe>
+      <iframe id="view-state-new-lap" src="state-new-lap.html" title="Estado New Lap Info" hidden></iframe>
     </div>
   </div>
 
@@ -252,14 +273,17 @@
   <section class="caveats">
     <h2>O que o preview não prova</h2>
     <ul>
-      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto gravados no arquivo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
-      <li><strong>As cores em fórmula do OTS usam nomes CSS</strong> (<code>limegreen</code>, <code>gold</code>, <code>orange</code>), não hex — são os que o SimHub resolve com certeza em fórmula de cor. Ficam a menos de 1% da paleta.</li>
-      <li><strong>O widget de telemetria</strong> aparece só como moldura: ele é outro <code>.djson</code>, com gráfico desenhado em tempo de execução.</li>
+      <li><strong>Nenhuma fórmula roda aqui.</strong> Os valores são os de projeto, mais a telemetria de exemplo. Se um binding estiver quebrado, só aparece no SimHub com telemetria viva.</li>
+      <li><strong>Brilhos que dependem de estado não aparecem:</strong> o disco da marcha fica sempre âmbar (repouso) e o brake bias não pisca — o roxo/verde/vermelho da marcha e o flash verde/vermelho do bias são fórmulas. O do bias usa o objeto <code>root</code> do JavaScript do SimHub, ainda não testado lá.</li>
+      <li><strong>O halo borrado dos LEDs</strong> (<code>BlurRadius</code>) fica cortado pela borda do widget aqui; no SimHub pode sair diferente.</li>
+      <li><strong>Os pentes</strong> são uma imagem PNG por cima de um gauge. A redução da página pode criar moiré nos dentes; no tamanho real eles ficam regulares.</li>
+      <li><strong>O gráfico de telemetria</strong> aparece só com a grade e as marcas 0/25/50/75/100: as linhas são desenhadas em tempo de execução.</li>
       <li>O modo é escolhido pelo SimHub em sessão; aqui cada aba força um deles, com as repetições de linha que aquele caso produz.</li>
-      <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; nenhuma mostra o estado "todos desligados", que é o padrão em corrida.</li>
+      <li><strong>Os dez avisos são excludentes em pista</strong> (só um aparece por vez). Aqui cada aba força um isolado; as abas de modo mostram o chip vazio, só com o contorno.</li>
       <li><strong>Quatro dos dez avisos dependem de propriedades não confirmadas</strong> — <code>Flag_Black</code>, <code>Flag_Blue</code> e <code>CarLeftRight</code> (esta com os valores do spotter ainda por conferir). <code>Dirt</code> e <code>Incident</code> existem como chip mas não têm fórmula que os acione.</li>
-      <li><strong>Temperatura da pista e combustível por volta no lap log</strong> usam propriedades ainda não confirmadas no SimHub real — ver <code>ESTADO.md</code>.</li>
-      <li><strong>Os pedais aparecem cheios</strong> nas duas pontas porque o preview não avalia fórmula: em repouso os segmentos ficam apagados e só o <code>00</code> permanece.</li>
+      <li><strong>Os estados temporários</strong> (Damage, Lap Review, Weather, New Lap Info) dependem de gatilhos com tempo; aqui cada aba força um deles. A lógica dos gatilhos é testada à parte (<code>tools/check_states.py</code>), mas nunca rodou no SimHub.</li>
+      <li><strong>O combustível por volta no lap log</strong> é medido pelo próprio dash (tanque no início menos no fim de cada volta) e aqui aparece com uma volta de exemplo por linha. A primeira volta depois de abrir o dash e as voltas com reabastecimento mostram N/A — no exemplo, a 09. <strong>A temperatura da pista</strong> também é gravada pelo dash a cada volta (a última leitura da volta); as voltas de antes de abrir o dash mostram N/A.</li>
+      <li><strong>Nenhum campo fica em branco por falta de dado:</strong> dado ausente mostra N/A (inclusive os que o dash original escondia — last lap do relative antes da primeira volta, gap antes do tracking, diferença de volta no leaderboard nas duas primeiras voltas). Vazio só onde a linha não existe: volta que ainda não aconteceu, posição vaga, carro que não há.</li>
     </ul>
   </section>
 </div>
@@ -267,13 +291,13 @@
 <script>
   const NOTES = {
     relative: ["Relative",
-      "Os dois carros à frente, você, e os dois atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador some do cinza para o laranja. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
+      "Os três carros à frente, você, e os três atrás. É o modo de corrida: a barra fina na borda direita é a cor do gap que o plugin devolve, e a linha do jogador fica em âmbar. Quando um carro entra no box, um véu escuro apaga a linha sem tirá-la do lugar."],
     standings: ["Standings · tabela cheia",
       "As 13 linhas cabem exatas no corpo da coluna — a altura de linha sai da divisão, não de um número escolhido. Aparece quando o grid é pequeno ou o jogador está entre os 11 primeiros."],
     window: ["Standings · janela",
       "Quando o jogador está longe do topo: o trio da frente, e daí a janela de 7 linhas centrada nele. Mesma grade de colunas da tabela cheia, então a leitura não se desloca quando o SimHub troca de um para o outro."],
     practice: ["Lap log",
-      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido."],
+      "Modo de treino offline: ocupa a seção inteira que o relative usa nos outros modos, com cinco colunas por volta — número, tempo, temperatura da pista, delta para a melhor volta e combustível consumido. O consumo é medido pelo próprio dash a cada volta, porque o SimHub não guarda esse histórico."],
     "flag-green": ["Bandeira verde",
       "Largada ou relargada. Ligada a <code>[Flag_Green]</code>, propriedade que o dashboard original ja usava."],
     "flag-yellow": ["Bandeira amarela",
@@ -290,14 +314,32 @@
       "Spotter: <code>CarLeftRight</code> nos valores 3, 4 e 6. Mesma pendencia de validacao."],
     "flag-overlap": ["Input overlap",
       "Acelerador e freio pressionados juntos: <code>if([Throttle]&gt;5 &amp;&amp; [Brake]&gt;5,1,0)</code>. Nao depende de propriedade nova."],
-    "flag-dirt": ["Pneu sujo",
-      "Desenhado no Figma, declarado no codigo e <strong>desligado</strong>: nao ha propriedade clara para carro sujo."],
+    "flag-dirt": ["Pista suja",
+      "Bandeira de detritos do iRacing: <code>SessionFlagsDetails.Isdebris</code>. Estava desligado por falta de propriedade; o relatorio de propriedades do SimHub trouxe o bit da bandeira."],
     "flag-incident": ["Incidente",
-      "Mesma situacao do Dirt: existe como chip, sem formula que o acione."],
+      "Acende por 3 s quando o contador de incidentes do jogador sobe: <code>isincreasing(3000, [PlayerCarMyIncidentCount])</code>, funcao nativa do NCalc."],
+    "flag-checkered": ["Bandeira quadriculada",
+      "Fim da sessao: <code>[Flag_Checkered]</code>, no mesmo formato das outras bandeiras do SimHub."],
+    "flag-red": ["Bandeira vermelha",
+      "Sessao interrompida: <code>SessionFlagsDetails.Isred</code>. Fica por cima de todos os outros avisos."],
+    "flag-repair": ["Reparo obrigatorio",
+      "A meatball do iRacing (preta com disco laranja): <code>SessionFlagsDetails.Isrepair</code>. Tem que ir ao box."],
+    "flag-slow-car": ["Carro lento a frente",
+      "Carro lento ou parado no caminho: <code>iRacing_SlowCarAhead</code> ou <code>iRacing_StoppedCarAhead</code> (iRacing Extra Properties). Acima da amarela, abaixo da vermelha."],
+    "flag-speeding": ["Excesso no pit",
+      "Acima do limite no pit lane: <code>DahlDesign.PitSpeeding</code>. No ciano do limitador, para ler como coisa de box."],
     "shift-light": ["Shift light",
-      "Os quatro quadrados do RPM viram magenta na faixa de troca. O vermelho aponta para fora nos dois lados, seguindo o Figma."],
+      "Os quatro LEDs do RPM viram roxo na faixa de troca — o mesmo roxo que acende o brilho da marcha. Fora dela, a rampa é azul e clareia para fora nos dois lados."],
     "pit-limiter": ["Pit limiter",
-      "Limitador ligado: os quadrados piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."]
+      "Limitador ligado: os LEDs piscam em ciano. Vive no widget (<code>RPMLed.djson</code>), nao na arvore principal &mdash; por isso o preview precisa liga-lo nos dois arquivos."],
+    "state-damage": ["Damage",
+      "No lugar do gráfico por 3 s quando você aperta o botão Damage Report, ou por 5 s a cada dano novo (tempo de reparo que cresce, ou aviso de motor novo). O iRacing não entrega dano por peça, então o carro é pintado pela gravidade geral — verde, amarelo, laranja, vermelho, pelo tempo total de reparo — e a tampa do motor fica vermelha com aviso de motor. Cockpit em branco (não danifica) e rodas neutras (sem dado). Ao lado: reparo obrigatório e opcional, e os avisos de água, óleo e combustível. O botão está ligado ao B15 do volante, deduzido da configuração do iRacing — falta conferir apertando."],
+    "state-review": ["Lap Review",
+      "Por 5 s a cada volta fechada fora do pit, só em corrida. Em cima e maior: sua última volta com o delta para a sua melhor, a média do stint e as voltas do stint. Embaixo: os 3 à frente e os 3 atrás na classe (o filete âmbar é você), com a última volta deles, o delta dela para a <em>sua</em> melhor volta e a média do stint deles. As médias são acumuladas volta a volta pelo próprio dash — começam a contar quando ele é aberto."],
+    "state-weather": ["Weather",
+      "Por 10 s ao sair do pit ou ao entrar no carro numa corrida (o “Race” que leva ao grid). O iRacing não publica a previsão no SDK, então é a condição atual com tendência: a seta no canto de cada campo compara com ~10 min atrás. O vento traz HEAD/TAIL/CROSS e a seta relativos ao carro. Aqui o preview mostra um ícone e três setas de exemplo."],
+    "state-new-lap": ["New Lap Info",
+      "Por 5 s a cada volta nova, no lugar dos setores. FPS do próprio iRacing, ping, qualidade da conexão e temperaturas de CPU e GPU — branco quando está tudo bem, âmbar para atenção, vermelho para problema. CPU e GPU vêm do MSI Afterburner e mostram N/A quando ele está fechado."]
   };
 
   const tabs = [...document.querySelectorAll('.tab')];

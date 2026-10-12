@@ -229,26 +229,25 @@ def items():
     """Itens de nivel superior da tela."""
     return [
         Layer(
+            # Fundo grafite, cheio e sem cantos: os blocos e que tem chanfro.
             RectangleItem(
                 name='OverallBG',
-                BackgroundColor='#FF212121',
+                BackgroundColor='#FF0C0E11',
                 BorderStyle={
-                    "RadiusTopLeft": 40,
-                    "RadiusTopRight": 40,
-                    "RadiusBottomLeft": 10,
-                    "RadiusBottomRight": 10,
+                    "RadiusTopLeft": 0,
+                    "RadiusTopRight": 0,
+                    "RadiusBottomLeft": 0,
+                    "RadiusBottomRight": 0,
                 },
-                Height=515.0,
+                Height=517.0,
                 Left=0.0,
-                Opacity=85.0,
-                Top=-1.0,
+                Top=0.0,
                 Width=1280.0,
             ),
             right(),
             center(),
             left(),
             name='Mid Component2',
-            Opacity=95.0,
         ),
         top_bar(),
     ]

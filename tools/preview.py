@@ -23,7 +23,7 @@ FONT_FILES = {
     "Inter": [("Inter-Regular.ttf", "100 600"), ("Inter-Bold.ttf", "601 900")],
     "Funnel Sans": [("FunnelSans-VariableFont_wght.ttf", "100 900")],
     "Audiowide": [("Audiowide-Regular.ttf", "100 900")],
-    "Arame Mono": [("ArameMono.ttf", "100 900")],
+    "Arame Mono": [("ArameMono.ttf", "100 600"), ("ArameMono-Bold.ttf", "601 900")],
     "0Arame Mono": [("ArameMono.ttf", "100 900")],
 }
 
@@ -152,15 +152,21 @@ def render_gauge(node):
     parts.append("overflow:hidden")
 
     horizontal = (node.get("GaugeOrientation", 0) == 0)
-    # GaugeAlignment 1 preenche a partir da ponta oposta.
-    reverse = node.get("GaugeAlignment", 0) == 1
+    # GaugeAlignment: 0 ancora no inicio (esquerda/baixo), 1 no centro, 2 na
+    # ponta oposta. O dash original usa 2 no freio e na metade vermelha do
+    # delta, que enchem do centro do painel para a esquerda.
+    alignment = node.get("GaugeAlignment", 0)
     fill = [f"background:{css_color(node.get('GaugeColor'))}", "position:absolute"]
     if horizontal:
-        fill += [f"width:{fraction * 100:.2f}%", "height:100%", "top:0",
-                 "right:0" if reverse else "left:0"]
+        fill += [f"width:{fraction * 100:.2f}%", "height:100%", "top:0"]
+        fill += (["right:0"] if alignment == 2 else
+                 [f"left:{(1 - fraction) * 50:.2f}%"] if alignment == 1 else
+                 ["left:0"])
     else:
-        fill += [f"height:{fraction * 100:.2f}%", "width:100%", "left:0",
-                 "top:0" if reverse else "bottom:0"]
+        fill += [f"height:{fraction * 100:.2f}%", "width:100%", "left:0"]
+        fill += (["top:0"] if alignment == 2 else
+                 [f"bottom:{(1 - fraction) * 50:.2f}%"] if alignment == 1 else
+                 ["bottom:0"])
     return (f'<div style="{";".join(p for p in parts if p)}">'
             f'<div style="{";".join(fill)}"></div></div>')
 
@@ -223,7 +229,12 @@ def render_node(node, folder, images, depth=0):
 
     kind = short_type(node)
     if kind in ("Layer", "GroupItem"):
-        style = ["position:absolute", "left:0", "top:0", "width:100%", "height:100%"]
+        # O GroupItem posiciona os filhos relativos ao proprio Left/Top; a
+        # Layer nao tem posicao.
+        left = node.get("Left") or 0 if kind == "GroupItem" else 0
+        top = node.get("Top") or 0 if kind == "GroupItem" else 0
+        style = ["position:absolute", f"left:{left}px", f"top:{top}px",
+                 "width:100%", "height:100%"]
         opacity = node.get("Opacity")
         if opacity is not None and opacity != 100:
             style.append(f"opacity:{opacity / 100:.3f}")
@@ -300,7 +311,9 @@ def font_faces():
     return "\n".join(faces)
 
 
-PAGE = """<meta charset="utf-8">
+PAGE = """<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <style>
 {faces}
@@ -339,7 +352,9 @@ addEventListener('resize', fit); fit();
 
 #: Versao sem moldura: so o painel, do tamanho exato do dashboard. Serve para
 #: embutir o preview em outra pagina, que entao cuida do enquadramento.
-BARE_PAGE = """<meta charset="utf-8">
+BARE_PAGE = """<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <style>
 {faces}

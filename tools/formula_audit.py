@@ -18,6 +18,62 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from dash.fallback import unwrap  # noqa: E402
+from dash.fixes import fix  # noqa: E402
+from dash.fixes import AUDIT as PROPERTY_FIXES  # noqa: E402
+
+#: Regioes reescritas de proposito, com o comportamento garantido por um teste
+#: de equivalencia contra as formulas originais (que ele guarda). Uma formula
+#: original que some daqui so e aceita se todas as ocorrencias dela estiverem
+#: na regiao e o teste passar.
+REWRITTEN = [
+    ("/Standings/Leaderboard", "tools/check_leaderboard.py"),
+]
+
+#: Defeitos do original corrigidos de proposito: (controle do original,
+#: motivo). A formula original desses controles e aceita como trocada.
+INTENDED = [
+    ("Left Component2/LP Label3.Text", "FPL last 0 antes da 1a volta -> N/A"),
+    ("Left Component2/Data/LP Value5.Text", "SoF 0 (sem SoF) -> N/A"),
+    ("Right Component/Data/LP Value8.Text", "chuva sempre 'NA' -> numero"),
+    ("/OTS/Status.Text", "OTS: recarga antes de READY"),
+    ("/OTS/OTS Gauge.GaugeColor", "OTS: recarga antes de READY"),
+    ("/Gas & Brake/Brake Value.Text", "pedal: dois digitos inteiros, sem decimal"),
+    ("/Gas & Brake/Gas Value.Text", "pedal: dois digitos inteiros, sem decimal"),
+    ("/Delta/Delta Value.Text", "delta em s.ff (duas casas)"),
+    ("/Relative/Driver Ahead Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Driver Behind Repeat/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Me/Last Lap.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Relative/Driver Ahead Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
+    ("/Relative/Driver Behind Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
+    ("/Practice/Lap Data/LapTime.Text", "volta em m:ss.f, N/A sem volta"),
+]
+
+
+def equivalence_passes(script):
+    """Roda o teste de equivalencia em silencio; True se passou."""
+    import subprocess
+    result = subprocess.run([sys.executable, str(ROOT / script), "1000"],
+                            capture_output=True, text=True)
+    return result.returncode == 0
+
+
+def fixed(expression):
+    """Forma de comparacao do original com as propriedades corrigidas.
+
+    Sem nenhum espaco fora de literais: o `normalize` apara espaco so nas
+    pontas de cada trecho entre literais, entao trocar uma propriedade muda
+    onde os trechos comecam e deixa sobra de espaco diferente dos dois lados.
+    """
+    return squeeze(fix(expression, PROPERTY_FIXES))
+
+
+def squeeze(expression):
+    parts = re.split(r"('[^']*'|\"[^\"]*\")", expression)
+    return "".join(p if i % 2 else re.sub(r"\s+", "", p)
+                   for i, p in enumerate(parts))
 
 
 def normalize(expression):
@@ -36,7 +92,8 @@ def normalize(expression):
 #: Nomes de cor CSS e hex ARGB que aparecem em formulas de cor.
 COLOR_LITERAL = re.compile(
     r"'(#[0-9A-Fa-f]{6,8}|transparent|darkcyan|lawngreen|darkgray|dimgray|red|"
-    r"orange|gold|limegreen|yellow|white|black|green|cyan|magenta)'")
+    r"orange|gold|limegreen|yellow|white|black|green|cyan|magenta|springgreen|"
+    r"tomato|darkorange|gray)'", re.IGNORECASE)
 
 
 def colorless(expression):
@@ -59,6 +116,8 @@ def collect(folder):
             for target, binding in (node.get("Bindings") or {}).items():
                 expression = (binding.get("Formula") or {}).get("Expression")
                 if expression:
+                    # O envelope de N/A (dash/fallback.py) nao e logica nova.
+                    expression = unwrap(expression)
                     found[normalize(expression)].append(f"{path.stem}{here}.{target}")
             for child in (node.get("Childrens") or []):
                 walk(child, here)
@@ -90,8 +149,45 @@ def main(argv=None):
     new_by_shape = {colorless(e): e for e in new}
     restyled = [e for e in removed if colorless(e) in new_by_shape]
     removed = [e for e in removed if colorless(e) not in new_by_shape]
-    added = [e for e in added
-             if colorless(e) not in {colorless(x) for x in restyled}]
+    # E as que so trocaram uma propriedade inexistente pela certa.
+    new_squeezed = {squeeze(colorless(e)) for e in new}
+    corrected = [e for e in removed if colorless(fixed(e)) in new_squeezed]
+    removed = [e for e in removed if e not in corrected]
+    rewritten = {}
+    for region, script in REWRITTEN:
+        inside = [e for e in removed
+                  if all(region in where for where in old[e])]
+        if inside and equivalence_passes(script):
+            rewritten[script] = inside
+            removed = [e for e in removed if e not in inside]
+    intended = {e: reason for e in removed for where, reason in INTENDED
+                 if old[e][0].endswith(where)}
+    removed = [e for e in removed if e not in intended]
+    restyled_shapes = {colorless(x) for x in restyled}
+    corrected_shapes = {colorless(fixed(x)) for x in corrected}
+    added = [e for e in added if colorless(e) not in restyled_shapes
+             and squeeze(colorless(e)) not in corrected_shapes]
+
+    if corrected:
+        print(f"CORRIGIDAS ({len(corrected)}) -- propriedade trocada de proposito "
+              "pela certa (dash/fixes.py):")
+        for expression in corrected:
+            print(f"  {', '.join(old[expression][:3])}")
+        print()
+
+    for script, expressions in rewritten.items():
+        print(f"REESCRITAS ({len(expressions)}) -- equivalencia verificada "
+              f"por {script}:")
+        for expression in expressions:
+            print(f"  {', '.join(old[expression][:2])}")
+        print()
+
+    if intended:
+        print(f"CONSERTADAS ({len(intended)}) -- defeito do original trocado "
+              "de proposito:")
+        for expression, reason in intended.items():
+            print(f"  {old[expression][0]}: {reason}")
+        print()
 
     if restyled:
         print(f"RESTILIZADAS ({len(restyled)}) -- mesma logica, cores novas:")

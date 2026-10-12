@@ -8,6 +8,7 @@ em disco.
 import hashlib
 import json
 import shutil
+import struct
 import zipfile
 from pathlib import Path
 
@@ -47,6 +48,23 @@ def verify_images(images):
         if digest != entry["MD5"]:
             problems.append(f"{source.name}: MD5 {entry['MD5']} != {digest}")
     return problems
+
+
+def image_entry(name, extension=".png"):
+    """Entrada de Images[] para um PNG de assets/images, com as medidas, o
+    tamanho e o MD5 calculados do proprio arquivo."""
+    raw = (ASSETS / "images" / (name + extension)).read_bytes()
+    width, height = struct.unpack(">II", raw[16:24])
+    return {
+        "Name": name,
+        "Extension": extension,
+        "Modified": False,
+        "Optimized": True,
+        "Width": width,
+        "Height": height,
+        "Length": len(raw),
+        "MD5": hashlib.md5(raw).hexdigest(),
+    }
 
 
 def write_resources(path, images):

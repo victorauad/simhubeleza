@@ -16,6 +16,7 @@ python3 tools/preview_modes.py      # um preview por modo -> build/modes/
 python3 tools/dump_formulas.py      # re-extrai as fórmulas do original
 python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
+python3 tools/check_leaderboard.py  # leaderboard novo == original (Node)
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
@@ -26,15 +27,27 @@ Preview como imagem (Chromium já instalado no ambiente):
   "file:///home/user/simhubeleza/build/preview.html"
 ```
 
-Página de revisão publicada (16 abas: 4 modos da coluna direita, 10 avisos da
-barra superior e 2 estados do RPMLed, montadas sobre `build/modes/`):
-<https://claude.ai/code/artifact/326ce39f-af40-4fbb-87bb-0a9c5068dc36>
+Página de revisão publicada (25 abas: 4 modos da coluna direita, 15 avisos da
+barra superior, 2 estados do RPMLed e 4 estados temporários, montadas sobre
+`build/modes/`):
+<https://claude.ai/artifact/7E9k77H5zjfvoEHtYdjqC9>
 O fonte dela é `tools/preview_page.html`; para republicar, rodar
 `preview_modes.py`, copiar a página como `build/modes/index.html` e publicar
-com os 16 arquivos ao lado.
+com os 20 arquivos ao lado.
 
 Ao tirar screenshot, usar altura de janela **700**: a 540 o rodapé sai cortado
 pela janela, não pelo layout — o que já custou um diagnóstico errado.
+
+## Próximos passos
+
+- **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
+  (fases 0–6, começar por medir).
+- **Estados temporários dos componentes laterais** (Damage, Lap Review,
+  Weather, New Lap Info) — **implementados**, falta validar no SimHub e
+  receber do usuário o nome do botão Damage Report e as propriedades de
+  temperatura (constantes em `src/dash/states.py`). Status, riscos e o que
+  conferir em `docs/estados.md`. Testes: `python3 tools/check_states.py`
+  (depois do `build.py`).
 
 ## Concluído
 
@@ -68,6 +81,64 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   `grid.BOTTOM_BAR_HEIGHT` compartilhado (esquerda, OTS e direita), com o
   `STATS_HEIGHT` da esquerda absorvendo a folga.
 
+- **Barras do delta invertidas**: no cartao do delta, a barra grossa passou a
+  mostrar o delta progress (`SessionBestLiveDeltaProgressSeconds`, escala de
+  0.1 s) e o trilho fino o delta absoluto (`DeltaToSessionBest`, escala de
+  0.5 s). Constantes renomeadas para `WIDE_BAR_*` / `THIN_BAR_*`.
+
+- **Pedais em pente**: freio e acelerador viraram um gauge continuo entre um
+  trilho e uma mascara PNG (100 dentes, 1 por ponto percentual). O dente de
+  cada dezena e pintado na mascara, mais baixo e escuro: nunca acende, so
+  demarca. `top_bar.IMAGES` e `ots.IMAGES` entram no Images[] pelo
+  `build.py`, com MD5 e tamanho lidos do arquivo. O preview le
+  `GaugeAlignment` 2 como "enche da direita" (antes tratava 1).
+
+- **Refino do canvas portado** (paleta Grafite, canvas
+  <https://claude.ai/artifact/AbajxTu5mfqDBn6uAcL1J4>):
+  - `theme.py`: paleta grafite, Arame Mono nos numeros/rotulos e na marcha,
+    Funnel Sans nos nomes, chanfro `(3, 14, 3, 14)` nos tiles (`rounded()`
+    aceita tupla de cantos). Na Arame Mono o `text()` ignora `mono`/CharWidth:
+    a fonte ja e monoespacada (0.6 em por glifo), e `value_unit` usa isso
+    para encostar a unidade no numero.
+  - Barra superior em pixels (sem a escala do Figma): painel de 108.92, duas
+    linhas de 38.16 da borda ao cartao do delta, cartao centrado como tile.
+    O delta progress tambem virou pente (`DeltaComb`). Margem de 6 em todas
+    as bordas, inclusive embaixo (`BODY_BOTTOM = 511`).
+  - RPM em rampa azul (`RPM_RAMP`), cada LED para fora mais claro e com halo
+    borrado maior.
+  - Marcha num disco, com brilho por estado (`center.GLOW_COLOR`): roxo no
+    limite de RPM > verde com OTS ativo > vermelho carregando > ciano no
+    limiter > ambar.
+  - OTS: verde pronto, roxo piscando ativo (`BlinkEnabled`), vermelho
+    carregando; barra em pente (`OtsComb`).
+  - Brake bias brilha verde ao subir e vermelho ao descer por 1.6 s: formula
+    JS que guarda o ultimo valor em `root` (`left.bias_flash`). **Nao testado
+    no SimHub** -- se `root` nao persistir entre avaliacoes, o numero so fica
+    ambar.
+  - Coluna esquerda/direita sem fundo de coluna: cada bloco e um tile, com
+    filetes entre campos. Linha do jogador em ambar.
+  - Mascaras: `python3 tools/make_combs.py` (substitui `make_pedal_comb.py`)
+    -- mudou a medida de uma barra, rode de novo.
+
+- **Barra de balanço sub/sobre-esterço** (`src/dash/balance.py`): rodapé da
+  coluna central, sob a marcha. O iRacing
+  não entrega slip angle, então a fórmula JS estima o ângulo de cada eixo pelo
+  modelo de bicicleta (`VelocityX/Y`, `YawRate`, `SteeringWheelAngle`) e mostra
+  |alfa_d| - |alfa_t|, suavizado: sub (ciano) para a esquerda, sobre
+  (vermelho) para a direita, fundo de escala 3°. Constantes do SF23
+  (entre-eixos, distribuição de peso, relação de direção) são estimativas --
+  com o carro neutro numa curva longa a barra deve ficar perto do meio; se
+  não ficar, ajustar `STEERING_RATIO` primeiro.
+
+- **Setores** (`src/dash/sectors.py`): rodapé da direita. Setor atual em
+  cima (destacado, tempo e delta vivos), os dois anteriores embaixo (apagados
+  quando são da volta passada); ao lado LAST (+delta), BEST e OPT. Referência:
+  melhor volta da sessão -- o SimHub só guarda setores dela. Nulo/zero vira
+  N/A; setor ou delta acima de 99 s vira OFF. O delta do setor atual é o
+  `SessionBestLiveDeltaSeconds` menos o valor na entrada do setor (em `root`).
+  As condições da pista foram para a coluna esquerda: TRACK/AIR/RAIN na linha
+  do bias (que perdeu as unidades), HOUR/GRIP no rodapé.
+
 - **`tools/dump_formulas.py`**: extrai as fórmulas longas do original para
   `src/dash/generated/formulas.py`, que os módulos de layout referenciam. É o
   que permite restilizar overflow, relative e lap log sem recopiar trinta
@@ -86,7 +157,13 @@ O que merece olhar primeiro, por ordem de risco:
    Se hex funcionar, trocar pelos valores exatos da paleta.
 2. **Escala do widget de telemetria** — virou `472/607` (largura exata do
    painel) no lugar do `0.74` do original. Conferir se não serrilhou.
-3. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
+3. **Barra de balanço** — conferir os sinais de `VelocityY`/`YawRate`/
+   `SteeringWheelAngle` (se a barra for para o lado errado numa curva, o
+   sinal de algum deles está trocado) e calibrar `STEERING_RATIO`.
+4. **Setores** — `currentlapgetsectortime`/`lastlapgetsectortime`/
+   `sessionbestlapgetsectortime`/`bestsectortime` chamadas de dentro do JS e
+   `SectorsCount` no iRacing (pode ficar em 3 em pista com mais setores).
+5. **Altura de linha do leaderboard** — saiu da divisão (13 linhas no corpo da
    coluna), então ficou menor que a do original. Conferir legibilidade em
    pista, não parado no menu.
 
@@ -106,6 +183,13 @@ O que merece olhar primeiro, por ordem de risco:
 - `None` é valor literal nos construtores; use `OFF` para omitir um campo.
 - Plugins exigidos no SimHub: **DahlDesign** (OTS do SF23),
   **IRacingExtraProperties** (leaderboard de classe), **PersistantTrackerPlugin**.
+- **Nenhum campo de texto fica em branco por falta de dado: mostra N/A**
+  (pedido do usuário). O build aplica isso a todo `Text` (`src/dash/fallback.py`):
+  formula JS que devolve null/undefined/NaN vira N/A, NCalc ganha
+  `isnull(..., 'N/A')`, e os campos que o original escondia sem dado ganham
+  um gêmeo "N/A". `''` devolvido de propósito continua vazio — reservado para
+  linha que não existe (volta futura, posição vaga, carro que não há). Fórmula
+  nova: para "sem dado", devolva `null`, nunca `''`.
 
 ## Pendências conhecidas
 
@@ -120,13 +204,39 @@ O que merece olhar primeiro, por ordem de risco:
   cores dos chips de bandeira; foram implementados com a paleta do tema (o
   vermelho voltou `#ff453a`, idêntico ao `theme.RED`, o que sugere que a
   paleta bate).
-- **Fórmulas removidas de propósito (2)**: `Gas Value.Visible` e
-  `Brake Value.Visible` (`if([Throttle]<1,0,1)`). O Figma mostra "00" em
-  repouso, então o número não some mais. `formula_audit.py` vai continuar
-  listando as duas em REMOVIDAS — é esperado, não regressão.
 - Egress para `figma.com` bloqueado: imagens do board só chegam inline via MCP.
 - Figma: board `oNysXpR5jA2JbFjFzt60Vq`, section `1993:326`
   (wireframe `1993:481`, referências `1993:482` e `1993:486`).
+
+### Propriedades do SimHub — conferidas na máquina do usuário (2026-10-11)
+
+Lista completa em `docs/propriedades.txt` (dumps, `RSC.iRacingExtraProperties.txt`,
+provedor de sistema, joystick e o que os dashboards instalados usam), com o
+resultado de cada consulta à API local (`localhost:8888/api/GetProperty/<nome>`).
+**Isto substitui as conclusões da seção abaixo onde houver conflito:**
+
+- **O tipo de sessão estava com o caminho errado.** `SessionInfo.*` sem prefixo
+  não resolve, e `CurrentSessionNum` não existe no SimHub. Agora há uma
+  expressão só, `states.SESSION_TYPE_JS`
+  (`GameRawData.SessionData.SessionInfo.SessionsNN.SessionType` indexado por
+  `GameRawData.Telemetry.SessionNum`), usada em `states.py`, `right.py` e no
+  `Gap` do `leaderboard.py` (que ainda lia `SessionTypeName`). O
+  `formula_audit.py` lista essas trocas como CORRIGIDAS (`PROPERTY_FIXES`).
+- Strings confirmadas: `'Race'`, `'Practice'`, `'Lone Qualify'` e
+  **`'Offline Testing'`** (treino solo).
+- `Flag_Black`, `Flag_Blue`, `CarLeftRight`, `LapsSinceLastPit`: existem.
+- `PreviousLap_NN_FuelConsumed`: não respondeu fora de sessão (enquanto
+  `_DeltaToSessionBest` respondeu) — tratado como inexistente. A coluna FUEL
+  do lap log agora é medida pelo próprio dash (`right.FUEL_LOG_JS`):
+  `FuelLevel` no início menos no fim de cada volta, sem a volta em andamento
+  quando o dash abre nem volta com reabastecimento; na linha mais recente,
+  sem medida, cai em `Computed.Fuel_LastLapConsumption`. Testado em
+  `check_states.py`; depende do `root` como o resto (conferir em pista).
+- `states.DAMAGE_BUTTON` = `..._B15`, deduzido do `controls.cfg` do iRacing
+  (`SPCCDamageReport`, máscara 0x8000) — conferir apertando o botão.
+  `CPU_TEMP`/`GPU_TEMP` vêm do MSI Afterburner, que precisa estar aberto.
+- Ambiente Windows: Python 3.12 e Node 24 instalados; rodar com `python`
+  (não `python3`).
 
 ### Propriedades do SimHub — validadas com dumps reais do usuário
 
@@ -178,16 +288,15 @@ Resolveu quase tudo que estava pendente.
 
 - `[Flag_Black]` e `[Flag_Blue]` — mesma categoria de `Flag_Green`, sem
   confirmação direta ainda.
-- `PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed` — o plugin existe
-  e está ativo, mas o **nome exato desta propriedade específica** ainda é
-  palpite (segue o padrão de `_DeltaToSessionBest`, mas pode não existir com
-  esse sufixo). Só um dump do próprio `PersistantTrackerPlugin` confirma.
-- Os chips **DIRT** e **INCIDENT** ficam declarados e desligados: não há
-  propriedade clara para eles.
-- **Temperatura da pista por volta**: não há (que se saiba) um histórico
-  indexado por volta dessa variável no `PersistantTrackerPlugin` — o lap log
-  mostra a leitura *atual* só na linha da volta mais recente, em vez de
-  repetir um valor errado nas voltas anteriores.
+- ~~`PersistantTrackerPlugin.PreviousLap_0<n>_FuelConsumed`~~ — não existe;
+  substituído pela medição no próprio dash (ver a seção acima).
+- Os chips **DIRT** e **INCIDENT** agora estão ligados (ver abaixo).
+- **Temperatura da pista por volta**: não há histórico indexado por volta
+  dessa variável no `PersistantTrackerPlugin` — o próprio dash grava
+  (`right.TRACK_LOG_JS`) a última leitura válida de cada volta na virada de
+  `Lap`. Voltas de antes do dash abrir mostram N/A; a linha mais recente, sem
+  gravação, mostra a leitura atual. Testado em `check_states.py`; depende do
+  `root` (conferir em pista).
 - A string exata de uma sessão de treino livre solo (`'Offline Testing'`,
   usada para o modo Practice em `right.py`) segue sem confirmação — os dumps
   recebidos eram sempre de fins de semana com practice/qualy/race, nunca de
@@ -223,6 +332,45 @@ Dois defeitos achados e corrigidos:
 - No widget de telemetria, a caixa do rótulo `100` começava 8px acima do grupo
   e saía 4px por cima do widget; os badges de pedal vazavam 2px por baixo.
   Ambos ajustados em `src/dash/generated/telemetry.py` sem tocar em fórmula.
+
+- **Correções e inclusões a partir de `docs/propriedades-simhub-completo.md`**
+  (relatório das DLLs do SimHub 9.10.6, commit `42ee1a8`):
+  - `src/dash/fixes.py`: trocas deliberadas de propriedade, aplicadas pelo
+    build (`TREE`) e reconhecidas pela auditoria (`AUDIT`, que aparecem como
+    CORRIGIDAS). Prefixo `iRacingExtraProperties.` em minúscula (vinha do
+    original, na linha do jogador do leaderboard/overflow) virou
+    `IRacingExtraProperties.`.
+  - Volta inválida: o traço vermelho no zero do delta lê
+    `iRacing_Player_CurrentLapIsClean` (a condição antiga, última < melhor,
+    não detectava volta inválida).
+  - Número do delta: `GameData.DeltaToSessionBest` (o mesmo da barra fina),
+    em vez da cópia legada `GameData.NewData.*`. Continua nulo sem volta de
+    referência, então mostra N/A.
+  - `Left` no rodapé: `iRacing_LapsRemaining` (estima também por tempo).
+  - OTS: na recarga, o número conta `DahlDesign.SF23.OTCooldownTimer` e o
+    rótulo vira `S COOL`.
+  - Avisos: DIRT = `SessionFlagsDetails.Isdebris`; INCIDENT =
+    `isincreasing(3000, PlayerCarMyIncidentCount)`; novos CHECKER
+    (`Flag_Checkered`), SPEEDING (`DahlDesign.PitSpeeding`), REPAIR
+    (`Isrepair`, meatball), SLOW CAR (`iRacing_SlowCarAhead`/
+    `iRacing_StoppedCarAhead`) e RED FLAG (`Isred`, no topo da pilha).
+  - **A conferir em pista:** `isincreasing` com atraso em ms; os booleanos
+    dos plugins (`isnull(..., false)`) chegando como bool e não texto; a
+    unidade do `OTCooldownTimer` (assumido segundos).
+
+- **Desempenho (itens do relatório de propriedades)** — detalhes em
+  `docs/otimizacao.md`, seção "Feito a partir do relatório": variante
+  `--diag` com a faixa de medição, máquina de estados publicada uma vez
+  (`setsharedvalue`, com recálculo local se a publicação envelhecer), tipo de
+  sessão por `CurrentSessionInfo`, flash do bias em NCalc. **A conferir em
+  pista:** se `setsharedvalue` aceita os valores (o `--diag` mostra JS/s caindo)
+  e se `isincreasing` conta o atraso em ms.
+
+- **Leaderboard reescrito para desempenho** (Fase 3, `docs/otimizacao.md`):
+  mesma saída das fórmulas originais em 3.000 grids simulados
+  (`tools/check_leaderboard.py`, chamado pela auditoria), linhas a ~6 Hz. O
+  overflow passou a usar a paleta da tabela principal e o gap de treino sem
+  volta mostra N/A.
 
 ## O que ainda falta
 

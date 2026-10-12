@@ -16,69 +16,79 @@ Standings e Relative usam a mesma grade de colunas e a mesma altura de linha,
 entao trocar entre os dois nao reposiciona a leitura: a posicao continua na
 esquerda, os tempos na direita.
 
-O rodape e fixo em qualquer modo -- hora, pista, ar, grip e chuva.
+O rodape e fixo em qualquer modo: os setores contra a melhor volta -- que
+dao lugar ao New Lap Info por alguns segundos a cada volta nova.
 """
 
 from simhub.bindings import formatted, js, ncalc
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FONT, GUTTER,
-    PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
-    TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE,
+    BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FASTER, FONT, GUTTER,
+    SLOWER,
+    MONO_ADVANCE, PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
+    TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
-from . import leaderboard
+from . import leaderboard, new_lap_info, sectors, states
 from .generated.formulas import FORMULAS, binding as original
-from .widgets import CENTER, LEFT, RIGHT, caption, text, tile
+from .widgets import CENTER, LEFT, RIGHT, caption, separators, text, tile
 
 PANEL = leaderboard.PANEL
 BODY = leaderboard.BODY
 
+#: Linha do jogador: ambar translucido com filete ambar, como no canvas.
+PLAYER_ROW = leaderboard.ROW_BG_PLAYER
+PLAYER_ROW_EDGE = "#8CF4A73A"
+
 #: Condicoes que decidem qual modo aparece.
 #:
-#: `[SessionTypeName]` nao existe -- nao aparece no dump de
-#: `SampleSessionData.json` nem em `SampleTelemetry.json`, nem foi usada uma
-#: vez sequer no dashboard original. O caminho real, confirmado no dump:
-#: `SessionInfo.CurrentSessionNum` (indice da sessao atual) mais
-#: `SessionInfo.Sessions0<n>.SessionType` (o texto, por sessao do fim de
-#: semana). NCalc nao indexa propriedade dinamicamente, entao a checagem so
-#: existe em JS -- por tabela, os dois formulas que a incorporam tambem.
-#: A string exata de uma sessao de treino livre solo ("Offline Testing")
-#: segue sem confirmacao: nenhum dos dois dumps recebidos era desse tipo de
-#: sessao.
-#:
-#: `[GameRawData.Telemetry.IsOnTrack]` e `[...LapCurrentLapTime]` estao
-#: confirmados no dump de telemetria (existem, tipos batem).
+#: `[SessionTypeName]` nao existe. O tipo da sessao vem de
+#: `states.SESSION_TYPE` (o publicado pela maquina de estados, ou
+#: `GameRawData.CurrentSessionInfo.SessionType` lido na hora). NCalc nao indexa propriedade
+#: dinamicamente, entao a checagem so existe em JS -- por tabela, os dois
+#: formulas que a incorporam tambem. "Offline Testing" e a string do treino
+#: livre solo, conferida na API do SimHub em 2026-10-11.
 #:
 #: Preambulo comum: calcula `inPractice` a partir da sessao atual. Os tres
 #: formulas que precisam da condicao (o proprio modo Practice, e as duas
 #: negacoes em Standings/Relative) prefixam este texto e so trocam o
 #: `return` final.
 _SESSION_TYPE_LOOKUP = (
-    "\tvar n = $prop('SessionInfo.CurrentSessionNum') + 1;\r\n"
-    "\tvar inPractice = $prop('SessionInfo.Sessions0' + n + '.SessionType') "
-    "== 'Offline Testing';\r\n"
+    f"\tvar inPractice = {states.SESSION_TYPE} == 'Offline Testing';\r\n"
 )
 IN_PRACTICE_JS = _SESSION_TYPE_LOOKUP + "\treturn inPractice;"
 
-NOT_ON_TRACK = ("!([DataCorePlugin.GameRunning] && "
-               "[GameRawData.Telemetry.IsOnTrack]='TRUE')")
-NOT_ON_TRACK_JS = ("!($prop('DataCorePlugin.GameRunning') && "
-                   "$prop('GameRawData.Telemetry.IsOnTrack') == 'TRUE')")
-#: Verdadeiro nos primeiros 4s de cada volta -- o instante em que a anterior
-#: acabou de ser completada.
-JUST_COMPLETED_LAP_JS = (
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') >= 0 && "
-    "$prop('GameRawData.Telemetry.LapCurrentLapTime') < 4"
+#: Quando o Standings toma o lugar do Relative -- so tres situacoes:
+#:   - garagem: `IsInGarage`, ou fora do carro (`IsOnTrack` falso) sem
+#:     replay rodando -- em replay o iRacing tambem da `IsOnTrack` falso;
+#:   - esperando no grid: `SessionState` 1 GetInCar ou 2 Warmup (numero ou
+#:     nome do enum);
+#:   - 5 s depois de completar cada volta (`Lap` sobe com o carro na pista
+#:     ou em replay).
+#: Fora disso, Relative. Booleanos normalizados por `states.BASE` (`yes`).
+STANDINGS_TIME = 5.0
+_STANDINGS_CHECK = (
+    states.BASE
+    + f"var replay = yes($prop('{states.TELEMETRY}IsReplayPlaying'));\r\n"
+    f"var garage = yes($prop('{states.TELEMETRY}IsInGarage')) || "
+    "(!onTrack && !replay);\r\n"
+    f"var ss = $prop('{states.TELEMETRY}SessionState');\r\n"
+    "var ssn = num(ss);\r\n"
+    "var grid = ssn === 1 || ssn === 2 || "
+    "(ssn == null && ss != null && /^(GetInCar|Warmup)$/i.test(String(ss)));\r\n"
+    "var sl = root.sl;\r\n"
+    "if (sl == null) { sl = root.sl = { lap: lap, until: 0 }; }\r\n"
+    f"if (lapDone(sl) && (onTrack || replay)) sl.until = now + {int(STANDINGS_TIME * 1000)};\r\n"
+    "sl.lap = lap;\r\n"
+    "var standings = garage || grid || now < sl.until;\r\n"
 )
-_STANDINGS_OR_JUST_LAPPED = f"(({NOT_ON_TRACK_JS}) || ({JUST_COMPLETED_LAP_JS}))"
 SHOW_STANDINGS_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && {_STANDINGS_OR_JUST_LAPPED};"
+    _SESSION_TYPE_LOOKUP + _STANDINGS_CHECK
+    + "return !inPractice && standings;"
 )
 SHOW_RELATIVE_JS = (
-    _SESSION_TYPE_LOOKUP
-    + f"\treturn !inPractice && !{_STANDINGS_OR_JUST_LAPPED};"
+    _SESSION_TYPE_LOOKUP + _STANDINGS_CHECK
+    + "return !inPractice && !standings;"
 )
 
 #: Altura de linha do relative -- sete linhas (3 a frente, eu, 3 atras) no
@@ -86,13 +96,23 @@ SHOW_RELATIVE_JS = (
 REL_ROWS = 7
 REL_ROW = BODY.height / REL_ROWS
 
-#: Colunas, da esquerda para a direita.
-POS_X, POS_W = BODY.x, 40.0
-NUM_X, NUM_W = BODY.x + 44.0, 40.0
-NAME_X = BODY.x + 90.0
+#: Tamanho do texto das linhas. Com o dash reduzido na frente do volante o
+#: relative e lido de relance; 22 px ocupa ~54% da linha (40.7 px) e ainda
+#: deixa o filete do cartao respirando.
+REL_SIZE = 22.0
+
+#: Colunas, da esquerda para a direita. Larguras medidas pelo avanco da
+#: Arame Mono (0.6 em) no REL_SIZE: posicao "18." e numero "128" com 3
+#: caracteres, volta "0:00.00" com 7, gap "122.2" com 5.
+_GLYPH = REL_SIZE * MONO_ADVANCE
+POS_X, POS_W = BODY.x, 3 * _GLYPH + 6.0
+NUM_X, NUM_W = POS_X + POS_W + 4.0, 3 * _GLYPH + 4.0
+NAME_X = NUM_X + NUM_W + 8.0
 BAR_X, BAR_W = BODY.right - 8.0, 8.0
-GAP_X, GAP_W = BODY.right - 76.0, 62.0
-LAP_X, LAP_W = BODY.right - 166.0, 84.0
+GAP_W = 5 * _GLYPH + 2.0
+GAP_X = BAR_X - 4.0 - GAP_W
+LAP_W = 7 * _GLYPH + 4.0
+LAP_X = GAP_X - 8.0 - LAP_W
 NAME_W = LAP_X - NAME_X - 8.0
 
 
@@ -105,11 +125,22 @@ def rel_top(index):
 ME_INDEX = 3
 
 
-def rel_text(name, left, width, sample, *, align, size=SIZE_LABEL + 5.0,
-             color=TEXT_SECONDARY, top, bindings=None, mono=False):
+def rel_text(name, left, width, sample, *, align, size=REL_SIZE,
+             color=TEXT_SECONDARY, top, bindings=None, mono=False, font=None):
+    extra = {"font": font} if font else {}
     return text(left, top, width, REL_ROW, sample, name=name, size=size,
                 color=color, align=align, mono=mono,
-                char_width=14.0 if mono else None, bindings=bindings)
+                char_width=14.0 if mono else None, bindings=bindings, **extra)
+
+
+#: Volta do relative em segundos: o plugin entrega "mm:ss.fff" em texto (ou
+#: um TimeSpan, no caso do jogador); zero ou vazio vira N/A no `fmtLap`.
+LAP_PARSE = (
+    "var lapsec = function (v) { if (typeof v === 'string') { "
+    "var m = /^(\\d+):(\\d+(?:\\.\\d+)?)$/.exec(v.trim()); "
+    "if (m) { var s = Number(m[1]) * 60 + Number(m[2]); "
+    "return s > 0 ? s : null; } } return sec(v); };\r\n"
+)
 
 
 def rel_row(prefix, name, top, *, repetitions=None, offset=None,
@@ -122,17 +153,20 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
     def at(node, target, **extra):
         return original(f"{prefix}/{node}", target, **extra)
 
+    side = "Ahead" if "Ahead" in prefix else "Behind"
+    lap_prop = ("$prop('LastLapTime')" if me else
+                f"$prop('IRacingExtraProperties.RLB_{side}_LastLapTime_0'"
+                "+repeatindex())")
+    gap_prop = (f"$prop('IRacingExtraProperties.RLB_{side}_RelativeGapToPlayer_0'"
+                "+repeatindex())")
     accent = PLAYER if me else TEXT_SECONDARY
     items = [
         RectangleItem(
             name="Row",
             IsRectangleItem=True,
-            BackgroundColor=TILE_RAISED,
-            BorderStyle={
-                "RadiusTopLeft": CORNER_RADIUS, "RadiusTopRight": CORNER_RADIUS,
-                "RadiusBottomLeft": CORNER_RADIUS,
-                "RadiusBottomRight": CORNER_RADIUS,
-            },
+            BackgroundColor=PLAYER_ROW if me else TILE_RAISED,
+            BorderStyle=rounded(PLAYER_ROW_EDGE if me else None, 1,
+                                radius=(2, 8, 2, 8)),
             Left=BODY.x, Top=top + 3.0,
             Width=BODY.width, Height=REL_ROW - 6.0,
             Visible=True, BlinkPhasisInverted=False,
@@ -146,12 +180,15 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
                  color=accent,
                  bindings={"Text": at("Car Number", "Text")}
                  if not me else {"Text": at("Car Number", "Text")}),
-        rel_text("Name", NAME_X, NAME_W, "Lorem ipsum", align=LEFT, top=top,
-                 color=TEXT if me else TEXT_SECONDARY,
+        rel_text("Name", NAME_X, NAME_W,
+                 "Victor Auad" if me else "Lorem ipsum", align=LEFT, top=top,
+                 color=PLAYER if me else TEXT, font=FONT,
                  bindings={"Text": at("Name", "Text")} if not me else None),
-        rel_text("Last Lap", LAP_X, LAP_W, "0:00.00", align=RIGHT, top=top,
+        rel_text("Last Lap", LAP_X, LAP_W, "0:00.0", align=RIGHT, top=top,
                  mono=True,
-                 bindings={"Text": at("Last Lap", "Text"),
+                 bindings={"Text": js(states.FORMAT + LAP_PARSE
+                                      + f"return fmtLap(lapsec({lap_prop}));",
+                                      jsext=3, format_string=""),
                            "Visible": at("Last Lap", "Visible")}),
     ]
 
@@ -164,7 +201,10 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
         items.append(
             rel_text("Gap", GAP_X, GAP_W, "22.2", align=RIGHT, top=top,
                      mono=True, color=TEXT,
-                     bindings={"Text": at("Gap", "Text"),
+                     bindings={"Text": js(
+                         f"var g = parseFloat({gap_prop});\r\n"
+                         "if (g == null || isNaN(g)) return 'N/A';\r\n"
+                         "return g.toFixed(1);", jsext=3, format_string=""),
                                "Visible": at("Gap", "Visible")}))
         items.append(RectangleItem(
             name="Gap Color",
@@ -214,12 +254,13 @@ def rel_row(prefix, name, top, *, repetitions=None, offset=None,
 
 def relative():
     """Os tres carros a frente, o jogador, e os tres atras."""
+    # Repetitions conta as copias extras: 2 = a linha base + 2 = 3 carros.
     return Layer(
         rel_row("Relative/Driver Ahead Repeat", "Driver Ahead Repeat",
-                rel_top(ME_INDEX - 1), repetitions=3, offset=-REL_ROW),
+                rel_top(ME_INDEX - 1), repetitions=2, offset=-REL_ROW),
         rel_row("Relative/Me", "Me", rel_top(ME_INDEX), me=True),
         rel_row("Relative/Driver Behind Repeat", "Driver Behind Repeat",
-                rel_top(ME_INDEX + 1), repetitions=3, offset=REL_ROW),
+                rel_top(ME_INDEX + 1), repetitions=2, offset=REL_ROW),
         name="Relative",
         Group=True, Repetitions=0, Visible=True,
         BlinkPhasisInverted=False, RenderingSkip=0,
@@ -236,21 +277,96 @@ LOG_HEADER_HEIGHT = 26.0
 LOG_ROWS = 9
 LOG_ROW = (BODY.height - LOG_HEADER_HEIGHT) / LOG_ROWS
 
+#: Corpo do log: o dash fica reduzido na frente do volante, entao os numeros
+#: vao ao maior tamanho que a linha (~29 px) comporta, perto do relative.
+LOG_SIZE = 20.0
+LOG_HEADER_SIZE = SIZE_LABEL + 1.5
+
 #: Colunas do log, da esquerda para a direita. Numero e tempo repetem as
 #: formulas extraidas do original (`Practice/Lap Data/...`); temperatura,
-#: delta e combustivel sao novas -- ver ESTADO.md para a pendencia de
-#: validar `PersistantTrackerPlugin.PreviousLap_XX_FuelConsumed`, que nao
-#: aparece em nenhum outro lugar do projeto.
+#: delta e combustivel sao novas. O combustivel e calculado pelo proprio dash
+#: (`FUEL_LOG_JS`): o `PersistantTrackerPlugin` nao tem consumo por volta.
 LOG_NUM_W = 40.0
 LOG_TIME_W = 92.0
 LOG_TRACK_W = 76.0
-LOG_DELTA_W = 90.0
-LOG_FUEL_W = 90.0
+LOG_DELTA_W = 80.0
+LOG_FUEL_W = 80.0
+LOG_VALID_W = 56.0
 
 
 #: Guarda comum: sem volta suficiente ainda, a linha fica em branco -- mesma
 #: condicao usada por `Practice/Lap Data/LapNumber.Text` no original.
 LAP_INVALID = "(($prop('GameRawData.Telemetry.Lap') - repeatindex()) < 1)"
+
+
+#: Consumo por volta, medido pelo proprio dash: o `PersistantTrackerPlugin`
+#: so guarda tempo e delta das voltas anteriores (`PreviousLap_NN_FuelConsumed`
+#: nao existe -- conferido na API do SimHub). A cada virada de `Lap` guarda
+#: (combustivel no inicio da volta - combustivel agora) para a volta que
+#: acabou. Nao conta a volta em andamento quando o dash abre, nem volta com
+#: reabastecimento (o tanque subiu em algum momento) ou que pulou contagem.
+#: A atualizacao e chaveada pelo numero da volta, entao da no mesmo se o
+#: `root` for compartilhado entre as repeticoes da linha ou um por repeticao.
+#: Sem medida, a linha mais recente cai no `Fuel_LastLapConsumption`; sem
+#: nenhuma das duas a volta mostra N/A (null -> envelope do fallback.py).
+#: Vazio so na linha de uma volta que ainda nao existe.
+FUEL_LOG_JS = (
+    "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
+    "var fuel = Number($prop('GameRawData.Telemetry.FuelLevel'));\r\n"
+    "var ok = $prop('GameRawData.Telemetry.FuelLevel') != null && !isNaN(fuel);\r\n"
+    "var h = root.h || (root.h = {});\r\n"
+    "if (root.lap != null && lap < root.lap) { h = root.h = {}; root.start = null; }\r\n"
+    "if (ok) { if (root.prev != null && fuel > root.prev + 0.05) root.dirty = true; "
+    "root.prev = fuel; }\r\n"
+    "if (root.lap != null && lap > root.lap) {\r\n"
+    "\tvar used = root.start == null || !ok ? null : root.start - fuel;\r\n"
+    "\tif (lap == root.lap + 1 && !root.dirty && used > 0) h[root.lap] = used;\r\n"
+    "\troot.start = ok ? fuel : null; root.dirty = false;\r\n"
+    "}\r\n"
+    "root.lap = lap;\r\n"
+    "var n = lap - repeatindex();\r\n"
+    "if (n < 1) return '';\r\n"
+    "var v = h[n];\r\n"
+    "if (v == null && repeatindex() == 1) "
+    "v = Number($prop('DataCorePlugin.Computed.Fuel_LastLapConsumption'));\r\n"
+    "return (v == null || isNaN(v) || v <= 0) ? null : v;"
+)
+
+
+#: Temperatura da pista por volta, gravada pelo proprio dash: o SimHub nao
+#: guarda historico dela (so o `PersistantTrackerPlugin` tem `PreviousLap_*`
+#: para tempo e delta). A ultima leitura valida de cada volta fica para ela
+#: na virada de `Lap`. Voltas de antes do dash abrir mostram N/A; a linha
+#: mais recente, ainda sem gravacao, cai na leitura atual. Chaveada pelo
+#: numero da volta, como o `FUEL_LOG_JS`.
+TRACK_LOG_JS = (
+    "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
+    "var temp = Number($prop('GameRawData.Telemetry.TrackTemp'));\r\n"
+    "var ok = $prop('GameRawData.Telemetry.TrackTemp') != null && !isNaN(temp);\r\n"
+    "var h = root.h || (root.h = {});\r\n"
+    "if (root.lap != null && lap < root.lap) { h = root.h = {}; root.temp = null; }\r\n"
+    "if (root.lap != null && lap > root.lap && root.temp != null) h[root.lap] = root.temp;\r\n"
+    "if (ok) root.temp = temp;\r\n"
+    "root.lap = lap;\r\n"
+    "var n = lap - repeatindex();\r\n"
+    "if (n < 1) return '';\r\n"
+    "var v = h[n];\r\n"
+    "if (v == null && repeatindex() == 1 && ok) v = temp;\r\n"
+    "return (v == null || isNaN(v)) ? null : v;"
+)
+
+
+#: Validade de cada volta do log (gravador em `states.VALIDITY`). Vazio so
+#: na linha de uma volta que ainda nao existe; sem gravacao, N/A.
+VALID_LOG_JS = (
+    states.BASE + states.VALIDITY
+    + "var n = lap - repeatindex();\r\n"
+    "var v = n < 1 ? null : validOf(n);\r\n"
+)
+VALID_TEXT = ("if (n < 1) return '';\r\n"
+              "return v == null ? 'N/A' : (v ? 'OK' : 'INV');")
+VALID_COLOR = (f"if (v == null) return '{TEXT_TERTIARY}';\r\n"
+               f"return v ? '{TEXT_SECONDARY}' : '{SLOWER}';")
 
 
 def lap_js(body, format_string=None):
@@ -277,6 +393,8 @@ def practice():
     track_x = time_x + LOG_TIME_W + GUTTER
     delta_x = track_x + LOG_TRACK_W + GUTTER
     fuel_x = delta_x + LOG_DELTA_W + GUTTER
+    valid_x = fuel_x + LOG_FUEL_W + GUTTER
+    assert valid_x + LOG_VALID_W <= inner.right, "lap log nao cabe"
 
     columns = [
         ("#", LOG_NUM_W, num_x, RIGHT),
@@ -284,62 +402,68 @@ def practice():
         ("Track", LOG_TRACK_W, track_x, RIGHT),
         ("Delta", LOG_DELTA_W, delta_x, RIGHT),
         ("Fuel", LOG_FUEL_W, fuel_x, RIGHT),
+        ("Valid", LOG_VALID_W, valid_x, RIGHT),
     ]
 
+    #: Delta zero (a propria melhor volta) fica sem sinal e em cinza:
+    #: nem ganhou nem perdeu.
     delta_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
-        "\tif (d < 0) { return '-' + format(Math.abs(d), '0.00'); }\r\n"
-        "\telse { return '+' + format(d, '0.00'); }"
+        "\tif (d == null || isNaN(d)) { return null; }\r\n"
+        "\tif (Math.abs(d) < 0.05) { return '0.0'; }\r\n"
+        "\tif (d < 0) { return '-' + format(Math.abs(d), '0.0'); }\r\n"
+        "\telse { return '+' + format(d, '0.0'); }"
     )
     delta_color_body = (
         "\tvar d = $prop('PersistantTrackerPlugin.PreviousLap_0' + "
         "(repeatindex() - 1) + '_DeltaToSessionBest');\r\n"
-        "\tif (d < 0) { return 'SpringGreen'; } else { return 'Tomato'; }"
+        f"\tif (Math.abs(d) < 0.05) {{ return '{TEXT_TERTIARY}'; }}\r\n"
+        f"\tif (d < 0) {{ return '{FASTER}'; }} else {{ return '{SLOWER}'; }}"
     )
-    #: Temperatura de pista: o SimHub nao guarda um historico por volta dessa
-    #: variavel (so o `PersistantTrackerPlugin` tem `PreviousLap_XX_*` para
-    #: tempo e delta) -- entao so a volta mais recente mostra a leitura
-    #: atual; as demais ficam em branco em vez de repetir um valor errado.
-    track_body = (
-        "\tif (repeatindex() == 1) { return $prop('GameRawData.Telemetry.TrackTemp'); }\r\n"
-        "\telse { return ''; }"
-    )
-    #: Combustivel por volta: propriedade nao confirmada (ver ESTADO.md).
-    fuel_body = (
-        "\treturn $prop('PersistantTrackerPlugin.PreviousLap_0' + "
-        "(repeatindex() - 1) + '_FuelConsumed');"
-    )
-
     return Layer(
         tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),
         *(caption(x, header.y + 4.0, w, label, name=f"Log {label} Header",
-                  align=align)
+                  align=align, size=LOG_HEADER_SIZE)
           for label, w, x, align in columns),
         Layer(
             text(num_x, rows.y, LOG_NUM_W, LOG_ROW, "00",
-                 name="LapNumber", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapNumber", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_SECONDARY,
                  bindings={"Text": at("LapNumber", "Text"),
                            "TextColor": at("LapNumber", "TextColor")}),
-            text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.00",
-                 name="LapTime", size=SIZE_LABEL + 3.0, align=RIGHT,
+            text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.0",
+                 name="LapTime", size=LOG_SIZE, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
-                 bindings={"Text": at("LapTime", "Text"),
+                 bindings={"Text": js(
+                     states.FORMAT
+                     + "if (($prop('GameRawData.Telemetry.Lap') - repeatindex())"
+                     " < 1) return '';\r\n"
+                     "return fmtLap(sec($prop('PersistantTrackerPlugin."
+                     "PreviousLap_0' + (repeatindex() - 1))));",
+                     jsext=3, format_string=""),
                            "TextColor": at("LapTime", "TextColor")}),
             text(track_x, rows.y, LOG_TRACK_W, LOG_ROW, "32",
-                 name="LapTrackTemp", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapTrackTemp", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_TERTIARY,
-                 bindings={"Text": lap_js(track_body, "00")}),
-            text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.12",
-                 name="LapDelta", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 bindings={"Text": js(TRACK_LOG_JS, jsext=3,
+                                      format_string="00")}),
+            text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.1",
+                 name="LapDelta", size=LOG_SIZE, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
                  bindings={"Text": lap_js(delta_body),
                            "TextColor": lap_js(delta_color_body)}),
             text(fuel_x, rows.y, LOG_FUEL_W, LOG_ROW, "2.30",
-                 name="LapFuel", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapFuel", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_SECONDARY,
-                 bindings={"Text": lap_js(fuel_body, "0.00")}),
+                 bindings={"Text": js(FUEL_LOG_JS, jsext=3,
+                                           format_string="0.00")}),
+            text(valid_x, rows.y, LOG_VALID_W, LOG_ROW, "OK",
+                 name="LapValid", size=LOG_SIZE, align=RIGHT,
+                 color=TEXT_SECONDARY,
+                 bindings={"Text": js(VALID_LOG_JS + VALID_TEXT, jsext=3),
+                           "TextColor": js(VALID_LOG_JS + VALID_COLOR,
+                                           jsext=3)}),
             name="Lap Data",
             Group=True, Repetitions=LOG_ROWS, PrepareRepetitions=True,
             RepeatTopOffset=LOG_ROW,
@@ -355,52 +479,29 @@ def practice():
 
 
 def footer():
-    """Condicoes da pista. Um unico cartao, igual ao rodape da esquerda e ao
-    OTS -- as tres faixas formam uma barra inferior continua."""
+    """Setores contra a melhor volta. Um unico cartao, igual ao rodape da
+    esquerda e ao OTS -- as tres faixas formam uma barra inferior continua.
+    As condicoes da pista que moravam aqui foram para a coluna esquerda."""
     region = grid.Region(PANEL.x, BODY.bottom + GUTTER, PANEL.width,
                          leaderboard.FOOTER_HEIGHT)
-    inner = region.inset(left=PADDING, right=PADDING)
-    # Hour e o unico campo de cinco glifos da fileira -- ver FOOTER_WEIGHTS
-    # na coluna esquerda, que resolve o mesmo problema do outro lado.
-    cells = inner.columns(5, gutter=GUTTER, weights=(1.4, 1.0, 1.0, 1.0, 1.0))
-    fields = [
-        ("Hour", "Hour", "00:00", "[DataCorePlugin.CurrentDateTime]", "HH:mm", CYAN),
-        ("Track", "Track", "00", "[GameRawData.Telemetry.TrackTemp]", "00", None),
-        ("Air", "Air", "00", "[AirTemperature]", "00", None),
-        ("Grip", "Grip", "00",
-         "[GameRawData.CurrentSessionInfo.SessionTrackRubberState]", None, None),
-        ("Rain", "Rain", "00",
-         "format([GameRawData.Telemetry.Precipitation] * 100, 'NA')", None, None),
-    ]
-    items = [tile(region, name="Footer Tile")]
-    for cell, (name, label, sample, expression, fmt, color) in zip(cells, fields):
-        cell_inner = cell.inset(left=PADDING, right=PADDING)
-        label_height = SIZE_LABEL + 6.0
-        body = grid.Region(cell_inner.x, cell_inner.y + label_height + 2.0,
-                           cell_inner.width, cell_inner.height - label_height - 8.0)
-        items += [
-            caption(cell_inner.x, cell_inner.y + PADDING * 0.75,
-                    cell_inner.width, label, name=f"{name} Label"),
-            text(body.x, body.y, body.width, body.height, sample, name=name,
-                 size=SIZE_VALUE_SM, color=color or TEXT, weight=WEIGHT_VALUE,
-                 align=LEFT,
-                 bindings={"Text": formatted(expression, fmt) if fmt
-                           else ncalc(expression)}),
-        ]
-    return Layer(
-        *items,
-        name="Data",
-        Group=True, Repetitions=0, Visible=True,
-        BlinkPhasisInverted=False, RenderingSkip=0,
-        MinimumRefreshIntervalMS=0.0,
-    )
+    # Nos primeiros segundos de cada volta o New Lap Info toma o lugar dos
+    # setores (states.py decide; os dois leem o mesmo gatilho).
+    timing = sectors.layer(region)
+    timing["Bindings"] = {"Visible": states.sectors_visible()}
+    return [states.gate(timing), new_lap_info.layer(region)]
 
 
 def layer():
     """A coluna direita inteira, com os modos empilhados."""
     return Layer(
-        tile(PANEL, name="Background", color=TILE),
-        footer(),
+        # O corpo (tabela, relative ou log) e o rodape sao dois tiles, como
+        # no canvas -- a coluna em si nao tem fundo.
+        tile(BODY, name="Background", color=TILE),
+        # Gravador da validade das voltas: sempre visivel e vazio, publica
+        # para o log, os setores e o Lap Review (states.VALIDITY).
+        states.gate(text(BODY.x, BODY.y, 1.0, 1.0, "", name="Lap Validity Recorder",
+                         bindings={"Text": states.valid_recorder()})),
+        *footer(),
         leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),
         practice(),

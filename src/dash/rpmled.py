@@ -1,38 +1,37 @@
-"""Widget RPMLed -- os quatro quadrados nas pontas da barra superior.
+"""Widget RPMLed -- os quatro LEDs nas pontas da barra superior.
 
-Geometria do Figma (section 4317:567): quadrados de 53x36 com 6 de respiro,
-o vermelho na ponta de fora. O widget e desenhado nessas unidades e escalado
-pela barra superior na hora de posicionar.
+Geometria do canvas de refino: LEDs de 54x38 com 4 de respiro e chanfro na
+diagonal, o mais claro na ponta de fora. O widget e desenhado em pixels e
+posicionado pela barra superior praticamente sem escala.
 
 Quatro camadas empilhadas sobre os mesmos 4 slots:
 
     BG            fundo escuro, sempre visivel
-    RPM           preenchimento progressivo conforme o motor sobe
-    Shift Light   magenta, ao passar do SLBlinkRPM: trocar a marcha agora
+    RPM           rampa azul: cada LED mais claro e com mais brilho que o
+                  anterior, conforme o motor sobe
+    Shift Light   roxo, ao passar do SLBlinkRPM: trocar a marcha agora
     Shift Light2  ciano, enquanto o pit limiter estiver ligado
 
-Os dois ultimos sao estados que o Figma desenha explicitamente. As camadas de
-alerta repetem os 4 slots tres vezes -- nao e redundancia: o SimHub nao tem
-efeito de glow, entao passagens borradas sobrepostas formam o halo e uma
-passagem final desenha a borda nitida por cima.
+As camadas de alerta repetem os 4 slots tres vezes -- nao e redundancia: o
+SimHub nao tem efeito de glow, entao passagens borradas sobrepostas formam o
+halo e uma passagem final desenha a borda nitida por cima. O brilho da rampa
+usa o mesmo truque, com um borrao maior a cada LED.
 """
 
 from simhub.bindings import ncalc
 from simhub.dashboard import metadata, screen, shell
 from simhub.model import OFF, Layer, RectangleItem
 from simhub.theme import (
-    LED_OFF, LIMITER, LIMITER_BORDER, RPM_HIGH, RPM_LOW, RPM_MID, SHIFT,
-    SHIFT_BORDER, rounded,
+    CORNER_RADIUS_CHIP, LED_OFF, LIMITER, LIMITER_BORDER, RPM_RAMP, SHIFT,
+    SHIFT_BORDER, SURFACE_RAISED, rounded,
 )
 
-#: Tamanho nativo, nas unidades do Figma: os quatro quadrados de 53x36 a
-#: partir de x=40, com 6 de respiro (40, 99, 158, 216). O widget e colocado
-#: ja escalado pela barra superior, entao aqui ficam as medidas do desenho.
-SLOT_W, SLOT_H = 53.0, 36.0
-SLOT_GAP = 6.0
+#: Tamanho nativo, em pixels do dash: quatro LEDs de 54x38 com 4 de respiro.
+SLOT_W, SLOT_H = 54.0, 38.0
+SLOT_GAP = 4.0
 SLOT_COUNT = 4
 
-WIDTH = int(SLOT_W * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1))  # 229
+WIDTH = int(SLOT_W * SLOT_COUNT + SLOT_GAP * (SLOT_COUNT - 1))  # 228
 HEIGHT = int(SLOT_H)
 
 #: Posicao X dos slots, do externo (indice 0) para o interno.
@@ -47,23 +46,23 @@ PASS_NAMES = [
     ["9", "10", "11", "12"],
 ]
 
-#: Por slot, do externo para o interno: cor e o RPM que o acende.
+#: Por slot, do externo para o interno: cor, borrao do brilho e o RPM que o
+#: acende.
 #:
-#: A rampa do Figma poe o vermelho na ponta de FORA e o verde apontando para o
-#: centro do dash, entao o motor "cresce" das bordas para dentro do campo de
-#: visao. O iRacing expoe os tres limiares por carro, entao o SF23 traz os
-#: proprios. Segmentos acesos vao em brilho cheio: a hierarquia vem da cor,
-#: nao de uma rampa de opacidade.
+#: O motor "cresce" do centro do dash para as bordas: o LED de dentro acende
+#: primeiro, em azul escuro e sem brilho; cada LED para fora e mais claro e
+#: brilha mais, ate o externo, quase branco. Os limiares sao os do iRacing,
+#: por carro.
 RPM_SLOTS = [
-    (RPM_HIGH, "PlayerCarSLLastRPM"),
-    (RPM_MID, "PlayerCarSLShiftRPM"),
-    (RPM_LOW, "PlayerCarSLFirstRPM"),
-    (RPM_LOW, "PlayerCarSLFirstRPM"),
+    (RPM_RAMP[3], 22.0, "PlayerCarSLLastRPM"),
+    (RPM_RAMP[2], 14.0, "PlayerCarSLShiftRPM"),
+    (RPM_RAMP[1], 8.0, "PlayerCarSLFirstRPM"),
+    (RPM_RAMP[0], None, "PlayerCarSLFirstRPM"),
 ]
 
 BLUR = 20.0
 BORDER_THICKNESS = 3
-SLOT_RADIUS = 3        # raio do Figma
+SLOT_RADIUS = CORNER_RADIUS_CHIP
 
 
 def optional(value):
@@ -71,13 +70,14 @@ def optional(value):
     return OFF if value is None else value
 
 
-def slot(x, name, color, opacity=70.0, blur=None, border=None, bindings=None):
-    """Um segmento da barra."""
+def slot(x, name, color, opacity=70.0, blur=None, border=None, bindings=None,
+         thickness=BORDER_THICKNESS):
+    """Um LED da barra."""
     return RectangleItem(
         name=name,
         IsRectangleItem=True,
         BackgroundColor=color,
-        BorderStyle=rounded(border, BORDER_THICKNESS, radius=SLOT_RADIUS),
+        BorderStyle=rounded(border, thickness, radius=SLOT_RADIUS),
         BlurRadius=optional(blur),
         Left=x, Top=SLOT_Y, Width=SLOT_W, Height=SLOT_H,
         Opacity=optional(opacity),
@@ -120,7 +120,7 @@ def positions(mirror):
     externo cai em x=0 -- a borda esquerda do widget, que e a borda de fora na
     zona esquerda do painel. A zona direita usa a versao espelhada, onde o
     reflexo (`WIDTH - x - SLOT_W`) leva o mesmo slot para a borda direita.
-    Assim os dois RPMLed apontam o vermelho para fora do dash, como no Figma,
+    Assim os dois RPMLed apontam o LED mais claro para fora do dash,
     sem que RPM_SLOTS precise saber de que lado esta.
     """
     if not mirror:
@@ -129,20 +129,26 @@ def positions(mirror):
 
 
 def background(mirror):
-    """Trilho apagado: os segmentos que ainda nao acenderam."""
+    """Trilho apagado: os LEDs que ainda nao acenderam, com filete."""
     return group("BG", *(
-        slot(x, name, LED_OFF, opacity=None)
+        slot(x, name, LED_OFF, opacity=None, border=SURFACE_RAISED,
+             thickness=1)
         for x, name in zip(positions(mirror), PASS_NAMES[0])
     ))
 
 
 def rpm(mirror):
-    return group("RPM", *(
-        slot(x, name, color, opacity=None,
-             bindings={"Visible": above(rpm_property)})
-        for x, name, (color, rpm_property)
-        in zip(positions(mirror), PASS_NAMES[0], RPM_SLOTS)
-    ))
+    """A rampa: um halo borrado atras de cada LED que tem brilho, e o LED
+    nitido por cima."""
+    rects = []
+    for x, name, (color, blur, rpm_property) in zip(
+            positions(mirror), PASS_NAMES[0], RPM_SLOTS):
+        lit = {"Visible": above(rpm_property)}
+        if blur:
+            rects.append(slot(x, f"{name} Glow", color, opacity=70.0,
+                              blur=blur, bindings=lit))
+        rects.append(slot(x, name, color, opacity=None, bindings=lit))
+    return group("RPM", *rects)
 
 
 def glow(name, color, passes, visible_when, mirror, freezed=None):
@@ -157,7 +163,7 @@ def glow(name, color, passes, visible_when, mirror, freezed=None):
 
 
 def shift_light(mirror):
-    """Magenta: halo sem borda nas duas primeiras passagens, borda na terceira."""
+    """Roxo: halo sem borda nas duas primeiras passagens, borda na terceira."""
     return glow(
         "Shift Light", SHIFT,
         passes=[(BLUR, None), (BLUR, None), (None, SHIFT_BORDER)],
@@ -181,7 +187,7 @@ def items(mirror=False):
     """Itens de nivel superior da tela.
 
     `mirror=True` gera a variante usada pela instancia direita do painel --
-    mesma logica, vermelho na ponta oposta.
+    mesma logica, o LED mais claro na ponta oposta.
     """
     return [
         group("LEDs", background(mirror), rpm(mirror), shift_light(mirror)),
