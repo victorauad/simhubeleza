@@ -5,7 +5,8 @@ opaca na cor do fundo e vazada nos dentes, entao o gauge (e o trilho por
 baixo dele) so aparece dentro dos dentes.
 
     PedalCombLeft/Right  freio e acelerador: 100 dentes, 1 por ponto
-                         percentual. O dente de cada dezena nao acende: fica
+                         percentual. O vao e translucido (PEDAL_COMB_GAP),
+                         nao opaco, para o aceso ler como bloco. O dente de cada dezena nao acende: fica
                          pintado na mascara, mais baixo e escuro, demarcando. Os dois enchem do
                          centro para fora, entao as dezenas caem em lugares
                          diferentes em cada um -- por isso duas imagens.
@@ -28,7 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from dash import ots, top_bar  # noqa: E402
-from simhub.theme import PANEL, TILE  # noqa: E402
+from simhub.theme import PEDAL_COMB_GAP, TILE  # noqa: E402
 
 #: A imagem sai no dobro da resolucao do dash, para o SimHub reduzir em vez
 #: de ampliar (dente nitido em tela de alta densidade).
@@ -99,7 +100,7 @@ def pedal_comb(area, major):
              if not major(index)]
     marks = [(index * pitch, PEDAL_MARK_INSET) for index in range(PEDAL_TEETH)
              if major(index)]
-    return comb(area, PANEL, teeth, marks)
+    return comb(area, PEDAL_COMB_GAP, teeth, marks)
 
 
 def delta_teeth():

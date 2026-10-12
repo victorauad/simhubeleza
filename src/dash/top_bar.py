@@ -16,13 +16,13 @@ from simhub.model import (
     ImageItem, Layer, LinearGaugeItem, RectangleItem, WidgetItem,
 )
 from simhub.theme import (
-    BRAKE, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
+    BRAKE, BRAKE_TRACK, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
     FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_CHECKERED, FLAG_DIRT, FLAG_GREEN,
     FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_RED, FLAG_REPAIR,
     FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, ORANGE,
     PANEL as PANEL_COLOR,
     SIZE_HERO, SIZE_LABEL, SLOWER, SURFACE_RAISED, TEXT, TEXT_DIM,
-    TEXT_ON_LIGHT, THROTTLE, TILE, rounded,
+    TEXT_ON_LIGHT, THROTTLE, THROTTLE_TRACK, TILE, rounded,
 )
 from . import layout as grid
 from .widgets import CENTER, LEFT, RIGHT, text, tile
@@ -157,21 +157,22 @@ def comb_mask(name, image, area):
     )
 
 
-def pedal(side, label, prop, color):
+def pedal(side, label, prop, color, track):
     """Entrada do piloto: pente de 100 dentes (1 por ponto percentual; o da
     dezena e um marcador baixo e escuro, que nao acende) e o numero grande
     encostado no cartao do delta.
 
     A barra e um gauge continuo entre um trilho e uma mascara: o trilho
-    pinta os dentes apagados, o gauge os acesos, e a mascara -- opaca na cor
-    do painel, vazada nos dentes -- recorta os dois. Sao tres controles por
+    pinta os dentes apagados (fantasma tingido), o gauge os acesos, e a
+    mascara -- vazada nos dentes, com um veu translucido nos vaos -- recorta
+    os dois: o aceso le como bloco quase solido, o maior destaque do dash. Sao tres controles por
     lado, em vez de um retangulo com formula por dente.
     """
     bar = side_box(side, *PEDAL_BAR)
     value = side_box(side, *PEDAL_VALUE)
 
     return [
-        tile(bar, name=f"{label} Track", color=SURFACE_RAISED, radius=0),
+        tile(bar, name=f"{label} Track", color=track, radius=0),
         delta_gauge(f"{label} Gauge", bar, color, 100.0, 0.0,
                     alignment=2 if side is LEFT else 0,
                     radius=rounded(radius=0), prop=prop),
@@ -442,8 +443,8 @@ def layer():
             MinimumRefreshIntervalMS=0.0,
         ),
         Layer(
-            *pedal(LEFT, "Brake", "Brake", BRAKE),
-            *pedal(RIGHT, "Throttle", "Throttle", THROTTLE),
+            *pedal(LEFT, "Brake", "Brake", BRAKE, BRAKE_TRACK),
+            *pedal(RIGHT, "Throttle", "Throttle", THROTTLE, THROTTLE_TRACK),
             name="Gas & Brake",
             Group=True, Repetitions=0, Visible=True,
             BlinkPhasisInverted=False, RenderingSkip=0,

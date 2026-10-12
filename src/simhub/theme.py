@@ -61,8 +61,10 @@ LED_OFF = "#FF111317"
 
 FASTER = GREEN                # delta e diferenca de volta
 SLOWER = RED
-THROTTLE = GREEN
-BRAKE = RED
+#: Pedais: o maior destaque do dash. Cor propria, mais saturada e clara que
+#: o verde/vermelho de delta, para nao disputar com nada no painel.
+THROTTLE = "#FF2BFF88"
+BRAKE = "#FFFF2D2D"
 
 OTS_READY = GREEN             # push-to-pass do SF23
 OTS_ACTIVE = PURPLE           # piscando
@@ -180,3 +182,11 @@ def alpha(color, percent):
     """Mesma cor com outra opacidade. Aceita e devolve #AARRGGBB."""
     value = max(0, min(255, round(255 * percent / 100)))
     return f"#{value:02X}{color[3:]}"
+
+
+#: Pente dos pedais. O vao entre dentes e so um veu sobre o gauge: o aceso
+#: le como um bloco quase solido com estrias finas, em vez de dentes soltos.
+PEDAL_COMB_GAP = alpha(PANEL, 45)
+#: Trilho apagado: fantasma tingido na cor do pedal, bem abaixo do aceso.
+THROTTLE_TRACK = alpha(THROTTLE, 9)
+BRAKE_TRACK = alpha(BRAKE, 9)
