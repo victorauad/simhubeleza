@@ -87,7 +87,12 @@ CHIP_SLOT_BORDER = "#FF1E2227"
 #: Miolo do cartao: rotulos e numero em cima; pente do delta progress e
 #: trilho fino do delta absoluto embaixo, alinhados ao rodape.
 CARD_INNER = CARD.inset(INSET, INSET, INSET, INSET)
-DELTA_ROW = grid.Region(CARD_INNER.x, CARD_INNER.y, CARD_INNER.width, 42.0)
+#: Linha do numero: a caixa de texto e mais alta que o glifo (altura de
+#: maiuscula de 0.7 em, centrada), entao sobe meia folga para o topo do
+#: glifo encostar no INSET do cartao -- mesmo respiro do rodape.
+CAP_SLACK = SIZE_HERO * (1.0 - 0.7) / 2
+DELTA_ROW = grid.Region(CARD_INNER.x, CARD_INNER.y - CAP_SLACK,
+                        CARD_INNER.width, SIZE_HERO)
 CARD_LABEL_WIDTH = 54.0
 THIN_HEIGHT = 3.0
 COMB_HEIGHT = 9.0
@@ -379,7 +384,9 @@ def delta():
                              CARD_LABEL_WIDTH, DELTA_ROW.height)
     label_right = grid.Region(DELTA_ROW.right - CARD_LABEL_WIDTH, DELTA_ROW.y,
                               CARD_LABEL_WIDTH, DELTA_ROW.height)
-    hero = DELTA_ROW.inset(left=CARD_LABEL_WIDTH, right=CARD_LABEL_WIDTH)
+    # O numero centra na largura toda: os rotulos sao curtos e ficam nas
+    # pontas, entao ate um "+10.00" passa entre eles.
+    hero = DELTA_ROW
     comb_left, comb_right = halves(COMB, COMB_CENTER_GAP)
     thin_left, thin_right = halves(THIN_BAR)
     center = CARD.x + CARD.width / 2

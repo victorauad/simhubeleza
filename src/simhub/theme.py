@@ -126,7 +126,7 @@ MONO_ADVANCE = 0.6
 
 #: Escala de tamanhos. Nomes em vez de literais espalhados pelo layout.
 SIZE_GEAR = 170.0
-SIZE_HERO = 42.0              # delta no topo
+SIZE_HERO = 50.0              # delta no topo
 SIZE_VALUE = 34.0             # valor principal de um tile
 SIZE_VALUE_SM = 27.0
 SIZE_UNIT = 11.0              # unidade colada ao valor
