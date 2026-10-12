@@ -277,6 +277,11 @@ LOG_HEADER_HEIGHT = 26.0
 LOG_ROWS = 9
 LOG_ROW = (BODY.height - LOG_HEADER_HEIGHT) / LOG_ROWS
 
+#: Corpo do log: o dash fica reduzido na frente do volante, entao os numeros
+#: vao ao maior tamanho que a linha (~29 px) comporta, perto do relative.
+LOG_SIZE = 20.0
+LOG_HEADER_SIZE = SIZE_LABEL + 1.5
+
 #: Colunas do log, da esquerda para a direita. Numero e tempo repetem as
 #: formulas extraidas do original (`Practice/Lap Data/...`); temperatura,
 #: delta e combustivel sao novas. O combustivel e calculado pelo proprio dash
@@ -402,16 +407,16 @@ def practice():
     return Layer(
         tile(area, name="Log Tile", color=TILE, radius=CORNER_RADIUS_TILE),
         *(caption(x, header.y + 4.0, w, label, name=f"Log {label} Header",
-                  align=align)
+                  align=align, size=LOG_HEADER_SIZE)
           for label, w, x, align in columns),
         Layer(
             text(num_x, rows.y, LOG_NUM_W, LOG_ROW, "00",
-                 name="LapNumber", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapNumber", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_SECONDARY,
                  bindings={"Text": at("LapNumber", "Text"),
                            "TextColor": at("LapNumber", "TextColor")}),
             text(time_x, rows.y, LOG_TIME_W, LOG_ROW, "0:00.0",
-                 name="LapTime", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapTime", size=LOG_SIZE, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
                  bindings={"Text": js(
                      states.FORMAT
@@ -422,17 +427,17 @@ def practice():
                      jsext=3, format_string=""),
                            "TextColor": at("LapTime", "TextColor")}),
             text(track_x, rows.y, LOG_TRACK_W, LOG_ROW, "32",
-                 name="LapTrackTemp", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapTrackTemp", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_TERTIARY,
                  bindings={"Text": js(TRACK_LOG_JS, jsext=3,
                                       format_string="00")}),
             text(delta_x, rows.y, LOG_DELTA_W, LOG_ROW, "-0.1",
-                 name="LapDelta", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapDelta", size=LOG_SIZE, align=RIGHT,
                  color=TEXT, mono=True, char_width=14.0,
                  bindings={"Text": lap_js(delta_body),
                            "TextColor": lap_js(delta_color_body)}),
             text(fuel_x, rows.y, LOG_FUEL_W, LOG_ROW, "2.30",
-                 name="LapFuel", size=SIZE_LABEL + 3.0, align=RIGHT,
+                 name="LapFuel", size=LOG_SIZE, align=RIGHT,
                  color=TEXT_SECONDARY,
                  bindings={"Text": js(FUEL_LOG_JS, jsext=3,
                                            format_string="0.00")}),
