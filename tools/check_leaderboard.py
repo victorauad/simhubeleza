@@ -37,6 +37,9 @@ from simhub.theme import PLAYER, TEXT, TEXT_TERTIARY  # noqa: E402
 
 LEGACY = ROOT / "tools" / "fixtures" / "leaderboard_legacy.json"
 BUILD = ROOT / "build" / "iRacing_Dashboard_00" / "iRacing_Dashboard_00.djson"
+#: TEXT da paleta quando a fixture foi tirada. Cor de paleta, nao logica: o
+#: legado roda com o TEXT atual no lugar dela.
+LEGACY_TEXT = "#FFECEEF0"
 
 #: Cor do overflow original -> cor da paleta atual, por binding.
 OVERFLOW_COLORS = {
@@ -248,8 +251,10 @@ def main(argv=None):
         tmp = Path(tmp)
         (tmp / "now.json").write_text(json.dumps(current()), encoding="utf-8")
         (tmp / "check.js").write_text(HARNESS, encoding="utf-8")
+        legacy = LEGACY.read_text(encoding="utf-8").replace(LEGACY_TEXT, TEXT)
+        (tmp / "legacy.json").write_text(legacy, encoding="utf-8")
         return subprocess.run(
-            [node, str(tmp / "check.js"), str(LEGACY), str(tmp / "now.json"),
+            [node, str(tmp / "check.js"), str(tmp / "legacy.json"), str(tmp / "now.json"),
              json.dumps(OVERFLOW_COLORS), str(grids)]).returncode
 
 

@@ -14,7 +14,7 @@ from simhub.model import OFF, GearText, Layer, RectangleItem
 from simhub.theme import (
     FONT_GEAR, GLOW_IDLE, GLOW_LIMITER, GLOW_OTS_ACTIVE, GLOW_OTS_COOLDOWN,
     GLOW_SHIFT, GUTTER, PADDING, SIZE_GEAR, SIZE_LABEL, SIZE_VALUE,
-    TEXT, WEIGHT_VALUE, rounded,
+    GEAR, TEXT, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
 from . import balance, ots
@@ -128,13 +128,13 @@ def gear(region):
         name="GearText",
         GearBlinkText=False,
         GearBlinkDelay=100,
-        TextColor=TEXT,
+        TextColor=GEAR,
         BackgroundColor="#00FFFFFF",
         GearBackgoundColor="#00FFFFFF",
         IgnoreNeutralGear=False,
         GearBlinkBackgroundColor="#FFFF4500",
         GearBlinkBackground=False,
-        GearTextColor=TEXT,
+        GearTextColor=GEAR,
         GearBlinkTextColor="#FFFF00FF",
         DesignerText="N",
         NoDataText="N",

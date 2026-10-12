@@ -26,7 +26,10 @@ TRACK = SURFACE_RAISED
 
 # --- Texto -------------------------------------------------------------------
 
-TEXT = "#FFECEEF0"
+#: Valores: cinza claro, legivel com o dash reduzido mas sem peso -- o unico
+#: branco verdadeiro e a marcha (GEAR), para ela ser a primeira leitura.
+TEXT = "#FFC9CED4"
+GEAR = "#FFFFFFFF"
 TEXT_SECONDARY = "#FF9AA0A8"  # rotulos
 TEXT_TERTIARY = "#FF6B717A"   # unidades, dado desligado
 TEXT_ON_LIGHT = "#FF0A0B0D"   # sobre chip claro (amarelo, branco, laranja)
