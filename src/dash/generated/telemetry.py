@@ -5,6 +5,9 @@ Ponto de partida da refatoracao; paridade validada por tools/parity.py.
 """
 
 from simhub.bindings import formatted, js, ncalc
+from simhub.theme import (
+    BRAKE_REF, STEER_LIVE, STEER_REF, TEXT_SECONDARY, THROTTLE_REF,
+)
 from simhub.model import (
     OFF, ChartItem, GearText, GradientItem, GroupItem, ImageItem,
     Layer, LinearGaugeItem, RectangleItem, TextItem, WidgetItem,
@@ -214,7 +217,8 @@ def items():
                 GroupItem(
                     RectangleItem(
                         name='RectangleItem',
-                        BackgroundColor='#FF2A2F35',
+                        # Zero do volante: um degrau mais claro que 25/75.
+                        BackgroundColor='#FF3E454E',
                         BorderStyle={
                             "BorderColor": '#00FFFFFF',
                         },
@@ -335,6 +339,59 @@ def items():
                 name='bg',
                 IsFreezed=True,
             ),
+            # Volta de referencia (.ibt convertido por tools/ibt_ref.py) e
+            # volante. Desenhados antes dos pedais ao vivo, que ficam por
+            # cima; referencia em linha mais fina (3 contra 5) e translucida,
+            # sem descer de 3 para nao sumir com o dash reduzido. Volante com
+            # zero na linha de 50 (direita para cima), +-180 graus na altura.
+            ChartItem(
+                name='steer_ref',
+                # Volante da referencia.
+                LineColor=STEER_REF,
+                LineTickness=3,
+                PointsCount=240.0,
+                RenderingSkip=1,
+                bindings={
+                    "CurrentValue": js('return refSteer();', jsext=3),
+                    "Visible": js('return refAvailable();', jsext=3),
+                },
+            ),
+            ChartItem(
+                name='steer_live',
+                # Volante ao vivo.
+                LineColor=STEER_LIVE,
+                LineTickness=4,
+                PointsCount=240.0,
+                RenderingSkip=1,
+                bindings={
+                    "CurrentValue": js('return liveSteer();', jsext=3),
+                    "Visible": js('return liveSteerAvailable();', jsext=3),
+                },
+            ),
+            ChartItem(
+                name='brake_ref',
+                # Freio da referencia.
+                LineColor=BRAKE_REF,
+                LineTickness=3,
+                PointsCount=240.0,
+                RenderingSkip=1,
+                bindings={
+                    "CurrentValue": js('return refBrake();', jsext=3),
+                    "Visible": js('return refAvailable();', jsext=3),
+                },
+            ),
+            ChartItem(
+                name='throttle_ref',
+                # Acelerador da referencia.
+                LineColor=THROTTLE_REF,
+                LineTickness=3,
+                PointsCount=240.0,
+                RenderingSkip=1,
+                bindings={
+                    "CurrentValue": js('return refThrottle();', jsext=3),
+                    "Visible": js('return refAvailable();', jsext=3),
+                },
+            ),
             ChartItem(
                 name='brake',
                 # Janela curta (~8 s a 30 amostras/s): com 600 pontos o
@@ -354,6 +411,71 @@ def items():
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": ncalc('[Throttle]'),
+                },
+            ),
+            # Rotulos da referencia e do volante, no estilo das gridlines.
+            # Larguras fixas por texto; o estado sem dado mostra "N/A".
+            TextItem(
+                name='Ref-label',
+                Font='Arame Mono',
+                FontSize=18.0,
+                Text='REF N/A',
+                TextColor=TEXT_SECONDARY,
+                BackgroundColor='#FF181B1F',
+                BorderStyle={
+                    "RadiusTopLeft": 5,
+                    "RadiusTopRight": 5,
+                    "RadiusBottomLeft": 5,
+                    "RadiusBottomRight": 5,
+                },
+                Height=19.0,
+                Left=15.0,
+                Top=4.0,
+                Width=140.0,
+                bindings={
+                    "Text": js('return refLabel();', jsext=3),
+                },
+            ),
+            TextItem(
+                name='Steer-label',
+                Font='Arame Mono',
+                FontSize=18.0,
+                Text='STR',
+                TextColor=STEER_LIVE,
+                BackgroundColor='#FF181B1F',
+                BorderStyle={
+                    "RadiusTopLeft": 5,
+                    "RadiusTopRight": 5,
+                    "RadiusBottomLeft": 5,
+                    "RadiusBottomRight": 5,
+                },
+                Height=19.0,
+                Left=511.0,
+                Top=115.5,
+                Width=44.0,
+                bindings={
+                    "Visible": js('return liveSteerAvailable();', jsext=3),
+                },
+            ),
+            TextItem(
+                name='Steer-label N/A',
+                Font='Arame Mono',
+                FontSize=18.0,
+                Text='STR N/A',
+                TextColor=TEXT_SECONDARY,
+                BackgroundColor='#FF181B1F',
+                BorderStyle={
+                    "RadiusTopLeft": 5,
+                    "RadiusTopRight": 5,
+                    "RadiusBottomLeft": 5,
+                    "RadiusBottomRight": 5,
+                },
+                Height=19.0,
+                Left=471.0,
+                Top=115.5,
+                Width=84.0,
+                bindings={
+                    "Visible": js('return !liveSteerAvailable();', jsext=3),
                 },
             ),
             TextItem(

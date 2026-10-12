@@ -68,6 +68,15 @@ SLOWER = RED
 #: o verde/vermelho de delta, para nao disputar com nada no painel.
 THROTTLE = "#FF2BFF88"
 BRAKE = "#FFFF2D2D"
+#: Volta de referencia (.ibt) no grafico de telemetria: o mesmo significado
+#: do pedal ao vivo, mas em tom claro e translucido, linha fina e desenhada
+#: por baixo -- nunca disputa com a linha ao vivo.
+THROTTLE_REF = "#B3A8FFC9"
+BRAKE_REF = "#B3FF9A9A"
+#: Volante no grafico: familia propria (ciano/cinza), longe do verde e do
+#: vermelho dos pedais. Zero na linha de 50, direita para cima.
+STEER_LIVE = "#FF29C8F0"
+STEER_REF = "#99B0B8C4"
 
 OTS_READY = GREEN             # push-to-pass do SF23
 OTS_ACTIVE = PURPLE           # piscando
