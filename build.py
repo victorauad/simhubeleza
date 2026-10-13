@@ -4,13 +4,15 @@
 Uso:  python3 build.py [--diag] [--name=NOME] [destino]
 
 Sem argumento, escreve em build/. Passe o caminho da pasta DashTemplates do
-SimHub para instalar direto. `--diag` gera tambem `iRacing_Dashboard_00_Diag`,
+SimHub para instalar direto. Cada pasta gerada sai tambem zipada como
+`<destino>/<nome>.simhubdash`, pronta para importar no SimHub. `--diag` gera tambem `iRacing_Dashboard_00_Diag`,
 o mesmo dash com a faixa de medicao de desempenho (dash/diag.py).
 `--name=NOME` gera so o dash normal com outro nome e outro Id, para instalar
 ao lado do atual sem sobrescrever.
 """
 import sys
 import uuid
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -124,8 +126,19 @@ def build(out_root, dash_name, extra=(), dash_id=None):
         return 1
 
     files = sum(1 for _ in out_dir.rglob("*") if _.is_file())
-    print(f"gerado: {out_dir}  ({files} arquivos)")
+    print(f"gerado: {out_dir}  ({files} arquivos) + {package(out_dir)}")
     return 0
+
+
+def package(out_dir):
+    """Zipa out_dir em <out_dir>.simhubdash, com a pasta como raiz do zip."""
+    target = out_dir.with_name(out_dir.name + ".simhubdash")
+    target.unlink(missing_ok=True)
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
+        for path in sorted(out_dir.rglob("*")):
+            if path.is_file():
+                z.write(path, path.relative_to(out_dir.parent).as_posix())
+    return target
 
 
 if __name__ == "__main__":

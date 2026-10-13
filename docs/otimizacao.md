@@ -152,8 +152,10 @@ cadência da Fase 1 deve ser a mesma usada pelos estados.
 ```bash
 python3 build.py && python3 tools/formula_audit.py
 python3 tools/preview_modes.py && cp tools/preview_page.html build/modes/index.html
-cd build && rm -f iRacing_Dashboard_00.simhubdash && zip -qr iRacing_Dashboard_00.simhubdash iRacing_Dashboard_00
 ```
+
+O `build.py` já gera `build/iRacing_Dashboard_00.simhubdash` junto com a pasta —
+não precisa zipar à mão.
 
 O preview é estático (não avalia fórmulas): ganho de desempenho só se mede no
 SimHub do usuário.
