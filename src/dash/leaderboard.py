@@ -91,6 +91,8 @@ DIFF_X = GAP_X - DIFF_WIDTH - COLUMN_GAP
 NAME_WIDTH = DIFF_X - NAME_X - COLUMN_GAP
 
 ROW_TEXT_SIZE = 17.0
+#: Nome um pouco maior que os numeros: e o que se le de relance.
+NAME_TEXT_SIZE = 19.0
 ROW_INSET = 3.0
 
 TEXT_GRAY = TEXT_SECONDARY
@@ -300,7 +302,7 @@ def container(top=None):
 def name(top=None):
     """Nome do piloto, alinhado a esquerda."""
     return row_text(
-        "DriverName", NAME_X, NAME_WIDTH, ROW_TEXT_SIZE, "DRIVER NAME", align=0,
+        "DriverName", NAME_X, NAME_WIDTH, NAME_TEXT_SIZE, "DRIVER NAME", align=0,
         font=FONT, top=row_top() if top is None else top)
 
 

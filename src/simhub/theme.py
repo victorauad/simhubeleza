@@ -139,7 +139,7 @@ SIZE_HERO = 50.0              # delta no topo
 SIZE_VALUE = 34.0             # valor principal de um tile
 SIZE_VALUE_SM = 27.0
 SIZE_UNIT = 11.0              # unidade colada ao valor
-SIZE_LABEL = 10.5             # rotulo em caixa alta
+SIZE_LABEL = 12.5             # rotulo em caixa alta
 SIZE_LABEL_SM = 10.0
 
 #: Barra inferior (rodape esquerdo, OTS, setores, New Lap Info). O dash fica
