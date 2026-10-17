@@ -345,7 +345,8 @@ def items():
                 name='bg',
                 IsFreezed=True,
             ),
-            # Volta de referencia (.ibt convertido por tools/ibt_ref.py) e
+            # Volta de referencia (melhor volta valida da sessao, gravada ao
+            # vivo por assets/js/refLap.js) e
             # volante. Desenhados antes dos pedais ao vivo, que ficam por
             # cima; referencia em linha mais fina (3 contra 5) e translucida,
             # sem descer de 3 para nao sumir com o dash reduzido. Volante com
@@ -358,8 +359,8 @@ def items():
                 PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
-                    "CurrentValue": js('return refSteer();', jsext=3),
-                    "Visible": js('return refAvailable();', jsext=3),
+                    "CurrentValue": js('return refSteer(root);', jsext=3),
+                    "Visible": js('return refAvailable(root);', jsext=3),
                 },
             ),
             ChartItem(
@@ -382,8 +383,8 @@ def items():
                 PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
-                    "CurrentValue": js('return refBrake();', jsext=3),
-                    "Visible": js('return refAvailable();', jsext=3),
+                    "CurrentValue": js('return refBrake(root);', jsext=3),
+                    "Visible": js('return refAvailable(root);', jsext=3),
                 },
             ),
             ChartItem(
@@ -394,8 +395,8 @@ def items():
                 PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
-                    "CurrentValue": js('return refThrottle();', jsext=3),
-                    "Visible": js('return refAvailable();', jsext=3),
+                    "CurrentValue": js('return refThrottle(root);', jsext=3),
+                    "Visible": js('return refAvailable(root);', jsext=3),
                 },
             ),
             ChartItem(
@@ -435,7 +436,7 @@ def items():
                 Top=4.0,
                 Width=140.0,
                 bindings={
-                    "Text": js('return refLabel();', jsext=3),
+                    "Text": js('return refLabel(root);', jsext=3),
                 },
             ),
             TextItem(

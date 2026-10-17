@@ -501,6 +501,11 @@ def layer():
         # para o log, os setores e o Lap Review (states.VALIDITY).
         states.gate(text(BODY.x, BODY.y, 1.0, 1.0, "", name="Lap Validity Recorder",
                          bindings={"Text": states.valid_recorder()})),
+        # Gravador da melhor volta da sessao: sempre visivel e vazio, publica
+        # a referencia do grafico de telemetria (assets/js/refLap.js). Sem
+        # gate: grava a cada quadro para a volta sair com resolucao boa.
+        text(BODY.x, BODY.y, 1.0, 1.0, "", name="Ref Lap Recorder",
+             bindings={"Text": js("return refRecorder(root);", jsext=3)}),
         *footer(),
         leaderboard.standings(visible=js(SHOW_STANDINGS_JS)),
         relative(),

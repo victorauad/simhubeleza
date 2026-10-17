@@ -144,6 +144,23 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   que permite restilizar overflow, relative e lap log sem recopiar trinta
   linhas de JavaScript a mão.
 
+- **Referência do gráfico de telemetria = melhor volta da sessão**
+  (`assets/js/refLap.js`). O caminho antigo, com o `.ibt` convertido
+  (`tools/ibt_ref.py`, `ref_<pista>.js`), foi removido. O item invisível
+  "Ref Lap Recorder" (coluna direita, sempre visível, sem gate) grava
+  acelerador, freio e volante em 500 posições da volta. Na virada, a volta
+  vira referência se:
+  - não passou pelos boxes;
+  - está limpa (mesma regra de `states.VALIDITY`);
+  - foi gravada quase inteira (buraco ≤ 5%);
+  - é mais rápida que a referência atual.
+
+  A referência é publicada via `setsharedvalue('sf23dash', 'refdata'|'refid'|'refat')`.
+  Se essa publicação não existir ou tiver mais de 1 s, cada item do gráfico grava
+  sozinho. Trocar de pista ou de sessão zera a referência. Sem referência, as
+  linhas somem e aparece "REF N/A". Teste: `python3 tools/check_ref.py`. Ainda
+  falta confirmar no SimHub real que a gravação compartilhada funciona.
+
 ## Falta
 
 **Validar no SimHub de verdade.** É o único passo que não dá para fazer daqui,

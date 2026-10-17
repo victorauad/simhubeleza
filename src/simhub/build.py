@@ -129,6 +129,7 @@ def copy_support_files(out_dir, previews=()):
         shutil.copy2(font, fonts / font.name)
 
     scripts = out_dir / "JavascriptExtensions"
+    shutil.rmtree(scripts, ignore_errors=True)  # nao carrega JS apagado de assets/js
     scripts.mkdir(parents=True, exist_ok=True)
     for script in sorted((ASSETS / "js").iterdir()):
         shutil.copy2(script, scripts / script.name)
