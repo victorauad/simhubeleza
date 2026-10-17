@@ -13,6 +13,12 @@ from simhub.model import (
     Layer, LinearGaugeItem, RectangleItem, TextItem, WidgetItem,
 )
 
+#: Janela movel dos graficos, em pontos (~30 amostras/s): 360 = ~12 s.
+#: Cobre a ultima curva inteira (frenagem ate o acelerador cheio, ~2 a 5 s
+#: em Imola) e ainda ~5 s de reta com 100% depois dela. Nao passar muito
+#: disso: com 600 pontos (~20 s) as curvas viravam degraus.
+WINDOW = 360.0
+
 #: Campos do dashboard fora da arvore de controles.
 SHELL = {
     "DashboardDebugManager": {
@@ -349,7 +355,7 @@ def items():
                 # Volante da referencia.
                 LineColor=STEER_REF,
                 LineTickness=3,
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": js('return refSteer();', jsext=3),
@@ -361,7 +367,7 @@ def items():
                 # Volante ao vivo.
                 LineColor=STEER_LIVE,
                 LineTickness=4,
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": js('return liveSteer();', jsext=3),
@@ -373,7 +379,7 @@ def items():
                 # Freio da referencia.
                 LineColor=BRAKE_REF,
                 LineTickness=3,
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": js('return refBrake();', jsext=3),
@@ -385,7 +391,7 @@ def items():
                 # Acelerador da referencia.
                 LineColor=THROTTLE_REF,
                 LineTickness=3,
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": js('return refThrottle();', jsext=3),
@@ -394,9 +400,7 @@ def items():
             ),
             ChartItem(
                 name='brake',
-                # Janela curta (~8 s a 30 amostras/s): com 600 pontos o
-                # grafico cobria ~20 s e as curvas viravam degraus.
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": ncalc('[Brake]'),
@@ -405,9 +409,7 @@ def items():
             ChartItem(
                 name='[Throttle]',
                 LineColor='#FF1DAF4D',
-                # Janela curta (~8 s a 30 amostras/s): com 600 pontos o
-                # grafico cobria ~20 s e as curvas viravam degraus.
-                PointsCount=240.0,
+                PointsCount=WINDOW,
                 RenderingSkip=1,
                 bindings={
                     "CurrentValue": ncalc('[Throttle]'),
