@@ -452,8 +452,10 @@ def items():
                     "RadiusBottomRight": 5,
                 },
                 Height=19.0,
-                Left=511.0,
-                Top=115.5,
+                # Ao lado do REF, na legenda do topo: na linha de 50 ficava
+                # em cima do volante, que passa ali com o carro reto.
+                Left=163.0,
+                Top=4.0,
                 Width=44.0,
                 bindings={
                     "Visible": js('return liveSteerAvailable();', jsext=3),
@@ -473,8 +475,8 @@ def items():
                     "RadiusBottomRight": 5,
                 },
                 Height=19.0,
-                Left=471.0,
-                Top=115.5,
+                Left=163.0,
+                Top=4.0,
                 Width=84.0,
                 bindings={
                     "Visible": js('return !liveSteerAvailable();', jsext=3),
