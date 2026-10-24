@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gera a pasta DashTemplates completa a partir do codigo.
 
-Uso:  python3 build.py [--diag] [--name=NOME] [destino]
+Uso:  python3 build.py [--diag] [--name=NOME] [--variant=VERSAO] [destino]
 
 Sem argumento, escreve em build/. Passe o caminho da pasta DashTemplates do
 SimHub para instalar direto. Cada pasta gerada sai tambem zipada como
@@ -9,6 +9,9 @@ SimHub para instalar direto. Cada pasta gerada sai tambem zipada como
 o mesmo dash com a faixa de medicao de desempenho (dash/diag.py).
 `--name=NOME` gera so o dash normal com outro nome e outro Id, para instalar
 ao lado do atual sem sobrescrever.
+`--variant=full|minimal|empty|all` gera so as versoes de medicao
+(`iRacing_Dashboard_00_<versao>`, dash/variants.py), todas com a faixa de
+diagnostico e Id proprio.
 """
 import sys
 import uuid
@@ -19,7 +22,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from dash import diag, fallback, fixes, ots, rpmled, top_bar, weather  # noqa: E402
+from dash import diag, fallback, fixes, ots, rpmled, top_bar, variants, weather  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from check_types import check as check_types  # noqa: E402
@@ -72,6 +75,18 @@ def main(argv):
         return build(out_root, name,
                      dash_id=str(uuid.uuid5(uuid.NAMESPACE_URL,
                                             f"simhubeleza/{name}")))
+    picked = [a.split("=", 1)[1] for a in argv[1:] if a.startswith("--variant=")]
+    if picked:
+        # Versoes de medicao (docs/otimizacao.md, Fase 0): cada uma com a
+        # faixa de diagnostico, nome e Id proprios para conviver no SimHub.
+        todo = variants.NAMES if picked == ["all"] else picked
+        code = 0
+        for variant in todo:
+            name = f"{DASH_NAME}_{variant}"
+            code = code or build(
+                out_root, name, extra=[diag.layer()], variant=variant,
+                dash_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"simhubeleza/{name}")))
+        return code
     code = build(out_root, DASH_NAME)
     if code == 0 and "--diag" in argv:
         code = build(out_root, diag.DASH_NAME, extra=[diag.layer()],
@@ -79,7 +94,7 @@ def main(argv):
     return code
 
 
-def build(out_root, dash_name, extra=(), dash_id=None):
+def build(out_root, dash_name, extra=(), dash_id=None, variant="full"):
     out_dir = out_root / dash_name
 
     # Fonte ausente e falha silenciosa no SimHub -- para aqui, nao la.
@@ -102,7 +117,8 @@ def build(out_root, dash_name, extra=(), dash_id=None):
     write_dashboard(
         out_dir, dash_name,
         shell, main_dash.SCREEN,
-        fallback.apply(fixes.apply(main_dash.items() + list(extra))),
+        fallback.apply(fixes.apply(
+            variants.apply(main_dash.items(), variant) + list(extra))),
         metadata=METADATA,
     )
     for name, widget_shell, widget_screen, widget_items in WIDGETS:

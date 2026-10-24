@@ -90,12 +90,20 @@ em sessão) NCalc no leaderboard (as fórmulas usam `prop()` dinâmico, que o NC
 
 ## O plano (fases)
 
-**Fase 0 — Medir.** Acrescentar ao `build.py` variantes de diagnóstico
-(sugestão: `python3 build.py --variant {full,no-chart,no-blur,no-leaderboard,bare}`,
-cada uma gerando um dash com nome próprio para coexistir no SimHub). O usuário
-roda um replay fixo do iRacing ~1 min por variante e anota a CPU do processo
-SimHub no Gerenciador de Tarefas, mais `LoggingErrorsCount`. Resultado decide
-se as fases 3 e 4 valem.
+**Fase 0 — Medir (feito: versões geradas, falta a medição no PC).**
+`python3 build.py --variant=all` gera três dashes com nome e Id próprios,
+todos com a faixa do `--diag` (`src/dash/variants.py`):
+
+| Versão | O que tem | Fórmulas (JS) |
+|---|---|---|
+| `iRacing_Dashboard_00_full` | o dash de hoje | 375 (180) |
+| `iRacing_Dashboard_00_minimal` | RPM/LEDs, marcha, velocidade, delta, pedais, avisos | 134 (3) |
+| `iRacing_Dashboard_00_empty` | só os fundos dos cartões | 4 (1) |
+
+O usuário roda o mesmo replay do iRacing ~1 min por versão, sem mudar nada no
+SimHub, e anota CPU e memória do processo SimHub no Gerenciador de Tarefas
+mais os números da faixa. full − empty = custo do dash; full − minimal =
+quanto um dash mínimo economizaria. Resultado decide se as fases 1–4 valem.
 
 **Fase 1 — Cadência por categoria (sem mudança visual).** Uma regra única no
 gerador (ex.: helper `cadence(item, kind)` em `widgets.py`) aplicando

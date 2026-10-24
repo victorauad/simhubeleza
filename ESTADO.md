@@ -41,7 +41,8 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
 ## Próximos passos
 
 - **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
-  (fases 0–6, começar por medir).
+  (fases 0–6). Fase 0: versões de medição prontas
+  (`python3 build.py --variant=all`), falta o usuário medir no PC.
 - **Estados temporários dos componentes laterais** (Damage, Lap Review,
   Weather, New Lap Info) — **implementados**, falta validar no SimHub e
   receber do usuário o nome do botão Damage Report e as propriedades de
