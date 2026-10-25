@@ -40,10 +40,14 @@ GRAPHITE_4 = "#FF1F2328"      # superficie sobre tile
 GRAPHITE_5 = "#FF23272D"      # trilho apagado de barra
 GRAPHITE_6 = "#FF24292F"      # borda sutil
 GRAPHITE_7 = "#FF3A4048"      # borda forte
-GRAPHITE_8 = "#FF525861"      # sem uso ainda: ponto medio entre 7 e 9
-GRAPHITE_9 = "#FF6B717A"      # texto apagado
+GRAPHITE_8 = "#FF595F67"      # sem uso ainda: ponto medio entre 7 e 9
+#: Texto apagado. Era #6B717A, Lc 25-27: abaixo do minimo absoluto do APCA
+#: (Lc 30) em toda superficie. Subiu o menos possivel, sem mudar o matiz.
+GRAPHITE_9 = "#FF777D86"
 GRAPHITE_10 = "#FF9AA0A8"     # texto secundario
-GRAPHITE_11 = "#FFB0B6BD"     # texto
+#: Texto. Um ponto acima do #B0B6BD do canvas para fechar Lc 60 tambem
+#: sobre a superficie elevada (linhas do leaderboard).
+GRAPHITE_11 = "#FFB1B7BE"
 GRAPHITE_12 = "#FFFFFFFF"     # branco verdadeiro
 
 # --- Superficies -------------------------------------------------------------

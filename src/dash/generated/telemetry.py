@@ -9,6 +9,7 @@ from simhub.model import (
     OFF, ChartItem, GearText, GradientItem, GroupItem, ImageItem,
     Layer, LinearGaugeItem, RectangleItem, TextItem, WidgetItem,
 )
+from simhub.theme import TEXT_TERTIARY, TILE, TILE_RAISED
 
 #: Campos do dashboard fora da arvore de controles.
 SHELL = {
@@ -124,8 +125,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='0',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,
@@ -142,8 +143,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='0',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,
@@ -159,7 +160,7 @@ def items():
                 ),
                 RectangleItem(
                     name='Line 1',
-                    BackgroundColor='#FF1F2328',
+                    BackgroundColor=TILE_RAISED,
                     BorderStyle={
                         "BorderColor": '#00FFFFFF',
                     },
@@ -184,8 +185,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='25',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,
@@ -202,7 +203,7 @@ def items():
                 ),
                 RectangleItem(
                     name='Line 2',
-                    BackgroundColor='#FF1F2328',
+                    BackgroundColor=TILE_RAISED,
                     BorderStyle={
                         "BorderColor": '#00FFFFFF',
                     },
@@ -227,8 +228,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='50',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,
@@ -245,7 +246,7 @@ def items():
                 ),
                 RectangleItem(
                     name='Line 3',
-                    BackgroundColor='#FF1F2328',
+                    BackgroundColor=TILE_RAISED,
                     BorderStyle={
                         "BorderColor": '#00FFFFFF',
                     },
@@ -270,8 +271,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='75',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,
@@ -288,7 +289,7 @@ def items():
                 ),
                 RectangleItem(
                     name='Line 4',
-                    BackgroundColor='#FF1F2328',
+                    BackgroundColor=TILE_RAISED,
                     BorderStyle={
                         "BorderColor": '#00FFFFFF',
                     },
@@ -313,8 +314,8 @@ def items():
                         Font='Arame Mono',
                         FontSize=18.0,
                         Text='100',
-                        TextColor='#FF6B717A',
-                        BackgroundColor='#FF181B1F',
+                        TextColor=TEXT_TERTIARY,
+                        BackgroundColor=TILE,
                         BorderStyle={
                             "RadiusTopLeft": 5,
                             "RadiusTopRight": 5,

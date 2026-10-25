@@ -17,6 +17,7 @@ python3 tools/dump_formulas.py      # re-extrai as fórmulas do original
 python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
 python3 tools/check_leaderboard.py  # leaderboard novo == original (Node)
+python3 tools/check_contrast.py     # texto do theme acima dos pisos do APCA
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
@@ -58,6 +59,12 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
 - **Design system**: `src/simhub/theme.py` com a paleta watchOS;
   `src/dash/layout.py` com a grade do wireframe; `src/dash/widgets.py` com
   `tile`, `value_unit`, `caption`, `segmented_bar`, `ramp`.
+- **Paleta em papéis** (caminho A do relatório `reports/Evolução visual do
+  dashboard SimHub.md`): os cinzas viraram a escala `GRAPHITE_1..12` com os
+  papéis do Radix Colors, e BACKGROUND/TILE/TEXT etc. são apelidos de degrau.
+  Brilhos da marcha e linha do jogador saem de `alpha()` sobre o acento.
+  Únicas mudanças visíveis: TEXT_TERTIARY #6B717A -> #777D86 e TEXT #B0B6BD ->
+  #B1B7BE, para fechar os pisos de contraste (`check_contrast.py`).
 - **Fase 5 completa**: todas as regiões redesenhadas, cada uma em seu módulo
   em `src/dash/`, ligadas pelo dicionário `EXTRACTED` em `tools/decompile.py`:
 
