@@ -65,6 +65,12 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   Brilhos da marcha e linha do jogador saem de `alpha()` sobre o acento.
   Únicas mudanças visíveis: TEXT_TERTIARY #6B717A -> #777D86 e TEXT #B0B6BD ->
   #B1B7BE, para fechar os pisos de contraste (`check_contrast.py`).
+- **Ícones em traço (Lucide)** (caminho A de ícones do relatório): clima,
+  tendência e vento do estado Weather saem de SVGs do Lucide (ISC) versionados
+  em `assets/icons/lucide/` com a licença. `tools/make_state_icons.py` pinta cada
+  elemento com um token do theme (`ICON`, `ICON_DIM`, `ICON_SUN`, `ICON_RAIN`)
+  e usa traço 2 do grid de 24, engrossado até 2 px na tela nas setas pequenas.
+  Mesmos nomes e tamanhos de PNG; trocar um ícone = trocar o nome no `ICONS`.
 - **Fase 5 completa**: todas as regiões redesenhadas, cada uma em seu módulo
   em `src/dash/`, ligadas pelo dicionário `EXTRACTED` em `tools/decompile.py`:
 

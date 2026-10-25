@@ -143,6 +143,14 @@ BIAS = AMBER
 BIAS_UP = GREEN
 BIAS_DOWN = RED
 
+#: Icones de traco (Lucide, tools/make_state_icons.py): o traco no cinza dos
+#: valores, a parte de tras e as setas um degrau abaixo, e cor so onde ela
+#: carrega a condicao -- sol amarelo, chuva ciano.
+ICON = GRAPHITE_11
+ICON_DIM = GRAPHITE_10
+ICON_SUN = YELLOW
+ICON_RAIN = CYAN
+
 # --- Chips de aviso da barra superior ----------------------------------------
 #
 # Quinze avisos no mesmo chip, um por vez. Cada um e um par (fundo, texto): o
