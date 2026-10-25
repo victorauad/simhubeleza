@@ -71,6 +71,13 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   elemento com um token do theme (`ICON`, `ICON_DIM`, `ICON_SUN`, `ICON_RAIN`)
   e usa traço 2 do grid de 24, engrossado até 2 px na tela nas setas pequenas.
   Mesmos nomes e tamanhos de PNG; trocar um ícone = trocar o nome no `ICONS`.
+- **Etiquetas de estado** (caminho C de ícones): `widgets.badge()` é o chip
+  chanfrado com rótulo em caixa alta, usado pelos 15 avisos da barra superior
+  e por `top_bar.STATE_CHIPS`. Dois níveis: aviso é o chip cheio que pisca;
+  estado aceso é fundo tingido com filete e texto no acento, sem piscar, por
+  baixo de todos os avisos. Primeiro estado: **PIT LIMITER** (ciano, a mesma
+  condição dos LEDs), que antes só aparecia pela cor. No pit, PIT LIMITER é o
+  estado e SPEEDING o aviso. O preview `pit-limiter` mostra o chip junto.
 - **Fase 5 completa**: todas as regiões redesenhadas, cada uma em seu módulo
   em `src/dash/`, ligadas pelo dicionário `EXTRACTED` em `tools/decompile.py`:
 

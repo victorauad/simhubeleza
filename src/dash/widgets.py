@@ -7,7 +7,7 @@ segmentada -- sao montados aqui uma vez e reusados pelas regioes.
 
 from simhub.model import OFF, RectangleItem, TextItem
 from simhub.theme import (
-    CORNER_RADIUS_TILE, FONT_MONO, MONO_ADVANCE, SIZE_LABEL, SIZE_UNIT, SIZE_VALUE, TEXT,
+    CORNER_RADIUS_CHIP, CORNER_RADIUS_TILE, FONT_MONO, MONO_ADVANCE, SIZE_LABEL, SIZE_UNIT, SIZE_VALUE, TEXT,
     SEPARATOR, TEXT_SECONDARY, TILE, TRACK, WEIGHT_LABEL, WEIGHT_UNIT, WEIGHT_VALUE,
     rounded,
 )
@@ -102,6 +102,36 @@ def caption(x, y, width, content, *, name=None, color=TEXT_SECONDARY,
     return text(x, y, width, height, content.upper(), name=name or "Caption",
                 size=size, color=color, weight=WEIGHT_LABEL, align=align,
                 bindings=bindings)
+
+
+def badge(region, label, *, name, background, color, size, border=None,
+          inset=4.0, visible=True, bindings=None):
+    """Etiqueta em caixa alta num chip chanfrado: a linguagem do volante do
+    SF23, onde estado e aviso sao texto curto e cor, nao pictograma.
+
+    Dois niveis, pela combinacao de cores (ver theme): aviso e o chip cheio
+    na cor do significado; estado que so fica aceso (pit limiter) e o fundo
+    tingido com filete e texto no acento. `bindings` vale para o chip e o
+    rotulo juntos.
+    """
+    chip = RectangleItem(
+        name=name,
+        IsRectangleItem=True,
+        BackgroundColor=background,
+        BorderStyle=rounded(border, 1, radius=CORNER_RADIUS_CHIP),
+        Left=region.x, Top=region.y, Width=region.width, Height=region.height,
+        Visible=visible,
+        BlinkPhasisInverted=False,
+        RenderingSkip=0,
+        MinimumRefreshIntervalMS=0.0,
+        bindings=bindings,
+    )
+    caption = text(region.x + inset, region.y + inset,
+                   region.width - inset * 2, region.height - inset * 2, label,
+                   name=f"{name} Label", size=size, color=color,
+                   weight="Bold", align=CENTER, bindings=bindings)
+    caption["Visible"] = visible
+    return [chip, caption]
 
 
 def value_unit(region, value, unit, *, name="Value", unit_width=None,

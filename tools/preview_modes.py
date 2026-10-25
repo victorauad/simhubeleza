@@ -67,6 +67,8 @@ LED_STATES = {
     "shift-light": "Shift Light",
     "pit-limiter": "Shift Light2",
 }
+#: Estado do chip que acende junto com o LED (top_bar.STATE_CHIPS).
+LED_CHIPS = {"pit-limiter": "Pit Limiter"}
 
 #: Telemetria de exemplo, igual em todos os previews: sem ela os pedais e o
 #: delta saem vazios e a marcha mostra "N". Nome do controle -> campos.
@@ -165,7 +167,7 @@ LEFT_STATES = {"Damage", "Weather", "Lap Review"}
 HIDDEN = {"Invalid Lap"}
 
 MODE_LAYERS = {"Standings", "Practice", "Relative"}
-BANNER_NAMES = set(FLAGS.values())
+BANNER_NAMES = set(FLAGS.values()) | set(LED_CHIPS.values())
 LED_LAYERS = set(LED_STATES.values())
 
 
@@ -285,7 +287,7 @@ def main(argv=None):
         print(f"{slug:20} -> {target}")
     for slug, layer_name in LED_STATES.items():
         target = render(slug, base_visible, base_repetitions, out_dir, work,
-                        led=layer_name)
+                        led=layer_name, flag=LED_CHIPS.get(slug))
         print(f"{slug:20} -> {target}")
     shutil.rmtree(work, ignore_errors=True)
 

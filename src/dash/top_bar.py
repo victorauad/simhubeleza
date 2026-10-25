@@ -19,13 +19,14 @@ from simhub.theme import (
     BRAKE, BRAKE_TRACK, CHIP_SLOT_BORDER, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
     FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_CHECKERED, FLAG_DIRT, FLAG_GREEN,
     FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_RED, FLAG_REPAIR,
-    FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, ORANGE,
+    FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, LIMITER, LIMITER_BADGE,
+    ORANGE,
     PANEL as PANEL_COLOR,
     SIZE_HERO, SIZE_LABEL, SLOWER, SURFACE_RAISED, TEXT, TEXT_DIM,
     TEXT_ON_LIGHT, THROTTLE, THROTTLE_TRACK, TILE, rounded,
 )
 from . import layout as grid
-from .widgets import CENTER, LEFT, RIGHT, text, tile
+from .widgets import CENTER, LEFT, RIGHT, badge, text, tile
 
 #: O painel da barra, com a mesma margem de todo o resto do dash.
 PANEL = grid.Region(grid.MARGIN, grid.MARGIN,
@@ -258,38 +259,37 @@ CHIPS = [
     ("Flag Red", "RED FLAG", FLAG_RED, TEXT, raw_flag("red")),
 ]
 
+#: Estados que ficam acesos enquanto duram, por baixo de todos os avisos: um
+#: aviso que acende cobre o estado e, quando apaga, o estado reaparece.
+#: (nome, rotulo, fundo, cor do filete e do texto, condicao)
+STATE_CHIPS = [
+    ("Pit Limiter", "PIT LIMITER", LIMITER_BADGE, LIMITER,
+     "if([PitLimiterOn] && [DataCorePlugin.GameRunning], 1, 0)"),
+]
+
 #: Nomes dos chips, na ordem em que aparecem -- consumido pelo preview de
 #: modos, que forca um de cada vez.
-CHIP_NAMES = [name for name, *_ in CHIPS]
+CHIP_NAMES = [name for name, *_ in STATE_CHIPS + CHIPS]
 
 
 def chip(side, name, label, background, color, formula):
     """Um estado do chip de aviso: pilula colorida com o rotulo dentro."""
-    area = side_box(side, *CHIP)
-    inset = 4.0
     bindings = None
     if formula:
         condition = ncalc(formula)
         bindings = {"Visible": condition, "BlinkEnabled": condition}
+    return badge(side_box(side, *CHIP), label, name=name,
+                 background=background, color=color, size=CHIP_TEXT_SIZE,
+                 visible=bool(formula), bindings=bindings)
 
-    pill = RectangleItem(
-        name=name,
-        IsRectangleItem=True,
-        BackgroundColor=background,
-        BorderStyle=rounded(radius=CORNER_RADIUS_CHIP),
-        Left=area.x, Top=area.y, Width=area.width, Height=area.height,
-        Visible=bool(formula),
-        BlinkPhasisInverted=False,
-        RenderingSkip=0,
-        MinimumRefreshIntervalMS=0.0,
-        bindings=bindings,
-    )
-    caption = text(area.x + inset, area.y + inset,
-                   area.width - inset * 2, area.height - inset * 2, label,
-                   name=f"{name} Label", size=CHIP_TEXT_SIZE, color=color,
-                   weight="Bold", align=CENTER, bindings=bindings)
-    caption["Visible"] = bool(formula)
-    return [pill, caption]
+
+def state_chip(side, name, label, background, color, formula):
+    """Um estado aceso no chip: fundo tingido, filete e texto no acento.
+    Nao pisca -- piscar e para aviso."""
+    return badge(side_box(side, *CHIP), label, name=name,
+                 background=background, color=color, border=color,
+                 size=CHIP_TEXT_SIZE, visible=False,
+                 bindings={"Visible": ncalc(formula)})
 
 
 def chip_slot(side):
@@ -310,6 +310,7 @@ def chips(side):
     specs = [spec for spec in CHIPS if ONE_SIDED.get(spec[0], side) is side]
     return Layer(
         chip_slot(side),
+        *(item for spec in STATE_CHIPS for item in state_chip(side, *spec)),
         *(item for spec in specs for item in chip(side, *spec)),
         name="Alerrts" if side is LEFT else "Alerrts2",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,

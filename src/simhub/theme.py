@@ -171,6 +171,12 @@ FLAG_REPAIR = "#FF050607"     # meatball: preto com o disco laranja no texto
 FLAG_SLOW_CAR = AMBER         # carro lento/parado a frente
 FLAG_SPEEDING = CYAN          # ciano do pit: acima do limite no pit lane
 
+#: Estado que so fica aceso enquanto dura, no mesmo chip dos avisos: fundo
+#: tingido do acento, filete e texto no acento, sem piscar. O aviso que pede
+#: acao e o chip cheio que pisca -- no pit, PIT LIMITER e o estado e
+#: SPEEDING o aviso, os dois em ciano.
+LIMITER_BADGE = alpha(LIMITER, 14)
+
 # --- Tipografia --------------------------------------------------------------
 
 #: Arame Mono e monoespacada de verdade (todo glifo com 0.6 em), entao
