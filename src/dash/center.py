@@ -14,7 +14,7 @@ from simhub.model import OFF, GearText, Layer, RectangleItem
 from simhub.theme import (
     FONT_GEAR, GLOW_IDLE, GLOW_LIMITER, GLOW_OTS_ACTIVE, GLOW_OTS_COOLDOWN,
     GLOW_SHIFT, GUTTER, PADDING, SIZE_GEAR, SIZE_LABEL, SIZE_VALUE,
-    GEAR, TEXT, WEIGHT_VALUE, rounded,
+    DIVIDER, GEAR, TEXT, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
 from . import balance, ots
@@ -32,7 +32,6 @@ BALANCE_GAP = 4.0
 DISC = 180.0
 GLOW = 200.0
 GLOW_BLUR = 32.0
-DIVIDER = "#FF3A4048"
 
 #: Cor do brilho, por prioridade: limite de RPM (roxo) > push to pass ativo
 #: (verde) > push to pass carregando (vermelho) > pit limiter (ciano) >

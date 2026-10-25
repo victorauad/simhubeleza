@@ -21,7 +21,7 @@ piloto sem volta no treino mostra N/A em vez de "+-82.9".
 from simhub.bindings import js
 from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
-    FASTER as THEME_FASTER, FONT, FONT_MONO, PLAYER, SIZE_LABEL,
+    FASTER as THEME_FASTER, FONT, FONT_MONO, PLAYER, PLAYER_ROW, SIZE_LABEL,
     SLOWER as THEME_SLOWER, TEXT, TEXT_SECONDARY, TEXT_TERTIARY, TILE_RAISED,
 )
 from . import layout as grid
@@ -96,7 +96,7 @@ ROW_INSET = 3.0
 TEXT_GRAY = TEXT_SECONDARY
 ROW_BG = TILE_RAISED
 #: Linha do jogador: ambar translucido sob nome ambar (canvas Grafite).
-ROW_BG_PLAYER = "#38F4A73A"
+ROW_BG_PLAYER = PLAYER_ROW
 DISCONNECTED = TEXT_TERTIARY
 FASTER = THEME_FASTER
 SLOWER = THEME_SLOWER

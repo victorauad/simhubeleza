@@ -16,7 +16,7 @@ from simhub.model import (
     ImageItem, Layer, LinearGaugeItem, RectangleItem, WidgetItem,
 )
 from simhub.theme import (
-    BRAKE, BRAKE_TRACK, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
+    BRAKE, BRAKE_TRACK, CHIP_SLOT_BORDER, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
     FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_CHECKERED, FLAG_DIRT, FLAG_GREEN,
     FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_RED, FLAG_REPAIR,
     FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, ORANGE,
@@ -82,7 +82,6 @@ CHIP = (LEDS[0] + LEDS[2] + CHIP_GAP, ROW_RPM,
         PEDAL_VALUE[0] + PEDAL_VALUE_WIDTH - (LEDS[0] + LEDS[2] + CHIP_GAP),
         ROW_HEIGHT)
 CHIP_TEXT_SIZE = 17.0
-CHIP_SLOT_BORDER = "#FF1E2227"
 
 #: Miolo do cartao: rotulos e numero em cima; pente do delta progress e
 #: trilho fino do delta absoluto embaixo, alinhados ao rodape.

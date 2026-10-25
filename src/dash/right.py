@@ -25,7 +25,7 @@ from simhub.model import OFF, Layer, RectangleItem, TextItem
 from simhub.theme import (
     BACKGROUND, CORNER_RADIUS, CORNER_RADIUS_TILE, CYAN, FASTER, FONT, GUTTER,
     SLOWER,
-    MONO_ADVANCE, PADDING, PLAYER, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
+    MONO_ADVANCE, PADDING, PLAYER, PLAYER_ROW_EDGE, SIZE_LABEL, SIZE_VALUE_SM, TEXT, TEXT_SECONDARY,
     TEXT_TERTIARY, TILE, TILE_RAISED, WEIGHT_VALUE, rounded,
 )
 from . import layout as grid
@@ -38,7 +38,6 @@ BODY = leaderboard.BODY
 
 #: Linha do jogador: ambar translucido com filete ambar, como no canvas.
 PLAYER_ROW = leaderboard.ROW_BG_PLAYER
-PLAYER_ROW_EDGE = "#8CF4A73A"
 
 #: Condicoes que decidem qual modo aparece.
 #:

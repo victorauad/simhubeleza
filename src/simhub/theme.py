@@ -7,37 +7,82 @@ rotulos em caixa alta, barras em pente cujo restante fica apagado.
 
 Toda cor e todo tamanho do dashboard sai daqui. Nenhum literal de cor deve
 aparecer nos modulos de layout.
+
+As cores vem em duas camadas. Os primitivos sao a escala grafite e os
+acentos, cada um com um hex. Os papeis (BACKGROUND, TILE, TEXT, FASTER...)
+sao apelidos de primitivos, e sao so eles que os modulos de layout importam.
+Trocar a aparencia e trocar um primitivo; mudar o que um elemento significa
+e reapontar um papel.
 """
+
+
+def alpha(color, percent):
+    """Mesma cor com outra opacidade. Aceita e devolve #AARRGGBB.
+
+    Arredonda meio para cima, como o canvas de design: 30% de 255 da 77.
+    """
+    value = max(0, min(255, int(255 * percent / 100 + 0.5)))
+    return f"#{value:02X}{color[3:]}"
+
+
+# --- Primitivos: escala grafite ----------------------------------------------
+#
+# Doze degraus de cinza azulado, do fundo ao branco, com os papeis da escala
+# do Radix Colors (radix-ui.com/colors, MIT): 1-2 fundos, 3-5 elementos, 6-8
+# bordas, 9-10 texto apagado, 11-12 texto. Os hex sao os da paleta Grafite;
+# do Radix vem so a convencao de qual degrau serve para que. Os degraus 1-6
+# ficam mais escuros e mais juntos que no Radix: o dash e quase todo fundo.
+
+GRAPHITE_1 = "#FF0C0E11"      # fundo do dash
+GRAPHITE_2 = "#FF121519"      # painel, um degrau abaixo do tile
+GRAPHITE_3 = "#FF181B1F"      # tile: media do gradiente #1C2025 -> #15181C
+GRAPHITE_4 = "#FF1F2328"      # superficie sobre tile
+GRAPHITE_5 = "#FF23272D"      # trilho apagado de barra
+GRAPHITE_6 = "#FF24292F"      # borda sutil
+GRAPHITE_7 = "#FF3A4048"      # borda forte
+GRAPHITE_8 = "#FF525861"      # sem uso ainda: ponto medio entre 7 e 9
+GRAPHITE_9 = "#FF6B717A"      # texto apagado
+GRAPHITE_10 = "#FF9AA0A8"     # texto secundario
+GRAPHITE_11 = "#FFB0B6BD"     # texto
+GRAPHITE_12 = "#FFFFFFFF"     # branco verdadeiro
 
 # --- Superficies -------------------------------------------------------------
 #
 # Paleta "Grafite" (referencia-design/ e o canvas de refino): grafite quase
 # preto, tiles um degrau acima com chanfro, um acento por significado.
 
-BACKGROUND = "#FF0C0E11"      # fundo do dash
-PANEL = "#FF121519"           # painel da barra superior, um degrau abaixo do tile
-TILE = "#FF181B1F"            # tile: media do gradiente #1C2025 -> #15181C
-TILE_RAISED = "#FF1F2328"     # linha de lista, superficie sobre tile
-SEPARATOR = "#FF24292F"       # filete entre campos
+BACKGROUND = GRAPHITE_1       # fundo do dash
+PANEL = GRAPHITE_2            # painel da barra superior
+TILE = GRAPHITE_3
+TILE_RAISED = GRAPHITE_4      # linha de lista, superficie sobre tile
+SEPARATOR = GRAPHITE_6        # filete entre campos
+DIVIDER = GRAPHITE_7          # divisor sob a marcha
 
 #: Trilho apagado de qualquer barra -- o espaco que um dado vai ocupar.
-SURFACE_RAISED = "#FF23272D"
+SURFACE_RAISED = GRAPHITE_5
 TRACK = SURFACE_RAISED
+
+#: Borda do encaixe do chip de aviso: entre o tile e a superficie sobre ele,
+#: fora da escala de proposito -- so contorna o chip apagado.
+CHIP_SLOT_BORDER = "#FF1E2227"
 
 # --- Texto -------------------------------------------------------------------
 
 #: Valores: cinza claro, legivel com o dash reduzido mas sem peso -- o unico
 #: branco verdadeiro e a marcha (GEAR), para ela ser a primeira leitura.
-TEXT = "#FFB0B6BD"
-GEAR = "#FFFFFFFF"
-TEXT_SECONDARY = "#FF9AA0A8"  # rotulos
-TEXT_TERTIARY = "#FF6B717A"   # unidades, dado desligado
+TEXT = GRAPHITE_11
+GEAR = GRAPHITE_12
+TEXT_SECONDARY = GRAPHITE_10  # rotulos
+TEXT_TERTIARY = GRAPHITE_9    # unidades, dado desligado
 TEXT_ON_LIGHT = "#FF0A0B0D"   # sobre chip claro (amarelo, branco, laranja)
 
 #: Rotulo da barra superior: o mesmo cinza dos rotulos do resto do dash.
 TEXT_DIM = TEXT_SECONDARY
 
 # --- Acentos -----------------------------------------------------------------
+#
+# Um primitivo por matiz, no papel do degrau 9 do Radix (cor solida). Uma
+# variante mais clara, quando existe, fica junto do papel que a usa.
 
 GREEN = "#FF34D27B"
 YELLOW = "#FFFFD23F"
@@ -77,14 +122,17 @@ OTS_BLOCKED = TEXT_TERTIARY
 ALERT = ORANGE                # off-track, clipping, input overlap
 
 PLAYER = AMBER                # destaque do jogador no leaderboard
+#: Linha do jogador: ambar translucido com filete ambar, como no canvas.
+PLAYER_ROW = alpha(PLAYER, 22)
+PLAYER_ROW_EDGE = alpha(PLAYER, 55)
 DISCONNECTED = TEXT_TERTIARY
 
 #: Brilho atras do disco da marcha, por estado (ver center.gear_glow).
-GLOW_SHIFT = "#6BB56CFF"
-GLOW_OTS_ACTIVE = "#6134D27B"
-GLOW_OTS_COOLDOWN = "#5CFF4B3E"
-GLOW_LIMITER = "#4D49C6F5"
-GLOW_IDLE = "#3DF4A73A"
+GLOW_SHIFT = alpha(SHIFT, 42)
+GLOW_OTS_ACTIVE = alpha(GREEN, 38)
+GLOW_OTS_COOLDOWN = alpha(OTS_COOLDOWN, 36)
+GLOW_LIMITER = alpha(LIMITER, 30)
+GLOW_IDLE = alpha(AMBER, 24)
 
 #: Brake bias: ambar em repouso, verde/vermelho por um instante quando muda.
 BIAS = AMBER
@@ -179,12 +227,6 @@ def rounded(border_color=None, thickness=3, radius=CORNER_RADIUS):
         "RadiusBottomLeft": bl, "RadiusBottomRight": br,
     })
     return style
-
-
-def alpha(color, percent):
-    """Mesma cor com outra opacidade. Aceita e devolve #AARRGGBB."""
-    value = max(0, min(255, round(255 * percent / 100)))
-    return f"#{value:02X}{color[3:]}"
 
 
 #: Pente dos pedais. O vao entre dentes e so um veu sobre o gauge: o aceso
