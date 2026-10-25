@@ -5,7 +5,8 @@ que distingue texto claro sobre fundo escuro. Os pisos sao os niveis do
 APCA (github.com/Myndex/apca-w3): Lc 60 para texto de conteudo, 45 para
 texto grande e pesado, 30 o minimo absoluto. Todo texto tambem passa de
 4.5:1 no WCAG (AA para texto pequeno). Os acentos sao cor de barra e
-de chip, entao pedem so 3:1 do WCAG (elemento grafico).
+de chip, entao pedem so 3:1 do WCAG (elemento grafico). O rotulo de cada
+chip de aviso da barra superior pede 4.5:1 sobre o proprio chip.
 
     python3 tools/check_contrast.py        (sai com 1 se algum par falhar)
 """
@@ -16,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from dash import top_bar  # noqa: E402
 from simhub import theme  # noqa: E402
 
 SURFACES = ("BACKGROUND", "PANEL", "TILE", "TILE_RAISED")
@@ -40,6 +42,13 @@ ACCENT_FLOOR = 3.0
 def channels(color):
     """#AARRGGBB -> (r, g, b) em 0..1. O alfa e ignorado: so cores opacas."""
     return tuple(int(color[i:i + 2], 16) / 255 for i in (3, 5, 7))
+
+
+def blend(color, under, opacity):
+    """`color` com `opacity` (0..1) por cima de `under`, opaco."""
+    mixed = (round((a * opacity + b * (1 - opacity)) * 255)
+             for a, b in zip(channels(color), channels(under)))
+    return "#FF" + "".join(f"{c:02X}" for c in mixed)
 
 
 def wcag_ratio(fg, bg):
@@ -82,6 +91,17 @@ def main():
         failures += not ok
         print(f"{'ok  ' if ok else 'FALHA'} {name:15} sobre TILE        "
               f" {ratio:5.2f}:1 (piso {ACCENT_FLOOR}:1)")
+    for name, label, hue, ink, _, level in top_bar.CHIPS:
+        if level == top_bar.INFO:
+            # Tingido: o texto e o acento sobre o painel com o veu do acento.
+            ink, chip = hue, blend(hue, theme.PANEL, theme.BADGE_TINT / 100)
+        else:
+            chip = hue
+        ratio = wcag_ratio(ink, chip)
+        ok = ratio >= TEXT_RATIO
+        failures += not ok
+        print(f"{'ok  ' if ok else 'FALHA'} chip {label:11} ({level:7}) "
+              f" {ratio:5.2f}:1 (piso {TEXT_RATIO}:1)")
     print("\ntudo ok" if not failures else f"\n{failures} par(es) abaixo do piso")
     return 1 if failures else 0
 

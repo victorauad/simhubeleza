@@ -73,12 +73,19 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   e usa traço 2 do grid de 24, engrossado até 2 px na tela nas setas pequenas.
   Mesmos nomes e tamanhos de PNG; trocar um ícone = trocar o nome no `ICONS`.
 - **Etiquetas de estado** (caminho C de ícones): `widgets.badge()` é o chip
-  chanfrado com rótulo em caixa alta, usado pelos 15 avisos da barra superior
-  e por `top_bar.STATE_CHIPS`. Dois níveis: aviso é o chip cheio que pisca;
-  estado aceso é fundo tingido com filete e texto no acento, sem piscar, por
-  baixo de todos os avisos. Primeiro estado: **PIT LIMITER** (ciano, a mesma
-  condição dos LEDs), que antes só aparecia pela cor. No pit, PIT LIMITER é o
-  estado e SPEEDING o aviso. O preview `pit-limiter` mostra o chip junto.
+  chanfrado com rótulo em caixa alta, usado por todos os avisos da barra
+  superior. **PIT LIMITER** (ciano, a mesma condição dos LEDs) entrou no chip;
+  antes o limitador só aparecia pela cor. O preview `pit-limiter` mostra o chip.
+- **Avisos em três níveis** (caminho B de usabilidade, camada visual):
+  `top_bar.CHIPS` leva o nível de cada aviso. Info (pit limiter, verde,
+  branca, quadriculada, incidente): tingido, fixo, por baixo. Cautela
+  (amarela, azul, spotter, carro lento, sujeira, pedais juntos): cheio, fixo.
+  Alerta (SPEEDING, BLACK, REPAIR, RED FLAG): cheio, pisca, por cima. Só o
+  alerta pisca (antes os 15 piscavam). Bandeira verde some 5 s depois de
+  acender. Vermelho ficou só para alerta (e para o par de direção do delta e
+  do bias): incidente virou âmbar tingido, e a recarga do OTS virou cinza e
+  saiu do brilho da marcha. Rótulo de todo chip com 4.5:1 (`check_contrast`).
+  Falta a segunda etapa: um alerta visível mais um contador (+2).
 - **Hierarquia de leitura** (caminho A de usabilidade): escala de tamanhos do
   `theme.py` documentada em 5 níveis. Rótulo é um tamanho só no dash inteiro,
   12.5 (era 10.5 no corpo e 12.5 no rodapé; cabeçalhos do log e do dano em 12).

@@ -5,8 +5,8 @@ faixa nao se divide em tiles: estado a esquerda, segundos a direita, e uma
 barra fina no rodape mostrando o quanto sobrou sem exigir leitura de numero.
 
 As formulas de estado sao as do original; so os literais de cor mudaram, para
-a paleta Grafite: verde pronto, roxo piscando enquanto ativo, vermelho
-carregando. Hex #AARRGGBB na formula, como o original ja faz em outras cores.
+a paleta Grafite: verde pronto, roxo piscando enquanto ativo, cinza
+carregando (vermelho e so para alerta). Hex #AARRGGBB na formula, como o original ja faz em outras cores.
 
 A barra e um pente, como as da barra superior: trilho, gauge e uma mascara
 (`OtsComb`, gerada por `tools/make_combs.py`).

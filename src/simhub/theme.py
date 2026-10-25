@@ -80,7 +80,8 @@ TEXT = GRAPHITE_11
 GEAR = GRAPHITE_12
 TEXT_SECONDARY = GRAPHITE_10  # rotulos
 TEXT_TERTIARY = GRAPHITE_9    # unidades, N/A, dado desligado
-TEXT_ON_LIGHT = "#FF0A0B0D"   # sobre chip claro (amarelo, branco, laranja)
+TEXT_ON_LIGHT = "#FF0A0B0D"   # sobre chip claro (amarelo, laranja, azul, vermelho)
+TEXT_ON_DARK = GRAPHITE_12    # sobre chip escuro e saturado (terra)
 
 #: Rotulo da barra superior: o mesmo cinza dos rotulos do resto do dash.
 TEXT_DIM = TEXT_SECONDARY
@@ -113,7 +114,10 @@ LIMITER = CYAN                # pit limiter ligado
 LIMITER_BORDER = "#FF9BE2FF"
 LED_OFF = "#FF111317"
 
-FASTER = GREEN                # delta e diferenca de volta
+#: Delta e diferenca de volta. Verde/vermelho aqui e par de direcao (mais
+#: rapido / mais lento, como o bias que sobe / desce), a convencao de pista,
+#: e o numero sempre traz o sinal: a unica excecao ao vermelho so de alerta.
+FASTER = GREEN
 SLOWER = RED
 #: Pedais: o maior destaque do dash. Cor propria, mais saturada e clara que
 #: o verde/vermelho de delta, para nao disputar com nada no painel.
@@ -122,7 +126,9 @@ BRAKE = "#FFFF2D2D"
 
 OTS_READY = GREEN             # push-to-pass do SF23
 OTS_ACTIVE = PURPLE           # piscando
-OTS_COOLDOWN = RED
+#: Recarga: cinza que conta, nao vermelho. Vermelho e so para alerta, e
+#: esperar a recarga nao pede acao.
+OTS_COOLDOWN = TEXT_SECONDARY
 OTS_BLOCKED = TEXT_TERTIARY
 
 ALERT = ORANGE                # off-track, clipping, input overlap
@@ -136,7 +142,6 @@ DISCONNECTED = TEXT_TERTIARY
 #: Brilho atras do disco da marcha, por estado (ver center.gear_glow).
 GLOW_SHIFT = alpha(SHIFT, 42)
 GLOW_OTS_ACTIVE = alpha(GREEN, 38)
-GLOW_OTS_COOLDOWN = alpha(OTS_COOLDOWN, 36)
 GLOW_LIMITER = alpha(LIMITER, 30)
 GLOW_IDLE = alpha(AMBER, 24)
 
@@ -155,8 +160,18 @@ ICON_RAIN = CYAN
 
 # --- Chips de aviso da barra superior ----------------------------------------
 #
-# Quinze avisos no mesmo chip, um por vez. Cada um e um par (fundo, texto): o
-# fundo carrega o significado a distancia, o texto so precisa de contraste.
+# Os avisos dividem o mesmo chip, um por vez, em tres niveis (top_bar.CHIPS):
+#
+#   alerta   agir agora (SPEEDING, BLACK, REPAIR, RED FLAG): chip cheio que
+#            pisca, por cima de tudo;
+#   cautela  agir em breve (bandeiras amarela e azul, spotter, carro lento,
+#            sujeira, pedais juntos): chip cheio, fixo;
+#   info     saber (verde, branca, quadriculada, incidente, pit limiter):
+#            chip tingido, fixo, por baixo de tudo.
+#
+# A cor do chip e a da bandeira, que e vocabulario de pista; o nivel decide
+# o comportamento e quem cobre quem. O texto nomeia o aviso, entao nenhum
+# depende so da cor. Vermelho fica so para alerta.
 
 FLAG_GREEN = GREEN
 FLAG_YELLOW = YELLOW
@@ -164,20 +179,19 @@ FLAG_WHITE = "#FFFFFFFF"      # bandeira branca e branco puro, nao o TEXT
 FLAG_BLACK = "#FF050607"
 FLAG_BLUE = BLUE
 FLAG_DIRT = "#FF8B5E34"       # marrom terra: pista suja
-FLAG_INCIDENT = RED           # vermelho: incidente ja levado
+FLAG_INCIDENT = AMBER         # incidente ja levado: info, nao alerta
 FLAG_PROXIMITY = ORANGE       # spotter: carro na esquerda / na direita
 FLAG_OVERLAP = "#FFD946EF"    # magenta: acelerador e freio juntos
-FLAG_CHECKERED = SURFACE_RAISED  # grafite com texto claro: fim da sessao
+FLAG_CHECKERED = TEXT         # fim da sessao: tingido em cinza claro
 FLAG_RED = RED                # sessao interrompida
 FLAG_REPAIR = "#FF050607"     # meatball: preto com o disco laranja no texto
 FLAG_SLOW_CAR = AMBER         # carro lento/parado a frente
 FLAG_SPEEDING = CYAN          # ciano do pit: acima do limite no pit lane
 
-#: Estado que so fica aceso enquanto dura, no mesmo chip dos avisos: fundo
-#: tingido do acento, filete e texto no acento, sem piscar. O aviso que pede
-#: acao e o chip cheio que pisca -- no pit, PIT LIMITER e o estado e
-#: SPEEDING o aviso, os dois em ciano.
-LIMITER_BADGE = alpha(LIMITER, 14)
+#: Chip tingido (nivel info): fundo com esta opacidade do acento, filete e
+#: texto no acento. No pit, PIT LIMITER e info e SPEEDING alerta, os dois em
+#: ciano: tingido e fixo contra cheio e piscando.
+BADGE_TINT = 14
 
 # --- Tipografia --------------------------------------------------------------
 

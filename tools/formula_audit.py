@@ -49,6 +49,7 @@ INTENDED = [
     ("/Relative/Driver Ahead Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
     ("/Relative/Driver Behind Repeat/Gap.Text", "gap em s.f, N/A sem dado"),
     ("/Practice/Lap Data/LapTime.Text", "volta em m:ss.f, N/A sem volta"),
+    ("/Alerrts/Green Flag.Visible", "bandeira verde: info, some 5 s depois de acender"),
 ]
 
 

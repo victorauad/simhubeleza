@@ -67,7 +67,7 @@ LED_STATES = {
     "shift-light": "Shift Light",
     "pit-limiter": "Shift Light2",
 }
-#: Estado do chip que acende junto com o LED (top_bar.STATE_CHIPS).
+#: Chip que acende junto com o LED (nivel info de top_bar.CHIPS).
 LED_CHIPS = {"pit-limiter": "Pit Limiter"}
 
 #: Telemetria de exemplo, igual em todos os previews: sem ela os pedais e o

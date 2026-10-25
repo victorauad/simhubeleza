@@ -12,7 +12,7 @@ Sem tile de fundo: o brilho e o proprio bloco.
 from simhub.bindings import formatted, ncalc
 from simhub.model import OFF, GearText, Layer, RectangleItem
 from simhub.theme import (
-    FONT_GEAR, GLOW_IDLE, GLOW_LIMITER, GLOW_OTS_ACTIVE, GLOW_OTS_COOLDOWN,
+    FONT_GEAR, GLOW_IDLE, GLOW_LIMITER, GLOW_OTS_ACTIVE,
     GLOW_SHIFT, GUTTER, PADDING, SIZE_GEAR, SIZE_LABEL, SIZE_VALUE,
     DIVIDER, GEAR, TEXT, WEIGHT_VALUE, rounded,
 )
@@ -34,14 +34,13 @@ GLOW = 200.0
 GLOW_BLUR = 32.0
 
 #: Cor do brilho, por prioridade: limite de RPM (roxo) > push to pass ativo
-#: (verde) > push to pass carregando (vermelho) > pit limiter (ciano) >
-#: repouso (ambar).
+#: (verde) > pit limiter (ciano) > repouso (ambar). A recarga do push to pass
+#: nao brilha: ja aparece no painel do OTS, e vermelho e so para alerta.
 GLOW_COLOR = (
     "if([Rpms] > [GameRawData.Telemetry.PlayerCarSLBlinkRPM], '%s',\n"
     "if([DahlDesign.SF23.OTActive], '%s',\n"
-    "if([DahlDesign.SF23.OTCooldownActive], '%s',\n"
-    "if([PitLimiterOn], '%s', '%s'))))"
-    % (GLOW_SHIFT, GLOW_OTS_ACTIVE, GLOW_OTS_COOLDOWN, GLOW_LIMITER, GLOW_IDLE)
+    "if([PitLimiterOn], '%s', '%s')))"
+    % (GLOW_SHIFT, GLOW_OTS_ACTIVE, GLOW_LIMITER, GLOW_IDLE)
 )
 
 

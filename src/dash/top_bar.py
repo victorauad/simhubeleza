@@ -19,11 +19,11 @@ from simhub.theme import (
     BRAKE, BRAKE_TRACK, CHIP_SLOT_BORDER, CORNER_RADIUS_CHIP, CORNER_RADIUS_PANEL, CORNER_RADIUS_TILE,
     FASTER, FLAG_BLACK, FLAG_BLUE, FLAG_CHECKERED, FLAG_DIRT, FLAG_GREEN,
     FLAG_INCIDENT, FLAG_OVERLAP, FLAG_PROXIMITY, FLAG_RED, FLAG_REPAIR,
-    FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, LIMITER, LIMITER_BADGE,
-    ORANGE,
+    FLAG_SLOW_CAR, FLAG_SPEEDING, FLAG_WHITE, FLAG_YELLOW, LIMITER,
+    BADGE_TINT, ORANGE,
     PANEL as PANEL_COLOR,
     SIZE_HERO, SIZE_LABEL, SLOWER, SURFACE_RAISED, TEXT, TEXT_DIM,
-    TEXT_ON_LIGHT, THROTTLE, THROTTLE_TRACK, TILE, rounded,
+    TEXT_ON_DARK, TEXT_ON_LIGHT, THROTTLE, THROTTLE_TRACK, TILE, alpha, rounded,
 )
 from . import layout as grid
 from .widgets import CENTER, LEFT, RIGHT, badge, text, tile
@@ -233,63 +233,73 @@ INCIDENT = ("if(isincreasing(3000, isnull("
             "[GameRawData.Telemetry.PlayerCarMyIncidentCount], 0)), 1, 0)")
 
 
+#: Niveis do chip (ver theme): o alerta pisca, cautela e info ficam fixos;
+#: info e tingido em vez de cheio.
+ALERT, CAUTION, INFO = "alert", "caution", "info"
+
+#: Bandeira verde e informacao de um instante: some 5 s depois de acender,
+#: mesmo que o SimHub a deixe ligada.
+GREEN_FOR = 5000
+
+
+def fresh(condition, ms):
+    """Verdadeiro so nos `ms` depois de a condicao (0/1) acender."""
+    return f"if(({condition}) && isincreasing({ms}, {condition}), 1, 0)"
+
+
+#: (nome, rotulo, cor do chip, cor do texto no chip cheio, condicao, nivel).
+#: A ordem importa: irmaos posteriores desenham por cima. Os niveis vao de
+#: info a alerta e, dentro de cada um, do menos ao mais urgente.
 CHIPS = [
-    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT, raw_flag("debris")),
-    ("Flag Incident", "INCIDENT", FLAG_INCIDENT, TEXT, INCIDENT),
-    ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT,
-     "if([Throttle]>5 && [Brake]>5,1,0)"),
+    # info: tingido, fixo
+    ("Pit Limiter", "PIT LIMITER", LIMITER, None,
+     "if([PitLimiterOn] && [DataCorePlugin.GameRunning], 1, 0)", INFO),
+    ("Flag Checkered", "CHECKER", FLAG_CHECKERED, None,
+     flag("Flag_Checkered"), INFO),
+    ("Flag White", "WHITE", FLAG_WHITE, None, flag("Flag_White"), INFO),
+    ("Flag Green", "GREEN", FLAG_GREEN, None,
+     fresh(flag("Flag_Green"), GREEN_FOR), INFO),
+    ("Flag Incident", "INCIDENT", FLAG_INCIDENT, None, INCIDENT, INFO),
+    # cautela: cheio, fixo
+    ("Flag Dirt", "DIRT", FLAG_DIRT, TEXT_ON_DARK, raw_flag("debris"), CAUTION),
+    ("Flag Overlap", "OVERLAP", FLAG_OVERLAP, TEXT_ON_LIGHT,
+     "if([Throttle]>5 && [Brake]>5,1,0)", CAUTION),
     ("Flag Car Left", "LEFT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
-     f"if({proximity(2, 4, 5)},1,0)"),
+     f"if({proximity(2, 4, 5)},1,0)", CAUTION),
     ("Flag Car Right", "RIGHT", FLAG_PROXIMITY, TEXT_ON_LIGHT,
-     f"if({proximity(3, 4, 6)},1,0)"),
-    ("Flag Blue", "BLUE", FLAG_BLUE, TEXT, flag("Flag_Blue")),
-    ("Flag Green", "GREEN", FLAG_GREEN, TEXT_ON_LIGHT, flag("Flag_Green")),
-    ("Flag White", "WHITE", FLAG_WHITE, TEXT_ON_LIGHT, flag("Flag_White")),
-    ("Flag Checkered", "CHECKER", FLAG_CHECKERED, TEXT,
-     flag("Flag_Checkered")),
-    ("Flag Speeding", "SPEEDING", FLAG_SPEEDING, TEXT_ON_LIGHT,
-     boolean("DahlDesign.PitSpeeding")),
-    ("Flag Black", "BLACK", FLAG_BLACK, TEXT, flag("Flag_Black")),
-    ("Flag Repair", "REPAIR", FLAG_REPAIR, ORANGE, raw_flag("repair")),
+     f"if({proximity(3, 4, 6)},1,0)", CAUTION),
+    ("Flag Blue", "BLUE", FLAG_BLUE, TEXT_ON_LIGHT, flag("Flag_Blue"), CAUTION),
     ("Flag Yellow", "YLW FLAG", FLAG_YELLOW, TEXT_ON_LIGHT,
-     flag("Flag_Yellow")),
+     flag("Flag_Yellow"), CAUTION),
     ("Flag Slow Car", "SLOW CAR", FLAG_SLOW_CAR, TEXT_ON_LIGHT,
      boolean("IRacingExtraProperties.iRacing_SlowCarAhead",
-             "IRacingExtraProperties.iRacing_StoppedCarAhead")),
-    ("Flag Red", "RED FLAG", FLAG_RED, TEXT, raw_flag("red")),
-]
-
-#: Estados que ficam acesos enquanto duram, por baixo de todos os avisos: um
-#: aviso que acende cobre o estado e, quando apaga, o estado reaparece.
-#: (nome, rotulo, fundo, cor do filete e do texto, condicao)
-STATE_CHIPS = [
-    ("Pit Limiter", "PIT LIMITER", LIMITER_BADGE, LIMITER,
-     "if([PitLimiterOn] && [DataCorePlugin.GameRunning], 1, 0)"),
+             "IRacingExtraProperties.iRacing_StoppedCarAhead"), CAUTION),
+    # alerta: cheio, pisca
+    ("Flag Speeding", "SPEEDING", FLAG_SPEEDING, TEXT_ON_LIGHT,
+     boolean("DahlDesign.PitSpeeding"), ALERT),
+    ("Flag Black", "BLACK", FLAG_BLACK, TEXT, flag("Flag_Black"), ALERT),
+    ("Flag Repair", "REPAIR", FLAG_REPAIR, ORANGE, raw_flag("repair"), ALERT),
+    ("Flag Red", "RED FLAG", FLAG_RED, TEXT_ON_LIGHT, raw_flag("red"), ALERT),
 ]
 
 #: Nomes dos chips, na ordem em que aparecem -- consumido pelo preview de
 #: modos, que forca um de cada vez.
-CHIP_NAMES = [name for name, *_ in STATE_CHIPS + CHIPS]
+CHIP_NAMES = [name for name, *_ in CHIPS]
 
 
-def chip(side, name, label, background, color, formula):
-    """Um estado do chip de aviso: pilula colorida com o rotulo dentro."""
-    bindings = None
-    if formula:
-        condition = ncalc(formula)
-        bindings = {"Visible": condition, "BlinkEnabled": condition}
-    return badge(side_box(side, *CHIP), label, name=name,
-                 background=background, color=color, size=CHIP_TEXT_SIZE,
-                 visible=bool(formula), bindings=bindings)
-
-
-def state_chip(side, name, label, background, color, formula):
-    """Um estado aceso no chip: fundo tingido, filete e texto no acento.
-    Nao pisca -- piscar e para aviso."""
-    return badge(side_box(side, *CHIP), label, name=name,
-                 background=background, color=color, border=color,
-                 size=CHIP_TEXT_SIZE, visible=False,
-                 bindings={"Visible": ncalc(formula)})
+def chip(side, name, label, hue, ink, formula, level):
+    """Um aviso no chip, com a aparencia e o comportamento do seu nivel."""
+    condition = ncalc(formula)
+    bindings = {"Visible": condition}
+    if level == ALERT:
+        bindings["BlinkEnabled"] = condition
+    if level == INFO:
+        return badge(side_box(side, *CHIP), label, name=name,
+                     background=alpha(hue, BADGE_TINT), color=hue, border=hue,
+                     size=CHIP_TEXT_SIZE, visible=False, bindings=bindings)
+    return badge(side_box(side, *CHIP), label, name=name, background=hue,
+                 color=ink, size=CHIP_TEXT_SIZE, visible=False,
+                 bindings=bindings)
 
 
 def chip_slot(side):
@@ -310,7 +320,6 @@ def chips(side):
     specs = [spec for spec in CHIPS if ONE_SIDED.get(spec[0], side) is side]
     return Layer(
         chip_slot(side),
-        *(item for spec in STATE_CHIPS for item in state_chip(side, *spec)),
         *(item for spec in specs for item in chip(side, *spec)),
         name="Alerrts" if side is LEFT else "Alerrts2",
         Group=True, Repetitions=0, Visible=True, BlinkPhasisInverted=False,
