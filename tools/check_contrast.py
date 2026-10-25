@@ -3,7 +3,8 @@
 Duas medidas por par: a razao do WCAG 2 e o Lc do APCA 0.0.98G, que e a
 que distingue texto claro sobre fundo escuro. Os pisos sao os niveis do
 APCA (github.com/Myndex/apca-w3): Lc 60 para texto de conteudo, 45 para
-texto grande e pesado, 30 o minimo absoluto. Os acentos sao cor de barra e
+texto grande e pesado, 30 o minimo absoluto. Todo texto tambem passa de
+4.5:1 no WCAG (AA para texto pequeno). Os acentos sao cor de barra e
 de chip, entao pedem so 3:1 do WCAG (elemento grafico).
 
     python3 tools/check_contrast.py        (sai com 1 se algum par falhar)
@@ -26,6 +27,9 @@ TEXT_FLOORS = (
     ("TEXT_SECONDARY", 45),
     ("TEXT_TERTIARY", 30),
 )
+
+#: Razao minima do WCAG para qualquer cor de texto, em qualquer superficie.
+TEXT_RATIO = 4.5
 
 #: Acentos sobre o tile, em razao do WCAG.
 ACCENTS = ("GREEN", "YELLOW", "ORANGE", "RED", "CYAN", "BLUE", "PURPLE",
@@ -66,11 +70,12 @@ def main():
     for name, floor in TEXT_FLOORS:
         for surface in SURFACES:
             fg, bg = getattr(theme, name), getattr(theme, surface)
-            lc = abs(apca_lc(fg, bg))
-            ok = lc >= floor
+            lc, ratio = abs(apca_lc(fg, bg)), wcag_ratio(fg, bg)
+            ok = lc >= floor and ratio >= TEXT_RATIO
             failures += not ok
             print(f"{'ok  ' if ok else 'FALHA'} {name:15} sobre {surface:12}"
-                  f" Lc {lc:5.1f} (piso {floor})  {wcag_ratio(fg, bg):5.2f}:1")
+                  f" Lc {lc:5.1f} (piso {floor})  {ratio:5.2f}:1 "
+                  f"(piso {TEXT_RATIO}:1)")
     for name in ACCENTS:
         ratio = wcag_ratio(getattr(theme, name), theme.TILE)
         ok = ratio >= ACCENT_FLOOR

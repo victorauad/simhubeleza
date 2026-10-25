@@ -279,7 +279,7 @@ LOG_ROW = (BODY.height - LOG_HEADER_HEIGHT) / LOG_ROWS
 #: Corpo do log: o dash fica reduzido na frente do volante, entao os numeros
 #: vao ao maior tamanho que a linha (~29 px) comporta, perto do relative.
 LOG_SIZE = 20.0
-LOG_HEADER_SIZE = SIZE_LABEL + 1.5
+LOG_HEADER_SIZE = SIZE_LABEL
 
 #: Colunas do log, da esquerda para a direita. Numero e tempo repetem as
 #: formulas extraidas do original (`Practice/Lap Data/...`); temperatura,

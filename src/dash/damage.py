@@ -18,7 +18,7 @@ no SDK (o widget Car Damage dele e so UI), entao este e o "opcao A" de
 from simhub.bindings import js
 from simhub.model import Layer, RectangleItem
 from simhub.theme import (
-    GREEN, ORANGE, RED, SEPARATOR, SIZE_VALUE, SURFACE_RAISED, TEXT,
+    GREEN, ORANGE, RED, SEPARATOR, SIZE_LABEL, SIZE_VALUE, SURFACE_RAISED, TEXT,
     TEXT_SECONDARY, TEXT_TERTIARY, YELLOW, rounded,
 )
 from . import layout as grid
@@ -157,7 +157,7 @@ def layer(region):
                  bindings={"BackgroundColor": formula(
                      f"return (warn & {bit}) ? '{RED}' : '#00000000';")}),
             text(cell.x, cell.y, cell.width, cell.height, label.upper(),
-                 name=f"Engine {label} Label", size=12.0, align=CENTER,
+                 name=f"Engine {label} Label", size=SIZE_LABEL, align=CENTER,
                  color=TEXT if lit else TEXT_TERTIARY,
                  bindings={"TextColor": formula(
                      f"return (warn & {bit}) ? '{TEXT}' : '{TEXT_TERTIARY}';")}),

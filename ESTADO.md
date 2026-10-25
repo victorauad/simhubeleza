@@ -18,6 +18,7 @@ python3 tools/decompile.py          # .djson -> src/dash/generated/*.py
 python3 tools/parity.py             # compara com referencia-manual/
 python3 tools/check_leaderboard.py  # leaderboard novo == original (Node)
 python3 tools/check_contrast.py     # texto do theme acima dos pisos do APCA
+python3 tools/check_text_fit.py     # todo texto fixo cabe na caixa (pós build)
 ```
 
 Preview como imagem (Chromium já instalado no ambiente):
@@ -78,6 +79,14 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
   baixo de todos os avisos. Primeiro estado: **PIT LIMITER** (ciano, a mesma
   condição dos LEDs), que antes só aparecia pela cor. No pit, PIT LIMITER é o
   estado e SPEEDING o aviso. O preview `pit-limiter` mostra o chip junto.
+- **Hierarquia de leitura** (caminho A de usabilidade): escala de tamanhos do
+  `theme.py` documentada em 5 níveis. Rótulo é um tamanho só no dash inteiro,
+  12.5 (era 10.5 no corpo e 12.5 no rodapé; cabeçalhos do log e do dano em 12).
+  Nenhum tile, painel ou imagem mudou de lugar; dentro deles os valores descem
+  2 px e as fileiras com `spread()` (carro, Lap Review) se redistribuem uns
+  pixels. TEXT_TERTIARY (N/A, desligado, posição no leaderboard) foi para
+  #848A93: 4.5:1 em toda superfície, 5:1 no tile. `check_text_fit.py` garante
+  que rótulo fixo cabe na caixa; `check_contrast.py` pede 4.5:1 de todo texto.
 - **Fase 5 completa**: todas as regiões redesenhadas, cada uma em seu módulo
   em `src/dash/`, ligadas pelo dicionário `EXTRACTED` em `tools/decompile.py`:
 

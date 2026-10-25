@@ -40,10 +40,12 @@ GRAPHITE_4 = "#FF1F2328"      # superficie sobre tile
 GRAPHITE_5 = "#FF23272D"      # trilho apagado de barra
 GRAPHITE_6 = "#FF24292F"      # borda sutil
 GRAPHITE_7 = "#FF3A4048"      # borda forte
-GRAPHITE_8 = "#FF595F67"      # sem uso ainda: ponto medio entre 7 e 9
-#: Texto apagado. Era #6B717A, Lc 25-27: abaixo do minimo absoluto do APCA
-#: (Lc 30) em toda superficie. Subiu o menos possivel, sem mudar o matiz.
-GRAPHITE_9 = "#FF777D86"
+GRAPHITE_8 = "#FF5F656E"      # sem uso ainda: ponto medio entre 7 e 9
+#: Texto apagado: N/A, dado desligado, posicao no leaderboard. Era #6B717A
+#: (3.2:1 sobre a linha do leaderboard). Agora 4.5:1 em toda superficie e
+#: 5:1 sobre o tile -- o piso de noite da ISO 15008, e a cabine de
+#: simulador e noite --, ainda 11 Lc abaixo dos rotulos. Mesmo matiz.
+GRAPHITE_9 = "#FF848A93"
 GRAPHITE_10 = "#FF9AA0A8"     # texto secundario
 #: Texto. Um ponto acima do #B0B6BD do canvas para fechar Lc 60 tambem
 #: sobre a superficie elevada (linhas do leaderboard).
@@ -77,7 +79,7 @@ CHIP_SLOT_BORDER = "#FF1E2227"
 TEXT = GRAPHITE_11
 GEAR = GRAPHITE_12
 TEXT_SECONDARY = GRAPHITE_10  # rotulos
-TEXT_TERTIARY = GRAPHITE_9    # unidades, dado desligado
+TEXT_TERTIARY = GRAPHITE_9    # unidades, N/A, dado desligado
 TEXT_ON_LIGHT = "#FF0A0B0D"   # sobre chip claro (amarelo, branco, laranja)
 
 #: Rotulo da barra superior: o mesmo cinza dos rotulos do resto do dash.
@@ -190,19 +192,28 @@ FONT_MONO = "Arame Mono"
 #: Largura de um glifo da Arame Mono, em fracao do tamanho da fonte.
 MONO_ADVANCE = 0.6
 
-#: Escala de tamanhos. Nomes em vez de literais espalhados pelo layout.
-SIZE_GEAR = 170.0
-SIZE_HERO = 50.0              # delta no topo
-SIZE_VALUE = 34.0             # valor principal de um tile
-SIZE_VALUE_SM = 27.0
-SIZE_UNIT = 11.0              # unidade colada ao valor
-SIZE_LABEL = 10.5             # rotulo em caixa alta
-SIZE_LABEL_SM = 10.0
+#: Escala de tamanhos, por nivel de leitura -- o que o olho pega primeiro:
+#:   1. marcha, delta e pedais: uma fixacao, de longe;
+#:   2. valor principal de um tile (velocidade, bias, tempos do rodape);
+#:   3. valores de lista (leaderboard, lap log, setores);
+#:   4. rotulos em caixa alta: nomeiam, nao competem;
+#:   5. unidades.
+#: O degrau entre niveis vem do tamanho, nao do peso: texto claro sobre
+#: escuro ja "sangra", e negrito a mais embola. Rotulo e o piso do que se le
+#: em pista, um tamanho so no dash inteiro, e o valor que ele nomeia tem pelo
+#: menos 1.5x a altura dele.
+SIZE_GEAR = 170.0             # 1
+SIZE_HERO = 50.0              # 1: delta no topo
+SIZE_VALUE = 34.0             # 2: valor principal de um tile
+SIZE_VALUE_SM = 27.0          # 2
+SIZE_LABEL = 12.5             # 4: rotulo em caixa alta (era 10.5)
+SIZE_UNIT = 11.0              # 5: unidade colada ao valor
 
 #: Barra inferior (rodape esquerdo, OTS, setores, New Lap Info). O dash fica
-#: reduzido na frente do volante, e a barra e lida de relance: rotulo e valor
-#: maiores que no resto do dash, limitados pela largura das fileiras.
-SIZE_LABEL_FOOTER = 12.5
+#: reduzido na frente do volante, e a barra e lida de relance: valor maior
+#: que no resto do dash, limitado pela largura das fileiras. O rotulo e o
+#: mesmo de todo o dash.
+SIZE_LABEL_FOOTER = SIZE_LABEL
 SIZE_VALUE_FOOTER = 30.0
 
 WEIGHT_VALUE = "Bold"

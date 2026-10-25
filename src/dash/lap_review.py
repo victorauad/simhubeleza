@@ -42,7 +42,7 @@ INSET_TOP, INSET_BOTTOM = 6.0, 6.0
 P1_SIZE = 26.0
 DELTA_SIZE = 21.0
 ROW_SIZE = 16.0
-HEADER_HEIGHT = 12.0
+HEADER_HEIGHT = SIZE_LABEL
 BAND_GAP = 5.0
 #: Respiro entre os 3 da frente e os 3 de tras -- onde fica o filete ambar
 #: que marca o jogador.
