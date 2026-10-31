@@ -193,3 +193,27 @@ PEDAL_COMB_GAP = alpha(PANEL, 45)
 #: Trilho apagado: fantasma tingido na cor do pedal, bem abaixo do aceso.
 THROTTLE_TRACK = alpha(THROTTLE, 9)
 BRAKE_TRACK = alpha(BRAKE, 9)
+
+# --- Dash minimal (capsula) --------------------------------------------------
+#
+# O dash minimal (src/dash/minimal/) usa a mesma paleta, com fundos
+# translucidos e sem nenhum desfoque: a capsula a 45%, o box da telemetria
+# um degrau mais transparente (65% da capsula).
+
+CAPSULE_FILL = alpha(BACKGROUND, 45)
+CAPSULE_EDGE = SEPARATOR
+TRACE_BOX_FILL = alpha("#FF101216", 29)
+TRACE_BOX_EDGE = alpha(TEXT, 18)
+#: Trilho dos LEDs apagados, das barras dos pedais e da barra do OTS.
+MINI_TRACK = "#FF1A1D21"
+#: Rampa dos LEDs de RPM, do primeiro ao ultimo; roxo para trocar a marcha.
+MINI_RPM_RAMP = (GREEN, YELLOW, RED)
+MINI_SHIFT = SHIFT
+#: Aro claro do LED de status na bandeira preta, que sumiria no fundo.
+STATUS_RING = "#FFE6E9ED"
+#: Filetes do box: grade de 0/50/100% e a linha do "agora" no meio.
+TRACE_GRID = alpha(STATUS_RING, 7)
+TRACE_NOW = alpha(STATUS_RING, 55)
+#: Traco da volta de referencia: a cor do pedal, apagada.
+REF_THROTTLE = alpha(THROTTLE, 60)
+REF_BRAKE = alpha(BRAKE, 60)

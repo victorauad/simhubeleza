@@ -8,6 +8,9 @@ SimHub para instalar direto. `--diag` gera tambem `iRacing_Dashboard_00_Diag`,
 o mesmo dash com a faixa de medicao de desempenho (dash/diag.py).
 `--name=NOME` gera so o dash normal com outro nome e outro Id, para instalar
 ao lado do atual sem sobrescrever.
+
+O dash minimal (`SF23_Minimal`, src/dash/minimal/) sai sempre junto, na
+mesma pasta de destino.
 """
 import sys
 import uuid
@@ -17,7 +20,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from dash import diag, fallback, fixes, ots, rpmled, top_bar, weather  # noqa: E402
+from dash import diag, fallback, fixes, minimal, ots, rpmled, top_bar, weather  # noqa: E402
 from dash.generated import iracing_dashboard_00 as main_dash  # noqa: E402
 from dash.generated import telemetry  # noqa: E402
 from check_types import check as check_types  # noqa: E402
@@ -71,6 +74,8 @@ def main(argv):
                      dash_id=str(uuid.uuid5(uuid.NAMESPACE_URL,
                                             f"simhubeleza/{name}")))
     code = build(out_root, DASH_NAME)
+    if code == 0:
+        code = build_minimal(out_root)
     if code == 0 and "--diag" in argv:
         code = build(out_root, diag.DASH_NAME, extra=[diag.layer()],
                      dash_id=diag.DASH_ID)
@@ -117,6 +122,32 @@ def build(out_root, dash_name, extra=(), dash_id=None):
                 out_dir / f"{dash_name}{suffix}")
 
     # Decimal em campo inteiro derruba o Editar/Executar do SimHub.
+    bad = check_types([out_dir])
+    if bad:
+        print("campo inteiro com valor nao inteiro:\n  " + "\n  ".join(bad),
+              file=sys.stderr)
+        return 1
+
+    files = sum(1 for _ in out_dir.rglob("*") if _.is_file())
+    print(f"gerado: {out_dir}  ({files} arquivos)")
+    return 0
+
+
+def build_minimal(out_root):
+    """O dash minimal: uma tela so, sem widgets nem imagens."""
+    out_dir = out_root / minimal.NAME
+    items = minimal.items()
+    missing = verify_fonts(items)
+    if missing:
+        print("fonte referenciada sem arquivo em assets/fonts: "
+              + ", ".join(missing), file=sys.stderr)
+        return 1
+
+    write_dashboard(out_dir, minimal.NAME, minimal.SHELL, minimal.SCREEN,
+                    fallback.apply(fixes.apply(items)),
+                    metadata=minimal.METADATA)
+    copy_support_files(out_dir)
+
     bad = check_types([out_dir])
     if bad:
         print("campo inteiro com valor nao inteiro:\n  " + "\n  ".join(bad),

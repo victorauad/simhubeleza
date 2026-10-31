@@ -19,6 +19,7 @@ Sem dependências externas: apenas a stdlib do Python 3.
 | `build.py` | Entrypoint: monta a pasta `DashTemplates` completa |
 | `src/simhub/` | DSL: tipos de controle, bindings, escrita dos arquivos |
 | `src/dash/generated/` | Árvore de controles do dashboard |
+| `src/dash/minimal/` | Dash minimal `SF23_Minimal` (cápsula + box de telemetria), gerado junto |
 | `assets/` | Imagens, fontes, extensões JS e previews |
 | `tools/` | Decompilador e verificador de paridade |
 | `referencia-manual/` | Dashboard original feito à mão — baseline intocado |
@@ -28,6 +29,7 @@ Sem dependências externas: apenas a stdlib do Python 3.
 
 ```bash
 python3 build.py && python3 tools/parity.py
+python3 tools/check_minimal.py   # gravador da volta de referencia do dash minimal
 ```
 
 `parity.py` compara o que foi gerado com `referencia-manual/` de forma

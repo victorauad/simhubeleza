@@ -38,6 +38,38 @@ com os 20 arquivos ao lado.
 Ao tirar screenshot, usar altura de janela **700**: a 540 o rodapé sai cortado
 pela janela, não pelo layout — o que já custou um diagnóstico errado.
 
+## Dash minimal (`SF23_Minimal`)
+
+Segundo dash, gerado junto pelo `build.py` em `build/SF23_Minimal`: uma
+cápsula de 900×240 com o box de telemetria pendurado embaixo (dash de
+900×480, fundo transparente). Código em `src/dash/minimal/`, uma peça por
+arquivo (`leds.py`, `capsule.py`, `relative.py`, `trace.py`); medidas e
+paleta vêm do canvas de design
+<https://claude.ai/artifact/S9sQwrTAbpMiBK7AwPpTP8>.
+
+- **LEDs**: 9 por lado em arco, limiares do iRacing por carro
+  (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`); roxo
+  piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
+  limiter. Tudo NCalc com constante.
+- **Box de telemetria**: só `ChartItem`. Esquerda = meus pedais + referência
+  no mesmo ponto; direita = referência a frente (o gráfico recebe a
+  referência em `posição + velocidade × WINDOW_S`). A referência é a melhor
+  volta limpa da sessão, gravada por uma fórmula só (`trace.RECORDER`) e
+  publicada com `setsharedvalue`. Teste: `python3 tools/check_minimal.py`.
+
+O que conferir primeiro no SimHub, por ordem de risco:
+
+1. **`Rotation` em `RectangleItem`** — os LEDs são pílulas giradas para
+   acompanhar o arco. Se o SimHub ignorar a rotação ou girar em torno do
+   canto, os arcos saem tortos (o preview gira em torno do centro).
+2. **Ritmo do `ChartItem`** — a metade direita do box assume ~30 amostras/s
+   com `RenderingSkip 1` (`trace.SAMPLES_PER_S`). Se a referência à frente
+   não "chegar" na linha do meio junto com o meu traço, ajustar ali.
+3. **Ponto do agora** — as bolinhas na linha do meio movem por binding de
+   `Top`.
+4. **STINT** — `iRacing_Player_LapsSinceLastPit + 1`; conferir se o plugin
+   já conta a volta em curso.
+
 ## Próximos passos
 
 - **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
