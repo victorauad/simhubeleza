@@ -197,12 +197,13 @@ BRAKE_TRACK = alpha(BRAKE, 9)
 # --- Dash minimal (capsula) --------------------------------------------------
 #
 # O dash minimal (src/dash/minimal/) usa a mesma paleta, com fundos
-# translucidos e sem nenhum desfoque: a capsula a 45%, o box da telemetria
-# um degrau mais transparente (65% da capsula).
+# translucidos e sem nenhum desfoque: a capsula a 88%, o box da telemetria
+# um degrau mais transparente. Os 45% do canvas ficaram transparentes
+# demais no SimHub.
 
-CAPSULE_FILL = alpha(BACKGROUND, 45)
+CAPSULE_FILL = alpha(BACKGROUND, 88)
 CAPSULE_EDGE = SEPARATOR
-TRACE_BOX_FILL = alpha("#FF101216", 29)
+TRACE_BOX_FILL = alpha("#FF101216", 75)
 TRACE_BOX_EDGE = alpha(TEXT, 18)
 #: Trilho dos LEDs apagados, das barras dos pedais e da barra do OTS.
 MINI_TRACK = "#FF1A1D21"

@@ -16,13 +16,16 @@ e a referencia daqui a `WINDOW_S`; o mais velho, na linha do meio, foi
 calculado `WINDOW_S` atras para o ponto onde estou agora. Com velocidade
 constante na janela, a metade direita e a referencia a frente.
 
-A referencia e a melhor volta limpa da sessao, gravada pelo proprio dash:
-uma formula so (`RECORDER`, o `Visible` da linha do agora) guarda acelerador
-e freio por trecho da pista (`BINS` trechos do LapDistPct), troca a
-referencia quando uma volta completa e limpa sai mais rapida, e publica os
-quatro valores do quadro no armazenamento compartilhado. Os graficos so
-leem o publicado. Sem referencia ainda (inicio da sessao), a camada dela
-fica escondida.
+A referencia e a minha melhor volta da sessao -- a mesma do BestLapTime do
+SimHub, entao volta invalida nao conta --, gravada pelo proprio dash: uma
+formula so (`RECORDER`, o `Visible` da linha do agora, a cada quadro) guarda
+acelerador e freio por trecho da pista (`BINS` trechos do LapDistPct), troca
+a referencia quando a volta que acabou de fechar vira a melhor, e publica os
+valores do quadro no armazenamento compartilhado, interpolados entre
+trechos. Os graficos so leem o publicado. So da para usar volta gravada
+inteira: a melhor volta feita antes de o dash abrir nao tem os pedais, e a
+referencia aparece na primeira melhor volta depois disso. Sem referencia, a
+camada dela fica escondida e o rotulo mostra "REF. LAP --".
 """
 
 from simhub.bindings import js, ncalc
@@ -33,7 +36,7 @@ from simhub.theme import (
 )
 from .. import states
 from ..widgets import CENTER, LEFT, RIGHT, text
-from .base import TRACE_BOX, Region, group, rect
+from .base import SKIP_SLOW, TRACE_BOX, Region, group, rect
 
 #: Segundos de cada metade do box.
 WINDOW_S = 3.0
@@ -72,29 +75,48 @@ def shared(name):
 RECORDER = js(
     f"var S = '{states.SHARED}', N = {BINS};\r\n"
     "var r = root;\r\n"
+    "var sec = function (v) { var x = Number(timespantoseconds(v)); "
+    "return x > 0 ? x : 0; };\r\n"
     "var lap = Number($prop('DataCorePlugin.GameData.CurrentLap')) || 0;\r\n"
     "var pct = Number($prop('GameRawData.Telemetry.LapDistPct'));\r\n"
     "var now = Number($prop('GameRawData.Telemetry.SessionTime'));\r\n"
+    "var best = sec($prop('DataCorePlugin.GameData.BestLapTime'));\r\n"
+    "var last = sec($prop('DataCorePlugin.GameData.LastLapTime'));\r\n"
     "var fresh = function () { return { t: [], b: [], n: 0 }; };\r\n"
     # Sessao nova (a volta voltou para tras): comeca do zero.
     "if (r.cur == null || lap < r.lap) { r.cur = fresh(); r.ref = null; "
-    "r.best = 0; r.lap = lap; r.bin = -1; r.ok = false; r.t0 = null; "
-    "r.len = null; }\r\n"
+    "r.refT = 0; r.pend = null; r.lap = lap; r.bin = -1; r.ok = false; "
+    "r.t0 = null; r.len = null; r.seen = last; }\r\n"
+    # A sessao zerou a melhor volta: a referencia antiga nao vale mais.
+    "if (best <= 0) { r.ref = null; r.refT = 0; }\r\n"
     "if (!(pct >= 0 && pct <= 1)) return true;\r\n"
-    "var bin = Math.min(N - 1, Math.floor(pct * N));\r\n"
-    # Virou a volta: a que acabou vira referencia se for limpa, completa e a
-    # mais rapida. A primeira volta depois de carregar o dash nunca vale.
+    # Virou a volta: a que acabou fica pendente ate o iRacing publicar o
+    # tempo dela. A primeira volta depois de carregar o dash nunca vale (nao
+    # foi gravada inteira).
     "if (lap == r.lap + 1) {\r\n"
-    "\tvar c = r.cur, t = r.t0 == null ? 0 : now - r.t0;\r\n"
-    f"\tif (r.ok && c.n >= N * {COVERAGE} && t > 0 && (r.best == 0 || t < r.best)) "
-    "{ r.ref = c; r.best = t; }\r\n"
+    f"\tr.pend = r.ok && r.t0 != null && r.cur.n >= N * {COVERAGE} "
+    "? { c: r.cur, t: now - r.t0, last0: r.seen, until: now + 10 } : null;\r\n"
     "\tr.cur = fresh(); r.ok = true; r.t0 = now;\r\n"
-    "} else if (lap != r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; }\r\n"
+    "} else if (lap != r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; "
+    "r.pend = null; }\r\n"
     "r.lap = lap;\r\n"
+    # O LastLapTime ja e o da volta pendente quando mudou desde a virada (ou
+    # ja bate com o tempo medido). Ela vira referencia se for a melhor da
+    # sessao: o mesmo criterio do jogo, que nao conta volta invalida.
+    "var p = r.pend;\r\n"
+    "if (p) {\r\n"
+    "\tif (last > 0 && (last != p.last0 || Math.abs(last - p.t) < 0.05)) {\r\n"
+    "\t\tif (best > 0 && Math.abs(last - best) < 0.002) { r.ref = p.c; r.refT = best; }\r\n"
+    "\t\tr.pend = null;\r\n"
+    "\t} else if (now > p.until) r.pend = null;\r\n"
+    "}\r\n"
+    "r.seen = last;\r\n"
+    "var bin = Math.min(N - 1, Math.floor(pct * N));\r\n"
     "var thr = Number($prop('DataCorePlugin.GameData.Throttle')) || 0;\r\n"
     "var brk = Number($prop('DataCorePlugin.GameData.Brake')) || 0;\r\n"
     # A linha de chegada pode virar o LapDistPct um quadro antes ou depois
-    # da volta: o salto de ~1 para ~0 nao invalida nada.
+    # da volta: o salto de ~1 para ~0 nao invalida nada. Salto de verdade
+    # (reset, reboque) deixa a volta incompleta.
     "var wrap = r.bin > N * 0.9 && bin < N * 0.1;\r\n"
     "var from = bin;\r\n"
     "if (r.bin >= 0 && !wrap) {\r\n"
@@ -105,22 +127,26 @@ RECORDER = js(
     "for (var i = from; i <= bin; i++) { if (c.t[i] == null) c.n++; "
     "c.t[i] = thr; c.b[i] = brk; }\r\n"
     "r.bin = bin;\r\n"
-    "var clean = $prop('IRacingExtraProperties.iRacing_Player_CurrentLapIsClean');\r\n"
-    "if (clean === false || String(clean) == 'False' "
-    "|| Number($prop('DataCorePlugin.GameData.IsInPitLane')) > 0) r.ok = false;\r\n"
     f"if (!{states.HAS_SHARED}) return true;\r\n"
     "var ref = r.ref;\r\n"
     f"setsharedvalue(S, {shared('ok')}, ref ? 1 : 0);\r\n"
+    f"setsharedvalue(S, {shared('best')}, ref ? r.refT : 0);\r\n"
     "if (ref) {\r\n"
+    # Valor no ponto `q` (0..1) interpolado entre os centros dos trechos:
+    # sem isso o grafico vira escada, e a leitura a frente treme a cada
+    # trecho que o arredondamento pula.
+    "\tvar at = function (arr, q) { var x = q * N - 0.5, i = Math.floor(x), f = x - i; "
+    "var a = arr[(i + N) % N], b = arr[(i + 1) % N]; "
+    "if (a == null) a = b; if (b == null) b = a; "
+    "return a == null ? 0 : a + (b - a) * f; };\r\n"
     "\tif (r.len == null) r.len = (parseFloat("
     "$prop('GameRawData.SessionData.WeekendInfo.TrackLength')) || 0) * 1000;\r\n"
     "\tvar v = (Number($prop('DataCorePlugin.GameData.SpeedKmh')) || 0) / 3.6;\r\n"
-    f"\tvar ahead = r.len > 0 ? Math.round(v * {WINDOW_S} / r.len * N) : 0;\r\n"
-    "\tvar at = (bin + ahead) % N;\r\n"
-    f"\tsetsharedvalue(S, {shared('thr')}, ref.t[bin] || 0);\r\n"
-    f"\tsetsharedvalue(S, {shared('brk')}, ref.b[bin] || 0);\r\n"
-    f"\tsetsharedvalue(S, {shared('thr_ahead')}, ref.t[at] || 0);\r\n"
-    f"\tsetsharedvalue(S, {shared('brk_ahead')}, ref.b[at] || 0);\r\n"
+    f"\tvar qa = (pct + (r.len > 0 ? v * {WINDOW_S} / r.len : 0)) % 1;\r\n"
+    f"\tsetsharedvalue(S, {shared('thr')}, at(ref.t, pct));\r\n"
+    f"\tsetsharedvalue(S, {shared('brk')}, at(ref.b, pct));\r\n"
+    f"\tsetsharedvalue(S, {shared('thr_ahead')}, at(ref.t, qa));\r\n"
+    f"\tsetsharedvalue(S, {shared('brk_ahead')}, at(ref.b, qa));\r\n"
     "}\r\n"
     "return true;"
 )
@@ -163,6 +189,19 @@ def label(x, width, content, align, *, y=LEGEND_Y, font=FONT):
                 size=SIZE_SMALL, color=TEXT_SECONDARY, align=align, font=font)
 
 
+def ref_label():
+    """Qual volta e a referencia: o tempo dela, ou "--" enquanto nao ha."""
+    item = label(PLOT_RIGHT - 140.0, 140.0, "REF. LAP 1:36.1", RIGHT)
+    item["Bindings"] = {"Text": js(
+        states.FMT_TIME
+        + f"var s = {states.HAS_SHARED} ? Number(getsharedvalueordefault("
+        f"'{states.SHARED}', {shared('best')}, 0)) : 0;\r\n"
+        "return 'REF. LAP ' + (s > 0 ? fmtTime(s) : '--');",
+        format_string="")}
+    item["RenderingSkip"] = SKIP_SLOW
+    return item
+
+
 def legend():
     swatch_y = LEGEND_Y + 5.0
     dashes = [rect(f"Ref Swatch {i}", Region(PLOT_X + 60.0 + 5.0 * i, swatch_y,
@@ -173,7 +212,7 @@ def legend():
         label(PLOT_X + 20.0, 40.0, "VOCÊ", LEFT),
         *dashes,
         label(PLOT_X + 80.0, 30.0, "REF", LEFT),
-        label(PLOT_RIGHT - 100.0, 100.0, "REF. LAP", RIGHT),
+        ref_label(),
     ]
 
 
@@ -193,7 +232,9 @@ def layer():
     grid_lines = [rect(f"Grid {i}", Region(PLOT_X, y, PLOT_RIGHT - PLOT_X, 1.0),
                        TRACE_GRID) for i, y in enumerate(GRID_YS)]
     now = rect("Now", NOW_LINE, TRACE_NOW, bindings={"Visible": RECORDER})
-    now["RenderingSkip"] = 1
+    # A cada quadro: os graficos amostram a ~30 Hz e precisam sempre do
+    # valor do quadro, nao de um publicado no quadro anterior.
+    now["RenderingSkip"] = 0
 
     return group(
         "Telemetry",

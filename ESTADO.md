@@ -53,9 +53,15 @@ paleta vêm do canvas de design
   limiter. Tudo NCalc com constante.
 - **Box de telemetria**: só `ChartItem`. Esquerda = meus pedais + referência
   no mesmo ponto; direita = referência a frente (o gráfico recebe a
-  referência em `posição + velocidade × WINDOW_S`). A referência é a melhor
-  volta limpa da sessão, gravada por uma fórmula só (`trace.RECORDER`) e
-  publicada com `setsharedvalue`. Teste: `python3 tools/check_minimal.py`.
+  referência em `posição + velocidade × WINDOW_S`, interpolada entre
+  trechos). A referência é a minha melhor volta da sessão — a volta que vira
+  o `BestLapTime`, julgada quando o iRacing publica o `LastLapTime` dela —,
+  gravada por uma fórmula só (`trace.RECORDER`, a cada quadro) e publicada
+  com `setsharedvalue`; o rótulo mostra o tempo dela (`REF. LAP 1:36.1`).
+  Só vale volta gravada inteira com o dash aberto. Teste:
+  `python3 tools/check_minimal.py`.
+- **Opacidade** (teste no SimHub): cápsula a 88%, box a 75% — os 45% do
+  canvas ficaram transparentes demais.
 
 O que conferir primeiro no SimHub, por ordem de risco:
 
