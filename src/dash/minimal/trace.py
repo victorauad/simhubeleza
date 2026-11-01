@@ -2,7 +2,7 @@
 
     [ VOCE ----  REF - -                               REF. LAP ]
     [ meu traco + referencia      |      referencia a frente    ]
-    [ -3 s                        0                       +3 s  ]
+    [ -10 s                       0                      +10 s  ]
 
 A linha do meio e o agora. A metade esquerda mostra os ultimos segundos: o
 meu acelerador/freio e, por cima, o da referencia no mesmo ponto da pista.
@@ -10,16 +10,19 @@ A metade direita mostra so a referencia, nos proximos segundos.
 
 Tudo e `ChartItem` do SimHub, que desenha o historico de um valor com o
 ponto mais novo na borda direita. A metade direita usa isso a favor: o
-grafico recebe a referencia no ponto onde eu vou estar daqui a `WINDOW_S`
-(posicao atual + velocidade x janela). O ponto mais novo, na borda direita,
-e a referencia daqui a `WINDOW_S`; o mais velho, na linha do meio, foi
-calculado `WINDOW_S` atras para o ponto onde estou agora. Com velocidade
-constante na janela, a metade direita e a referencia a frente.
+grafico recebe a referencia no ponto onde ela propria estava `WINDOW_S`
+depois de passar por onde eu estou (cada trecho gravado guarda o tempo de
+volta da referencia ali). O ponto mais novo, na borda direita, e a
+referencia daqui a `WINDOW_S`; o mais velho, na linha do meio, foi
+calculado `WINDOW_S` atras para o ponto onde estou agora. No ritmo da
+referencia, a metade direita e exatamente o que ela fez a frente -- a
+conta segue a referencia nas frenagens, sem supor velocidade constante.
 
 A referencia e a minha melhor volta da sessao -- a mesma do BestLapTime do
 SimHub, entao volta invalida nao conta --, gravada pelo proprio dash: uma
 formula so (`RECORDER`, o `Visible` da linha do agora, a cada quadro) guarda
-acelerador e freio por trecho da pista (`BINS` trechos do LapDistPct), troca
+acelerador, freio e o tempo de volta por trecho da pista (`BINS` trechos
+do LapDistPct), troca
 a referencia quando a volta que acabou de fechar vira a melhor, e publica os
 valores do quadro no armazenamento compartilhado, interpolados entre
 trechos. Os graficos so leem o publicado. So da para usar volta gravada
@@ -39,7 +42,7 @@ from ..widgets import CENTER, LEFT, RIGHT, text
 from .base import SKIP_SLOW, TRACE_BOX, Region, group, rect
 
 #: Segundos de cada metade do box.
-WINDOW_S = 3.0
+WINDOW_S = 10.0
 #: Amostras por segundo de um ChartItem com RenderingSkip 1 (~30 Hz, medido
 #: no widget de telemetria do dash principal). A conta da metade direita
 #: depende disso: se o SimHub amostrar em outro ritmo, ajustar aqui.
@@ -82,11 +85,11 @@ RECORDER = js(
     "var now = Number($prop('GameRawData.Telemetry.SessionTime'));\r\n"
     "var best = sec($prop('DataCorePlugin.GameData.BestLapTime'));\r\n"
     "var last = sec($prop('DataCorePlugin.GameData.LastLapTime'));\r\n"
-    "var fresh = function () { return { t: [], b: [], n: 0 }; };\r\n"
+    "var fresh = function () { return { t: [], b: [], s: [], n: 0 }; };\r\n"
     # Sessao nova (a volta voltou para tras): comeca do zero.
     "if (r.cur == null || lap < r.lap) { r.cur = fresh(); r.ref = null; "
     "r.refT = 0; r.pend = null; r.lap = lap; r.bin = -1; r.ok = false; "
-    "r.t0 = null; r.len = null; r.seen = last; }\r\n"
+    "r.t0 = null; r.seen = last; }\r\n"
     # A sessao zerou a melhor volta: a referencia antiga nao vale mais.
     "if (best <= 0) { r.ref = null; r.refT = 0; }\r\n"
     "if (!(pct >= 0 && pct <= 1)) return true;\r\n"
@@ -103,10 +106,18 @@ RECORDER = js(
     # O LastLapTime ja e o da volta pendente quando mudou desde a virada (ou
     # ja bate com o tempo medido). Ela vira referencia se for a melhor da
     # sessao: o mesmo criterio do jogo, que nao conta volta invalida.
+    # Referencia pronta para leitura: trecho sem gravacao copia o vizinho e
+    # o tempo de volta nunca anda para tras.
+    "var dense = function (c, lapT) { for (var i = 0; i < N; i++) { "
+    "var j = i; while (c.t[j] == null && j > 0) j--; "
+    "if (c.t[j] == null) { j = i; while (c.t[j] == null && j < N - 1) j++; } "
+    "if (j != i) { c.t[i] = c.t[j]; c.b[i] = c.b[j]; c.s[i] = c.s[j]; } "
+    "if (i > 0 && !(c.s[i] >= c.s[i - 1])) c.s[i] = c.s[i - 1]; } "
+    "c.lapT = lapT; return c; };\r\n"
     "var p = r.pend;\r\n"
     "if (p) {\r\n"
     "\tif (last > 0 && (last != p.last0 || Math.abs(last - p.t) < 0.05)) {\r\n"
-    "\t\tif (best > 0 && Math.abs(last - best) < 0.002) { r.ref = p.c; r.refT = best; }\r\n"
+    "\t\tif (best > 0 && Math.abs(last - best) < 0.002) { r.ref = dense(p.c, p.t); r.refT = best; }\r\n"
     "\t\tr.pend = null;\r\n"
     "\t} else if (now > p.until) r.pend = null;\r\n"
     "}\r\n"
@@ -117,15 +128,17 @@ RECORDER = js(
     # A linha de chegada pode virar o LapDistPct um quadro antes ou depois
     # da volta: o salto de ~1 para ~0 nao invalida nada. Salto de verdade
     # (reset, reboque) deixa a volta incompleta.
+    # Quadro da virada do LapDistPct ainda na volta velha: nao grava (o
+    # trecho 0 da volta que acabou guardaria o tempo do fim dela).
     "var wrap = r.bin > N * 0.9 && bin < N * 0.1;\r\n"
     "var from = bin;\r\n"
     "if (r.bin >= 0 && !wrap) {\r\n"
     "\tif (bin > r.bin + 20 || bin < r.bin - 5) r.ok = false;\r\n"
     "\telse if (bin > r.bin) from = r.bin + 1;\r\n"
     "}\r\n"
-    "var c = r.cur;\r\n"
-    "for (var i = from; i <= bin; i++) { if (c.t[i] == null) c.n++; "
-    "c.t[i] = thr; c.b[i] = brk; }\r\n"
+    "var c = r.cur, el = r.t0 == null ? 0 : now - r.t0;\r\n"
+    "if (!wrap) for (var i = from; i <= bin; i++) { if (c.t[i] == null) c.n++; "
+    "c.t[i] = thr; c.b[i] = brk; c.s[i] = el; }\r\n"
     "r.bin = bin;\r\n"
     f"if (!{states.HAS_SHARED}) return true;\r\n"
     "var ref = r.ref;\r\n"
@@ -139,10 +152,17 @@ RECORDER = js(
     "var a = arr[(i + N) % N], b = arr[(i + 1) % N]; "
     "if (a == null) a = b; if (b == null) b = a; "
     "return a == null ? 0 : a + (b - a) * f; };\r\n"
-    "\tif (r.len == null) r.len = (parseFloat("
-    "$prop('GameRawData.SessionData.WeekendInfo.TrackLength')) || 0) * 1000;\r\n"
-    "\tvar v = (Number($prop('DataCorePlugin.GameData.SpeedKmh')) || 0) / 3.6;\r\n"
-    f"\tvar qa = (pct + (r.len > 0 ? v * {WINDOW_S} / r.len : 0)) % 1;\r\n"
+    # A frente: o ponto onde a referencia estava WINDOW_S depois de passar
+    # por aqui (busca binaria no tempo de volta dela; passa da chegada e
+    # continua na volta seguinte).
+    f"\tvar goal = at(ref.s, pct) + {WINDOW_S};\r\n"
+    "\tif (goal >= ref.lapT) goal -= ref.lapT;\r\n"
+    "\tvar lo = 0, hi = N - 1;\r\n"
+    "\twhile (lo < hi) { var mid = (lo + hi + 1) >> 1; "
+    "if (ref.s[mid] <= goal) lo = mid; else hi = mid - 1; }\r\n"
+    "\tvar span = lo < N - 1 ? ref.s[lo + 1] - ref.s[lo] : 0;\r\n"
+    "\tvar qa = (lo + 0.5 + (span > 0 ? Math.min(1, Math.max(0, "
+    "(goal - ref.s[lo]) / span)) : 0)) / N;\r\n"
     f"\tsetsharedvalue(S, {shared('thr')}, at(ref.t, pct));\r\n"
     f"\tsetsharedvalue(S, {shared('brk')}, at(ref.b, pct));\r\n"
     f"\tsetsharedvalue(S, {shared('thr_ahead')}, at(ref.t, qa));\r\n"
@@ -219,9 +239,9 @@ def legend():
 def axis():
     mono = "Arame Mono"
     return [
-        label(PLOT_X, 60.0, "-3 s", LEFT, y=AXIS_Y, font=mono),
+        label(PLOT_X, 60.0, f"-{WINDOW_S:g} s", LEFT, y=AXIS_Y, font=mono),
         label(NOW_X - 30.0, 60.0, "0", CENTER, y=AXIS_Y, font=mono),
-        label(PLOT_RIGHT - 60.0, 60.0, "+3 s", RIGHT, y=AXIS_Y, font=mono),
+        label(PLOT_RIGHT - 60.0, 60.0, f"+{WINDOW_S:g} s", RIGHT, y=AXIS_Y, font=mono),
     ]
 
 

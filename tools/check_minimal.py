@@ -9,8 +9,8 @@ quadro, com o mesmo `root` -- sobre voltas simuladas, e confere:
     quando o iRacing publica o tempo dela (com atraso, como no jogo);
   - volta mais lenta, ou invalida (o jogo nao conta), nao troca;
   - um LastLapTime velho igual ao best nao promove a volta seguinte;
-  - o valor publicado e o da referencia no ponto atual e WINDOW_S a frente,
-    interpolado entre trechos;
+  - o valor publicado e o da referencia no ponto atual e onde ela estava
+    WINDOW_S depois, pelo tempo de volta dela, interpolado entre trechos;
   - a virada do LapDistPct um quadro antes da volta nao invalida nada.
 
 Uso:  python3 build.py && python3 tools/check_minimal.py
@@ -59,7 +59,10 @@ function lap(number, seconds, opts) {
   var frames = Math.round(seconds * FPS), start = opts.from || 0;
   for (var f = 0; f < frames; f++) {
     if (f == DELAY) apply();
-    var pct = start + (1 - start) * f / frames;
+    var k = f / frames;
+    // `slow`: a primeira metade da pista leva 2/3 da volta (frenagem longa).
+    if (opts.slow) k = k < 2 / 3 ? k * 0.75 : 0.5 + (k - 2 / 3) * 1.5;
+    var pct = start + (1 - start) * k;
     state['GameRawData.Telemetry.LapDistPct'] = pct;
     state['DataCorePlugin.GameData.CurrentLap'] = number;
     state['GameRawData.Telemetry.SessionTime'] = (state.t || 0) + 1 / FPS;
@@ -106,9 +109,29 @@ expect('referencia publicada', shared.mini_ok, 1);
 state['GameRawData.Telemetry.LapDistPct'] = 0.5;
 state['DataCorePlugin.GameData.SpeedKmh'] = 200;
 frame();
-var ahead = 0.5 + (200 / 3.6) * WINDOW / LEN;
+// A referencia (volta 7) fez 91 s a velocidade constante: WINDOW_S depois
+// de passar pelo meio da pista, ela estava em 0.5 + WINDOW / 91.
+var ahead = 0.5 + WINDOW / 91;
 expect('freio da referencia agora', shared.mini_brk, 50, 1.5);
 expect('freio da referencia a frente', shared.mini_brk_ahead, ahead * 100, 1.5);
+
+// Referencia com velocidade variando: 60 s na primeira metade, 30 s na
+// segunda. A frente sai do tempo dela, nao da minha velocidade.
+// (devolve o carro ao fim da volta, sem salto para tras na virada)
+state['GameRawData.Telemetry.LapDistPct'] = 0.9999;
+frame();
+lap(9, 90, { mark: 99, slow: true });
+lap(10, 95, { mark: 0 });
+expect('referencia com ritmo variavel', shared.mini_best, 90);
+// Na metade lenta ela anda 0.5 / 60 por segundo; na rapida, 0.5 / 30.
+var refAt = function (t) { return t <= 60 ? t / 120 : 0.5 + (t - 60) / 60; };
+var timeAt = function (q) { return q <= 0.5 ? q * 120 : 60 + (q - 0.5) * 60; };
+[0.2, 0.45, 0.6].forEach(function (q) {
+  state['GameRawData.Telemetry.LapDistPct'] = q;
+  frame();
+  expect('a frente pelo tempo da referencia em ' + q, shared.mini_brk_ahead,
+         refAt(timeAt(q) + WINDOW) * 100, 1.5);
+});
 
 console.log(JSON.stringify(failures));
 """
