@@ -99,6 +99,9 @@ def box_css(node):
     blur = node.get("BlurRadius")
     if blur:
         parts.append(f"filter:blur({blur / 2:.1f}px)")
+    rotation = node.get("Rotation")
+    if isinstance(rotation, (int, float)) and rotation:
+        parts.append(f"transform:rotate({rotation}deg)")
     return parts
 
 
