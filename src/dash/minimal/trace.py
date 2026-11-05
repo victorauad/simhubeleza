@@ -22,12 +22,20 @@ A referencia e a minha melhor volta da sessao -- a mesma do BestLapTime do
 SimHub, entao volta invalida nao conta --, gravada pelo proprio dash: uma
 formula so (`RECORDER`, o `Visible` da linha do agora, a cada quadro) guarda
 acelerador, freio e o tempo de volta por trecho da pista (`BINS` trechos
-do LapDistPct), troca
-a referencia quando a volta que acabou de fechar vira a melhor, e publica os
-valores do quadro no armazenamento compartilhado, interpolados entre
-trechos. Os graficos so leem o publicado. So da para usar volta gravada
-inteira: a melhor volta feita antes de o dash abrir nao tem os pedais, e a
-referencia aparece na primeira melhor volta depois disso. Sem referencia, a
+do LapDistPct), troca a referencia quando a volta que acabou de fechar vira
+a melhor, e publica os valores do quadro no armazenamento compartilhado,
+interpolados entre trechos. Os graficos so leem o publicado.
+
+A volta que fecha fica pendente ate a proxima virada: o BestLapTime pode
+mudar segundos depois do LastLapTime, e julgar a volta uma vez so, no
+quadro em que o LastLapTime muda, jogava fora toda volta (a referencia
+nunca aparecia). Com o IRacingExtraProperties, volta limpa vale pelo proprio
+tempo, sem esperar o BestLapTime. Reset para os boxes nao apaga a
+referencia; sessao nova (`SessionNum`) apaga.
+
+So da para usar volta gravada inteira: a melhor volta feita antes de o dash
+abrir nao tem os pedais, e a referencia aparece na primeira volta limpa (ou
+melhor volta) depois disso. Sem referencia, a
 camada dela fica escondida e o rotulo mostra "REF. LAP --".
 """
 
@@ -53,6 +61,8 @@ POINTS = int(WINDOW_S * SAMPLES_PER_S)
 BINS = 400
 #: Fracao minima dos trechos gravados para uma volta valer como referencia.
 COVERAGE = 0.97
+#: Segundos depois da virada em que a validade lida ainda e da volta velha.
+CLEAN_GRACE_S = 1.0
 
 # --- Medidas (relativas ao box) -----------------------------------------------
 
@@ -80,32 +90,43 @@ RECORDER = js(
     "var r = root;\r\n"
     "var sec = function (v) { var x = Number(timespantoseconds(v)); "
     "return x > 0 ? x : 0; };\r\n"
-    "var lap = Number($prop('DataCorePlugin.GameData.CurrentLap')) || 0;\r\n"
+    "var lap = Number($prop('GameRawData.Telemetry.Lap')) || 0;\r\n"
+    "var sess = $prop('GameRawData.Telemetry.SessionNum');\r\n"
     "var pct = Number($prop('GameRawData.Telemetry.LapDistPct'));\r\n"
     "var now = Number($prop('GameRawData.Telemetry.SessionTime'));\r\n"
     "var best = sec($prop('DataCorePlugin.GameData.BestLapTime'));\r\n"
     "var last = sec($prop('DataCorePlugin.GameData.LastLapTime'));\r\n"
-    "var fresh = function () { return { t: [], b: [], s: [], n: 0 }; };\r\n"
-    # Sessao nova (a volta voltou para tras): comeca do zero.
-    "if (r.cur == null || lap < r.lap) { r.cur = fresh(); r.ref = null; "
+    f"var cl = $prop('{states.LAP_CLEAN}');\r\n"
+    "var fresh = function () { return { t: [], b: [], s: [], n: 0, "
+    "seen: false, dirty: false }; };\r\n"
+    # Sessao nova (ou dash recem-carregado): comeca do zero.
+    "if (r.cur == null || sess != r.sess) { r.cur = fresh(); r.ref = null; "
     "r.refT = 0; r.pend = null; r.lap = lap; r.bin = -1; r.ok = false; "
-    "r.t0 = null; r.seen = last; }\r\n"
+    "r.t0 = null; r.seen = last; r.sess = sess; r.best = best; }\r\n"
+    # A volta voltou para tras (reset, garagem): perde so a volta em curso;
+    # a referencia continua sendo a melhor da sessao.
+    "if (lap < r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; "
+    "r.pend = null; r.lap = lap; r.bin = -1; }\r\n"
     # A sessao zerou a melhor volta: a referencia antiga nao vale mais.
-    "if (best <= 0) { r.ref = null; r.refT = 0; }\r\n"
+    "if (best <= 0 && r.best > 0) { r.ref = null; r.refT = 0; }\r\n"
+    "r.best = best;\r\n"
     "if (!(pct >= 0 && pct <= 1)) return true;\r\n"
-    # Virou a volta: a que acabou fica pendente ate o iRacing publicar o
-    # tempo dela. A primeira volta depois de carregar o dash nunca vale (nao
+    # Virou a volta: a que acabou fica pendente ate o SimHub mostrar que ela
+    # e a melhor. A primeira volta depois de carregar o dash nunca vale (nao
     # foi gravada inteira).
     "if (lap == r.lap + 1) {\r\n"
     f"\tr.pend = r.ok && r.t0 != null && r.cur.n >= N * {COVERAGE} "
-    "? { c: r.cur, t: now - r.t0, last0: r.seen, until: now + 10 } : null;\r\n"
+    "? { c: r.cur, t: now - r.t0, last0: r.seen, off: 0, "
+    "clean: r.cur.seen ? !r.cur.dirty : null } : null;\r\n"
     "\tr.cur = fresh(); r.ok = true; r.t0 = now;\r\n"
     "} else if (lap != r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; "
     "r.pend = null; }\r\n"
     "r.lap = lap;\r\n"
-    # O LastLapTime ja e o da volta pendente quando mudou desde a virada (ou
-    # ja bate com o tempo medido). Ela vira referencia se for a melhor da
-    # sessao: o mesmo criterio do jogo, que nao conta volta invalida.
+    # Volta limpa (IRacingExtraProperties): suja no primeiro falso. Logo
+    # depois da virada a propriedade ainda traz a volta que acabou.
+    f"if (cl != null && cl !== '' && r.t0 != null && now - r.t0 > {CLEAN_GRACE_S:g}) "
+    "{ r.cur.seen = true; if (!(cl === true || cl === 1 || "
+    "String(cl).toUpperCase() === 'TRUE')) r.cur.dirty = true; }\r\n"
     # Referencia pronta para leitura: trecho sem gravacao copia o vizinho e
     # o tempo de volta nunca anda para tras.
     "var dense = function (c, lapT) { for (var i = 0; i < N; i++) { "
@@ -114,12 +135,24 @@ RECORDER = js(
     "if (j != i) { c.t[i] = c.t[j]; c.b[i] = c.b[j]; c.s[i] = c.s[j]; } "
     "if (i > 0 && !(c.s[i] >= c.s[i - 1])) c.s[i] = c.s[i - 1]; } "
     "c.lapT = lapT; return c; };\r\n"
+    # A volta pendente vira referencia se for a melhor da sessao. O tempo
+    # oficial dela e o LastLapTime quando ele muda desde a virada (ou ja bate
+    # com o tempo medido). O BestLapTime pode chegar depois do LastLapTime:
+    # a volta espera por ele ate a proxima virada, em vez de ser julgada uma
+    # vez so. Volta invalida nao vira best (o mesmo criterio do jogo). Sem o
+    # tempo oficial, vale o medido (com folga de quadro). Volta limpa pelo
+    # IRacingExtraProperties vale pelo proprio tempo oficial, sem esperar o
+    # BestLapTime.
     "var p = r.pend;\r\n"
     "if (p) {\r\n"
-    "\tif (last > 0 && (last != p.last0 || Math.abs(last - p.t) < 0.05)) {\r\n"
-    "\t\tif (best > 0 && Math.abs(last - best) < 0.002) { r.ref = dense(p.c, p.t); r.refT = best; }\r\n"
-    "\t\tr.pend = null;\r\n"
-    "\t} else if (now > p.until) r.pend = null;\r\n"
+    "\tif (!p.off && last > 0 && (last != p.last0 || Math.abs(last - p.t) < 0.05)) "
+    "p.off = last;\r\n"
+    "\tvar better = function (x) { return !r.ref || x < r.refT - 0.0005; };\r\n"
+    "\tvar hit = best > 0 && (p.off ? Math.abs(best - p.off) < 0.002 "
+    ": Math.abs(best - p.t) < 0.05);\r\n"
+    "\tif (hit && better(best)) { r.ref = dense(p.c, p.t); r.refT = best; r.pend = null; }\r\n"
+    "\telse if (p.off && p.clean === true) { if (better(p.off)) "
+    "{ r.ref = dense(p.c, p.t); r.refT = p.off; } r.pend = null; }\r\n"
     "}\r\n"
     "r.seen = last;\r\n"
     "var bin = Math.min(N - 1, Math.floor(pct * N));\r\n"
