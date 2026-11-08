@@ -2,18 +2,27 @@
 
 Nove LEDs por lado acompanham a curvatura, de baixo para cima. Os limiares
 sao os do iRacing, por carro: o primeiro LED acende no SLFirstRPM, o ultimo
-no SLLastRPM, e a partir do SLBlinkRPM todos ficam roxos e piscam (trocar a
-marcha). Entre o primeiro e o ultimo os limiares se apertam (`RHYTHM`): os
-primeiros LEDs acendem espacados e os ultimos em sequencia rapida, e e essa
+no SLLastRPM, cada um na cor do seu passo (verde, amarelo, vermelho).
+Entre o primeiro e o ultimo os limiares se apertam (`RHYTHM`): os primeiros
+LEDs acendem espacados e os ultimos em sequencia rapida, e e essa
 aceleracao que da o tempo da troca.
 
+Acima do SLBlinkRPM -- o mesmo ponto em que o brilho da marcha do dash
+principal fica roxo -- a rampa inteira sai e os 18 LEDs piscam em roxo,
+juntos: aceso roxo, apagado, aceso roxo. O pisca nao usa o `BlinkEnabled`
+de cada LED (cada um com o seu relogio, e a rampa aparecendo por baixo na
+fase apagada): uma camada so liga e desliga os 18, pelo relogio da sessao
+(`SHIFT_PHASE`).
+
 O passo 0 e o LED de status, nos dois lados. Sem bandeira ele e so o
-primeiro da rampa; com bandeira (ou pit limiter) fica sempre aceso na cor
-dela, mesmo com o RPM baixo.
+primeiro da rampa; com bandeira fica sempre aceso na cor dela, mesmo com o
+RPM baixo -- menos na troca, quando pisca em roxo com os outros. O pit
+limiter (ciano piscando) tem prioridade sobre tudo e desliga o pisca da
+troca.
 
 Cada LED aceso e uma comparacao NCalc com os limiares do carro -- nenhum JS.
-Camadas, de baixo para cima: trilho apagado (sem formula), rampa, troca
-(uma camada so com `Visible`, filhos piscando sozinhos) e o status.
+Camadas, de baixo para cima: trilho apagado (sem formula), rampa (escondida
+na troca), troca e o status.
 """
 
 from math import cos, radians, sin
@@ -44,6 +53,15 @@ SL = "GameRawData.Telemetry.PlayerCarSL"
 FIRST, LAST, BLINK = (f"[{SL}{name}RPM]" for name in ("First", "Last", "Blink"))
 #: Carro sem shift lights no iRacing: os limiares vem zerados e nada acende.
 HAS_SL = f"{LAST} > 0"
+
+#: Hora de trocar a marcha: o mesmo criterio do brilho da marcha do dash
+#: principal (`center.GLOW_COLOR`). Com o pit limiter, o ciano dele manda.
+SHIFTING = f"({HAS_SL} && [Rpms] > {BLINK} && ![PitLimiterOn])"
+
+#: Fase do pisca da troca, igual para os 18 LEDs: o relogio da sessao em
+#: fatias de `BLINK_MS`, aceso nas pares.
+SHIFT_PHASE = (f"Floor([GameRawData.Telemetry.SessionTime] * "
+               f"{1000.0 / BLINK_MS:.4f}) % 2 = 0")
 
 
 def fraction(step):
@@ -118,9 +136,9 @@ def status_color():
 
 
 #: Aceso com bandeira, ou como primeiro da rampa -- ate a troca, quando some
-#: para o roxo aparecer no lugar.
-STATUS_VISIBLE = (f"if(({FLAGGED}) || ({HAS_SL} && [Rpms] >= {FIRST} "
-                  f"&& [Rpms] < {BLINK}), 1, 0)")
+#: para piscar em roxo com os outros. O pit limiter acende sempre.
+STATUS_VISIBLE = (f"if([PitLimiterOn] || (!{SHIFTING} && (({FLAGGED}) || "
+                  f"({HAS_SL} && [Rpms] >= {FIRST}))), 1, 0)")
 
 
 def layer():
@@ -133,8 +151,7 @@ def layer():
                        f"if({HAS_SL} && [Rpms] >= {threshold(step)}, 1, 0)")}))
     shift = each("Shift", range(STEPS),
                  lambda name, region, rot, step: led(
-                     name, region, rot, MINI_SHIFT,
-                     BlinkEnabled=True, BlinkDelay=BLINK_MS))
+                     name, region, rot, MINI_SHIFT))
     status = each("Status", [0],
                   lambda name, region, rot, step: led(
                       name, region, rot, ramp_color(0), visible=False,
@@ -147,13 +164,17 @@ def layer():
                 lambda name, region, rot, step: led(
                     name, region, rot, "#00FFFFFF", border=STATUS_RING,
                     thickness=1, visible=False,
-                    bindings={"Visible": ncalc(f"if({flag('Flag_Black')}, 1, 0)")}))
+                    bindings={"Visible": ncalc(
+                        f"if({flag('Flag_Black')} && !{SHIFTING}, 1, 0)")}))
 
     return group(
         "RPM LEDs",
         group("Track", *track),
-        group("Ramp", *lit),
+        # Na troca a rampa sai inteira: na fase apagada do pisca, os LEDs
+        # ficam apagados, e nao nas cores da rampa.
+        group("Ramp", *lit, bindings={"Visible": ncalc(
+            f"if({SHIFTING}, 0, 1)")}),
         group("Shift", *shift, bindings={"Visible": ncalc(
-            f"if({HAS_SL} && [Rpms] >= {BLINK}, 1, 0)")}),
+            f"if({SHIFTING} && {SHIFT_PHASE}, 1, 0)")}),
         group("Status", *status, *ring),
     )

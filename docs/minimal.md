@@ -143,6 +143,26 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
   O código antigo falha nas variantes com atraso. **Mudou o `RECORDER`?
   Rode o harness.**
 
+## LEDs de RPM (`leds.py`)
+
+Até o SLLastRPM, cada LED acende na cor do seu passo (verde, amarelo,
+vermelho). Acima do SLBlinkRPM, o mesmo critério do brilho roxo da marcha
+no dash principal (`center.GLOW_COLOR`), a rampa sai inteira e os 18 LEDs
+piscam em roxo, juntos, alternando entre roxo e apagado.
+
+- Antes, cada LED roxo tinha o próprio `BlinkEnabled`: cada um com o seu
+  relógio, e na fase apagada a rampa aparecia por baixo, então o pisca
+  alternava entre roxo e as cores da rampa.
+- Agora uma camada só (`Shift`) liga e desliga os 18, com
+  `SHIFT_PHASE`: o `SessionTime` em fatias de `BLINK_MS` (120 ms), aceso
+  nas pares. A rampa tem `Visible` falso na troca (`SHIFTING`).
+- O LED de status também pisca em roxo na troca, mesmo com bandeira. O
+  pit limiter tem prioridade: com ele ligado não há pisca de troca, e o
+  status fica ciano piscando sobre a rampa normal.
+- A conferir no SimHub: se o `Floor(...) % 2` do NCalc funciona e se o
+  `SessionTime` avança a cada quadro. Com o jogo pausado, o relógio para
+  e o roxo fica parado aceso ou apagado.
+
 ## Pedais, km/h e rpm (`capsule.py`)
 
 Ajustes vindos da crítica de design de 2026-11-08:

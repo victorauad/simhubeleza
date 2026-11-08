@@ -48,8 +48,10 @@ paleta vêm do canvas de design
 <https://claude.ai/artifact/S9sQwrTAbpMiBK7AwPpTP8>.
 
 - **LEDs**: 9 por lado em arco, limiares do iRacing por carro
-  (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`); roxo
-  piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
+  (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`). Acima
+  do SLBlinkRPM (o mesmo ponto do brilho roxo da marcha no dash principal) a
+  rampa sai e os 18 LEDs piscam em roxo juntos: uma camada só, pelo relógio
+  da sessão (`leds.SHIFT_PHASE`), não o `BlinkEnabled` de cada LED. O primeiro LED é o de status: cor da bandeira ou do pit
   limiter. Tudo NCalc com constante.
 - **Box de telemetria**: só `ChartItem`, uma janela com os últimos 15 s
   (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha fina
