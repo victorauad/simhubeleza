@@ -84,6 +84,18 @@ ganho ou perda; `DELTA_GAIN`/`DELTA_LOSS` trocam as cores. **A conferir no
 SimHub:** se o gauge com `Maximum` negativo enche para a direita no
 minimal como no dash principal.
 
+**Traço de delta (`delta_strip()`):** tira de 34 px na base do box,
+abaixo dos pedais (que ficaram com 120 px de altura em vez de 176), no mesmo
+eixo de 15 s. Um `ChartItem` com escala fixa de ±1 s (`TRACE_DELTA_S`,
+`Minimum`/`Maximum` simétricos, valor limitado por `Max/Min` na fórmula),
+zero no meio e três filetes como na grade dos pedais. **Sobe quando estou
+mais rápido** (a fórmula inverte o sinal do `DeltaToSessionBest`) e desce
+quando perco tempo, neutro como a barra do cabeçalho. Some junto com a
+referência. **A conferir no SimHub:** se o `ChartItem` aceita escala
+simétrica com valores negativos (se não, a saída é somar 1 ao valor e usar
+`Minimum 0`, `Maximum 2`). O preview desenha um delta simulado (o nome do
+gráfico tem "Delta").
+
 ### Como os gráficos funcionam
 
 - Tudo é `ChartItem`: ele desenha o histórico de um valor com o ponto mais

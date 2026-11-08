@@ -9,6 +9,7 @@ Uso:  python3 tools/preview.py [pasta] [-o saida.html]
 import argparse
 import base64
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -206,6 +207,23 @@ def render_chart(node):
     name = node.get("Name", "")
     pedal = ("Brake" if "Brake" in name else
              "Throttle" if "Throttle" in name else None)
+    if "Delta" in name:
+        width, height = node.get("Width", 0.0), node.get("Height", 0.0)
+        low, high = node.get("Minimum", -1.0), node.get("Maximum", 1.0)
+        points = []
+        for i in range(301):
+            x = i / 300
+            # Delta simulado: perde na frenagem, recupera na saida.
+            value = 0.55 * math.sin(x * 7.0) - 0.4 * x + 0.25
+            value = max(low, min(high, value))
+            y = height - (value - low) / ((high - low) or 1) * height
+            points.append(f"{x * width:.1f},{y:.1f}")
+        parts.append("overflow:visible")
+        return (f'<svg style="{";".join(p for p in parts if p)}" '
+                f'viewBox="0 0 {width} {height}">'
+                f'<polyline fill="none" stroke="{css_color(node.get("LineColor"))}" '
+                f'stroke-width="{node.get("LineTickness", 2)}" '
+                f'stroke-linejoin="round" points="{" ".join(points)}"/></svg>')
     if pedal is None:
         parts.append("outline:1px dashed rgba(255,255,255,.15)")
         return f'<div style="{";".join(p for p in parts if p)}"></div>'

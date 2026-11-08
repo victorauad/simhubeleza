@@ -49,7 +49,7 @@ from simhub.theme import (
     TRACE_NOW, rounded,
 )
 from .. import states
-from ..top_bar import DELTA_TEXT, delta_gauge, marker
+from ..top_bar import DELTA_PROP, DELTA_TEXT, delta_gauge, marker
 from ..widgets import LEFT, RIGHT, text
 from .base import SKIP_SLOW, TRACE_BOX, Region, group, rect
 
@@ -73,12 +73,19 @@ CLEAN_GRACE_S = 1.0
 BOX = TRACE_BOX
 PLOT_X, PLOT_RIGHT = BOX.x + 16.0, BOX.x + 642.0
 NOW_X = PLOT_RIGHT
-PLOT_TOP, PLOT_H = BOX.y + 30.0, 176.0
+PLOT_TOP, PLOT_H = BOX.y + 30.0, 120.0
 PLOT = Region(PLOT_X, PLOT_TOP, PLOT_RIGHT - PLOT_X, PLOT_H)
 GRID_YS = (PLOT_TOP, PLOT_TOP + PLOT_H / 2, PLOT_TOP + PLOT_H)
 NOW_LINE = Region(NOW_X - 0.5, BOX.y + 22.0, 1.0, 190.0)
 DOT = 7.0
 LEGEND_Y, AXIS_Y = BOX.y + 9.0, BOX.y + 216.0
+#: Tira do delta, abaixo dos pedais e no mesmo eixo de tempo: um rotulo e a
+#: linha entre -`TRACE_DELTA_S` e +`TRACE_DELTA_S`, com o zero no meio.
+DELTA_LABEL_Y = BOX.y + 158.0
+STRIP_TOP, STRIP_H = BOX.y + 172.0, 34.0
+STRIP = Region(PLOT_X, STRIP_TOP, PLOT_RIGHT - PLOT_X, STRIP_H)
+STRIP_YS = (STRIP_TOP, STRIP_TOP + STRIP_H / 2, STRIP_TOP + STRIP_H)
+TRACE_DELTA_S = 1.0
 #: Rotulos do box no tamanho dos rotulos da capsula (km/h, LAPS...).
 SIZE_SMALL = 11.0
 
@@ -224,11 +231,12 @@ def ref_value(name):
               f"'{states.SHARED}', {shared(name)}, 0)) || 0;")
 
 
-def chart(name, region, color, binding, thickness=LINE_THICKNESS):
+def chart(name, region, color, binding, thickness=LINE_THICKNESS,
+          low=0.0, high=100.0):
     return ChartItem(
         name=name,
         ChartSuspended=False, ChartEnabled=True,
-        CurrentValue=0.0, Minimum=0.0, Maximum=100.0,
+        CurrentValue=0.0, Minimum=low, Maximum=high,
         UseMinimum=True, UseMaximum=True,
         LineColor=color, LineTickness=thickness, PointsCount=float(POINTS),
         BackgroundColor="#00FFFFFF",
@@ -315,6 +323,27 @@ def delta_readout():
     )
 
 
+def delta_strip():
+    """O delta nos ultimos `WINDOW_S` segundos, alinhado no tempo com os
+    pedais: assim se ve em que frenagem a linha desceu. Sobe quando estou
+    mais rapido que a referencia (o delta e negativo) e desce quando perco
+    tempo; o valor e limitado a `TRACE_DELTA_S` para nao sair da tira. Neutro
+    como a barra do cabecalho. Some junto com a referencia."""
+    lines = [rect(f"Delta Grid {i}", Region(PLOT_X, y, PLOT_RIGHT - PLOT_X, 1.0),
+                  TRACE_GRID) for i, y in enumerate(STRIP_YS)]
+    limit = f"{TRACE_DELTA_S:g}"
+    trace = chart(
+        "Delta Trace", STRIP, TEXT,
+        ncalc(f"-Max(-{limit}, Min({limit}, {DELTA_PROP}))"),
+        low=-TRACE_DELTA_S, high=TRACE_DELTA_S)
+    return group(
+        "Delta Trace",
+        *lines, trace,
+        label(PLOT_X, 120.0, f"DELTA ±{limit} s", LEFT, y=DELTA_LABEL_Y),
+        bindings={"Visible": REF_READY},
+    )
+
+
 def axis():
     mono = "Arame Mono"
     return [
@@ -365,5 +394,5 @@ def layer():
         now,
         dot("Throttle Now", "Throttle", THROTTLE),
         dot("Brake Now", "Brake", BRAKE),
-        *legend(), *axis(), delta_readout(),
+        *legend(), *axis(), delta_readout(), delta_strip(),
     )
