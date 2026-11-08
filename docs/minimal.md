@@ -244,6 +244,21 @@ Antes era VOLTA (volta atual), TOTAL e STINT (+1, contando a volta em
 curso), com rótulo em cima e colunas centralizadas, fora do alinhamento
 do OTS.
 
+## Brake bias e batalha
+
+- **Brake bias (`capsule.bias_alert()`):** `BB 54.5` em âmbar (`BIAS`) toma
+  o lugar do cabeçalho do OTS por 2 s (`BIAS_SHOW_MS`) depois de cada
+  ajuste. A detecção usa `isincreasing`/`isdecreasing` do NCalc, as mesmas
+  funções que o dash principal usa para piscar o bias: sem JS nem estado.
+  O cabeçalho do OTS fica `Visible` só sem ajuste; o grupo do aviso nasce
+  escondido e, escondido, não avalia nada. Os números do OTS (`094`) e a
+  barra continuam.
+- **Batalha (`relative.py`):** carro a menos de 1 s (`BATTLE_S`) no mini
+  relativo: o gap vai ao branco da marcha e aparece um traço de 2 px à
+  esquerda do bloco. O limite de 1 s é escolha do projeto. Não há seta de
+  tendência do gap: pediria estado em JS para quatro linhas, e nenhuma
+  referência sustentou o custo.
+
 ## Combustível (`capsule.fuel()`)
 
 Abaixo do bloco de voltas (que subiu de y 150 para 128 para abrir espaço),
@@ -284,6 +299,10 @@ de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
+9. **Brake bias e batalha:** o `BB` deve aparecer por 2 s ao mexer no
+   bias (se `isincreasing`/`isdecreasing` não reagirem a passos de 0,1,
+   usar JS com valor anterior em `root`); o traço e o branco do gap devem
+   aparecer com um carro a menos de 1 s.
 8. **Combustível:** a marca deve ficar à direita do fim da barra quando
    falta combustível (barra laranja) e à esquerda quando sobra; conferir
    se `Fuel_LitersPerLap` já vem preenchido depois da primeira volta e se

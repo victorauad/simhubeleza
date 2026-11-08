@@ -14,7 +14,7 @@ verdadeiro; o resto usa o cinza dos valores.
 from simhub.bindings import formatted, ncalc
 from simhub.model import GearText, LinearGaugeItem
 from simhub.theme import (
-    BRAKE, CAPSULE_EDGE, CAPSULE_FILL, FONT, GEAR, MINI_FUEL, MINI_FUEL_SHORT,
+    BIAS, BRAKE, CAPSULE_EDGE, CAPSULE_FILL, FONT, GEAR, MINI_FUEL, MINI_FUEL_SHORT,
     MINI_TRACK, STATUS_RING, TEXT, TEXT_SECONDARY, THROTTLE, rounded,
 )
 from .. import ots
@@ -212,7 +212,9 @@ def ots_layer():
                   size=SIZE_OTS_HEADER, align=LEFT, font=FONT,
                   bindings={"Text": ncalc(f"'OTS ' + {ots.LABEL}"),
                             "TextColor": ncalc(ots.COLOR),
-                            "BlinkEnabled": ncalc(ots.ACTIVE_BLINK)})
+                            "BlinkEnabled": ncalc(ots.ACTIVE_BLINK),
+                            # Cede o lugar ao aviso do brake bias.
+                            "Visible": ncalc(f"if({BIAS_CHANGED}, 0, 1)")})
     bar = gauge("OTS Gauge", OTS_BAR, ots.READY, "DahlDesign.SF23.OTTimeLeft",
                 alignment=0)
     bar.update(Maximum=ots.CAPACITY, Value=94.0,
@@ -225,6 +227,31 @@ def ots_layer():
         bar,
         bindings={"Visible": ncalc(f"if({OTS_HIDDEN}, 0, 1)")},
     )
+
+
+# --- Brake bias --------------------------------------------------------------
+
+#: O bias mudou nos ultimos 2 s (as funcoes nativas do NCalc que o dash
+#: principal ja usa para piscar o bias): o cabecalho do OTS mostra o valor
+#: em vez de "OTS READY".
+BIAS_SHOW_MS = 2000
+BIAS_CHANGED = (f"(isincreasing({BIAS_SHOW_MS}, [BrakeBias]) || "
+                f"isdecreasing({BIAS_SHOW_MS}, [BrakeBias]))")
+
+
+def bias_alert():
+    """`BB 54.5` no lugar do cabecalho do OTS por 2 s depois de cada ajuste do
+    brake bias, para ver o valor sem uma pagina a mais. Fora desse tempo o
+    grupo fica escondido e nao avalia nada."""
+    layer = group(
+        "Brake Bias",
+        text(*frame(OTS_HEADER), "BB 54.5", name="Bias Value",
+             size=SIZE_OTS_HEADER, color=BIAS, align=LEFT, font=FONT,
+             bindings={"Text": ncalc("'BB ' + format([BrakeBias], '0.0')")}),
+        bindings={"Visible": ncalc(f"if({BIAS_CHANGED}, 1, 0)")},
+    )
+    layer["Visible"] = False
+    return layer
 
 
 # --- Voltas ------------------------------------------------------------------

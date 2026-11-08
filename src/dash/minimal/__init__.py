@@ -45,6 +45,7 @@ def items():
             relative.layer(),
             capsule.gear(),
             capsule.ots_layer(),
+            capsule.bias_alert(),
             capsule.laps(),
             capsule.fuel(),
             capsule.readouts(),
