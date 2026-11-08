@@ -44,7 +44,8 @@ camada dela fica escondida e o rotulo mostra "REF LAP --".
 from simhub.bindings import js, ncalc
 from simhub.model import ChartItem
 from simhub.theme import (
-    BRAKE, FONT, MINI_TRACK, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT,
+    BRAKE, FONT, MINI_SECTOR_EQUAL, MINI_SECTOR_GAIN, MINI_SECTOR_LOSS,
+    MINI_SECTOR_NONE, MINI_TRACK, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT,
     TEXT_SECONDARY, THROTTLE, TRACE_BOX_EDGE, TRACE_BOX_FILL, TRACE_GRID,
     TRACE_NOW, rounded,
 )
@@ -113,6 +114,15 @@ DELTA_VALUE = Region(DELTA_CENTER_X - DELTA_BAR_HALF - 70.0, BOX.y + 6.0,
                      62.0, 19.0)
 SIZE_DELTA = 16.0
 
+#: Mini-setores: a volta dividida em `SECTORS` trechos iguais do LapDistPct.
+#: O gravador guarda o tempo em cada fronteira e, ao fechar um setor,
+#: publica o delta dele contra a referencia (`mini_sd0` ... `mini_sd9`, em
+#: segundos; `SECTOR_NONE_VALUE` = sem dado).
+SECTORS = 10
+SECTOR_NONE_VALUE = 99
+#: Diferenca (s) abaixo da qual o setor conta como igual a referencia.
+SECTOR_EQUAL_S = 0.02
+
 KEY = "mini_"
 
 
@@ -121,7 +131,8 @@ def shared(name):
 
 
 RECORDER = js(
-    f"var S = '{states.SHARED}', N = {BINS};\r\n"
+    f"var S = '{states.SHARED}', N = {BINS}, NS = {SECTORS}, "
+    f"NONE = {SECTOR_NONE_VALUE};\r\n"
     "var r = root;\r\n"
     "var sec = function (v) { var x = Number(timespantoseconds(v)); "
     "return x > 0 ? x : 0; };\r\n"
@@ -133,29 +144,44 @@ RECORDER = js(
     "var last = sec($prop('DataCorePlugin.GameData.LastLapTime'));\r\n"
     f"var cl = $prop('{states.LAP_CLEAN}');\r\n"
     "var fresh = function () { return { t: [], b: [], n: 0, "
-    "seen: false, dirty: false }; };\r\n"
+    "seen: false, dirty: false, s: [], tot: null }; };\r\n"
+    # Delta dos mini-setores publicado: tudo "sem dado" ate haver setor fechado.
+    "var clr = function () { r.sd = []; for (var i = 0; i < NS; i++) "
+    "r.sd.push(NONE); r.sdDirty = true; };\r\n"
+    # Tempo de um setor (k) de uma volta: das fronteiras guardadas; o ultimo
+    # fecha no tempo total da volta.
+    "var secT = function (c, k) { var a = k == 0 ? 0 : c.s[k], "
+    "b = k == NS - 1 ? c.tot : c.s[k + 1]; "
+    "return a == null || b == null ? null : b - a; };\r\n"
+    # Setor k fechado: o delta dele contra a referencia. O setor 0 comeca uma
+    # volta nova, entao apaga o resultado da volta anterior.
+    "var sdone = function (c, k) { if (k == 0) clr(); var x = r.ref; "
+    "if (!x || x === c) return; var u = secT(c, k), v = secT(x, k); "
+    "if (u == null || v == null) return; r.sd[k] = u - v; r.sdDirty = true; };\r\n"
     # Sessao nova (ou dash recem-carregado): comeca do zero.
     "if (r.cur == null || sess != r.sess) { r.cur = fresh(); r.ref = null; "
     "r.refT = 0; r.pend = null; r.lap = lap; r.bin = -1; r.ok = false; "
-    "r.t0 = null; r.seen = last; r.sess = sess; r.best = best; }\r\n"
+    "r.t0 = null; r.seen = last; r.sess = sess; r.best = best; "
+    "r.pp = null; r.pn = null; clr(); }\r\n"
     # A volta voltou para tras (reset, garagem): perde so a volta em curso;
     # a referencia continua sendo a melhor da sessao.
     "if (lap < r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; "
-    "r.pend = null; r.lap = lap; r.bin = -1; }\r\n"
+    "r.pend = null; r.lap = lap; r.bin = -1; clr(); }\r\n"
     # A sessao zerou a melhor volta: a referencia antiga nao vale mais.
-    "if (best <= 0 && r.best > 0) { r.ref = null; r.refT = 0; }\r\n"
+    "if (best <= 0 && r.best > 0) { r.ref = null; r.refT = 0; clr(); }\r\n"
     "r.best = best;\r\n"
     "if (!(pct >= 0 && pct <= 1)) return true;\r\n"
     # Virou a volta: a que acabou fica pendente ate o SimHub mostrar que ela
     # e a melhor. A primeira volta depois de carregar o dash nunca vale (nao
     # foi gravada inteira).
     "if (lap == r.lap + 1) {\r\n"
+    "\tif (r.ok && r.t0 != null) { r.cur.tot = now - r.t0; sdone(r.cur, NS - 1); }\r\n"
     f"\tr.pend = r.ok && r.t0 != null && r.cur.n >= N * {COVERAGE} "
     "? { c: r.cur, t: now - r.t0, last0: r.seen, off: 0, "
     "clean: r.cur.seen ? !r.cur.dirty : null } : null;\r\n"
     "\tr.cur = fresh(); r.ok = true; r.t0 = now;\r\n"
     "} else if (lap != r.lap) { r.cur = fresh(); r.ok = false; r.t0 = null; "
-    "r.pend = null; }\r\n"
+    "r.pend = null; clr(); }\r\n"
     "r.lap = lap;\r\n"
     # Volta limpa (IRacingExtraProperties): suja no primeiro falso. Logo
     # depois da virada a propriedade ainda traz a volta que acabou.
@@ -198,14 +224,24 @@ RECORDER = js(
     "var wrap = r.bin > N * 0.9 && bin < N * 0.1;\r\n"
     "var from = bin;\r\n"
     "if (r.bin >= 0 && !wrap) {\r\n"
-    "\tif (bin > r.bin + 20 || bin < r.bin - 5) r.ok = false;\r\n"
+    "\tif (bin > r.bin + 20 || bin < r.bin - 5) { r.ok = false; clr(); }\r\n"
     "\telse if (bin > r.bin) from = r.bin + 1;\r\n"
     "}\r\n"
     "var c = r.cur;\r\n"
     "if (!wrap) for (var i = from; i <= bin; i++) { if (c.t[i] == null) c.n++; "
     "c.t[i] = thr; c.b[i] = brk; }\r\n"
     "r.bin = bin;\r\n"
+    # Fronteiras dos mini-setores: o tempo de cruzar cada uma, interpolado
+    # entre os dois quadros, desde o inicio da volta; fechar um setor publica
+    # o delta dele. Salto de posicao (mais de 20% da volta num quadro) nao conta.
+    "var pp = r.pp, pn = r.pn;\r\n"
+    "r.pp = pct; r.pn = now;\r\n"
+    "if (r.ok && r.t0 != null && !wrap && pp != null && pct > pp && pct - pp < 0.2) "
+    "for (var k = 1; k < NS; k++) { var bd = k / NS; if (pp < bd && bd <= pct) { "
+    "c.s[k] = pn + (now - pn) * (bd - pp) / (pct - pp) - r.t0; sdone(c, k - 1); } }\r\n"
     f"if (!{states.HAS_SHARED}) return true;\r\n"
+    "if (r.sdDirty) { for (var j = 0; j < NS; j++) "
+    f"setsharedvalue(S, '{KEY}sd' + j, r.sd[j]); r.sdDirty = false; }}\r\n"
     "var ref = r.ref;\r\n"
     f"setsharedvalue(S, {shared('ok')}, ref ? 1 : 0);\r\n"
     f"setsharedvalue(S, {shared('best')}, ref ? r.refT : 0);\r\n"
@@ -344,6 +380,51 @@ def delta_strip():
     )
 
 
+#: Faixa dos mini-setores na linha do eixo, entre "-15 s" e "0": o rotulo e
+#: um bloco por setor.
+SECTOR_LABEL_X = PLOT_X + 100.0
+SECTOR_X0, SECTOR_W, SECTOR_GAP, SECTOR_H = PLOT_X + 170.0, 32.0, 4.0, 8.0
+SECTOR_Y = AXIS_Y + 2.0
+
+
+def sector_color(index):
+    """Cor do bloco: o delta publicado pelo gravador para o setor."""
+    return js(
+        f"var d = {states.HAS_SHARED} ? Number(getsharedvalueordefault("
+        f"'{states.SHARED}', '{KEY}sd{index}', {SECTOR_NONE_VALUE})) "
+        f": {SECTOR_NONE_VALUE};\r\n"
+        f"if (!(d < {SECTOR_NONE_VALUE})) return '{MINI_SECTOR_NONE}';\r\n"
+        f"return d < -{SECTOR_EQUAL_S:g} ? '{MINI_SECTOR_GAIN}' : "
+        f"d > {SECTOR_EQUAL_S:g} ? '{MINI_SECTOR_LOSS}' : '{MINI_SECTOR_EQUAL}';",
+        format_string="")
+
+
+def sectors():
+    """O resultado de cada mini-setor da volta contra a referencia: claro
+    ganhei, laranja perdi, cinza igual, apagado ainda sem dado. Na volta
+    seguinte o resultado antigo fica ate o setor 0 fechar."""
+    # Cor de exemplo (o preview nao avalia a formula).
+    sample = (MINI_SECTOR_GAIN, MINI_SECTOR_GAIN, MINI_SECTOR_EQUAL,
+              MINI_SECTOR_LOSS, MINI_SECTOR_GAIN, MINI_SECTOR_GAIN,
+              MINI_SECTOR_LOSS, MINI_SECTOR_NONE, MINI_SECTOR_NONE,
+              MINI_SECTOR_NONE)
+    blocks = []
+    for i in range(SECTORS):
+        block = rect(f"Sector {i + 1}",
+                     Region(SECTOR_X0 + i * (SECTOR_W + SECTOR_GAP), SECTOR_Y,
+                            SECTOR_W, SECTOR_H),
+                     sample[i % len(sample)], radius=2,
+                     bindings={"BackgroundColor": sector_color(i)})
+        block["RenderingSkip"] = SKIP_SLOW
+        blocks.append(block)
+    return group(
+        "Sectors",
+        label(SECTOR_LABEL_X, 62.0, "SECTORS", LEFT, y=AXIS_Y),
+        *blocks,
+        bindings={"Visible": REF_READY},
+    )
+
+
 def axis():
     mono = "Arame Mono"
     return [
@@ -394,5 +475,5 @@ def layer():
         now,
         dot("Throttle Now", "Throttle", THROTTLE),
         dot("Brake Now", "Brake", BRAKE),
-        *legend(), *axis(), delta_readout(), delta_strip(),
+        *legend(), *axis(), delta_readout(), delta_strip(), sectors(),
     )

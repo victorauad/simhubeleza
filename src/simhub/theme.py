@@ -221,3 +221,9 @@ TRACE_NOW = alpha(STATUS_RING, 55)
 REF_THROTTLE = alpha(THROTTLE, 40)
 REF_BRAKE = alpha(BRAKE, 40)
 REF_SWATCH = alpha(TEXT_SECONDARY, 40)
+#: Mini-setores: perdi tempo (laranja, o unico tom livre), ganhei (neutro
+#: claro), igual a referencia e ainda sem dado.
+MINI_SECTOR_LOSS = ORANGE
+MINI_SECTOR_GAIN = TEXT
+MINI_SECTOR_EQUAL = TEXT_TERTIARY
+MINI_SECTOR_NONE = MINI_TRACK

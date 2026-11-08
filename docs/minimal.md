@@ -161,10 +161,24 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
   para o gráfico não virar escada. Sem `setsharedvalue` (`HAS_SHARED`
   falso), não há referência: a camada fica escondida e o rótulo mostra
   `--`.
+- **Mini-setores:** a volta é dividida em 10 trechos iguais do `LapDistPct`
+  (`SECTORS`). O gravador guarda o tempo em que cruzou cada fronteira,
+  interpolado entre os dois quadros (`c.s`), e o tempo total da volta
+  (`c.tot`, na virada). Ao fechar um setor, publica o delta dele contra a
+  referência em `mini_sd0`…`mini_sd9` (segundos; 99 = sem dado). O setor 0 é
+  o primeiro a fechar numa volta nova e apaga o resultado da anterior, então
+  o resultado da volta que acabou fica na tela até lá; o último setor fecha
+  na virada. Reset, salto de posição, sessão nova e fim da referência
+  apagam tudo. O `sdone` não mede a volta contra ela mesma. Na tela
+  (`sectors()`, linha do eixo, entre `-15 s` e `0`): um bloco por setor,
+  claro = ganhei, laranja = perdi, cinza = igual (±`SECTOR_EQUAL_S`, 0,02 s),
+  apagado = sem dado. Precisão: o início da volta é o quadro em que o `Lap`
+  mudou, então o setor 0 e o último carregam o erro de um quadro (~16 ms).
 - O harness `tools/check_minimal.py` roda a fórmula quadro a quadro sobre
   voltas simuladas. A sequência básica roda em 4 variantes: normal,
   `BestLapTime` 5 s atrasado, com validade, e com validade e atraso. Há
-  ainda testes de reset, sessão nova e leitura interpolada no ponto atual.
+  ainda testes de reset, sessão nova, leitura interpolada no ponto atual e
+  dos mini-setores (voltas com duração por setor).
   O código antigo falha nas variantes com atraso. **Mudou o `RECORDER`?
   Rode o harness.**
 

@@ -15,7 +15,10 @@ quadro, com o mesmo `root` -- sobre voltas simuladas, e confere:
   - um LastLapTime velho igual ao best nao promove a volta seguinte;
   - o valor publicado e o da referencia no ponto atual, interpolado entre
     trechos;
-  - a virada do LapDistPct um quadro antes da volta nao invalida nada.
+  - a virada do LapDistPct um quadro antes da volta nao invalida nada;
+  - mini-setores: o delta de cada setor contra a referencia (voltas com
+    duracao por setor), o ultimo setor fechado na virada, o resultado da
+    volta anterior ate o setor 0 da proxima fechar, e nada sem referencia.
 
 Uso:  python3 build.py && python3 tools/check_minimal.py
 """
@@ -76,14 +79,29 @@ function applyBest() {
 function lap(number, seconds, opts) {
   opts = opts || {};
   var frames = Math.round(seconds * FPS), start = opts.from || 0;
+  // `sectors`: duracao de cada um dos 10 setores (soma = seconds), para voltas
+  // que nao andam a velocidade constante; `upto`: so essa fracao da volta.
+  var cum = null;
+  if (opts.sectors) {
+    cum = [0];
+    opts.sectors.forEach(function (d) { cum.push(cum[cum.length - 1] + d); });
+    seconds = cum[cum.length - 1];
+    frames = Math.round(seconds * FPS);
+  }
+  var run = Math.round(frames * (opts.upto || 1));
   var dirtyAt = opts.valid === false ? Math.floor(frames / 2) : frames;
-  for (var f = 0; f < frames; f++) {
+  for (var f = 0; f < run; f++) {
     if (f == DELAY) apply();
     if (bestLag && f == DELAY + bestLag) applyBest();
     // A validade da volta velha ainda aparece no comeco da nova.
     if (withClean && f >= DELAY / 2) state[CLEAN] = f < dirtyAt;
     var k = f / frames;
     var pct = start + (1 - start) * k;
+    if (cum) {
+      var el = f / FPS, i = 0;
+      while (i < 9 && el >= cum[i + 1]) i++;
+      pct = (i + (el - cum[i]) / (cum[i + 1] - cum[i])) / 10;
+    }
     state['GameRawData.Telemetry.LapDistPct'] = pct;
     state['GameRawData.Telemetry.Lap'] = number;
     state['GameRawData.Telemetry.SessionTime'] = (state.t || 0) + 1 / FPS;
@@ -93,6 +111,7 @@ function lap(number, seconds, opts) {
     state['DataCorePlugin.GameData.SpeedKmh'] = LEN / seconds * 3.6;
     frame();
   }
+  if (opts.upto) return;
   publish = { seconds: seconds, valid: opts.valid !== false };
   // O LapDistPct vira um quadro antes da volta; com `early`, o jogo publica
   // o tempo antes de virar a volta.
@@ -158,6 +177,40 @@ lap(3, 95, { mark: 33 });
   frame();
   expect('freio da referencia em ' + q, shared.mini_brk, q * 100, 1.5);
 });
+
+// Mini-setores. A referencia tem 9.2 s em cada setor (92 s); a volta de
+// teste perde 0.5 s no setor 3, ganha 0.3 s no 5 e perde 0.4 s no ultimo.
+function even(d) { var a = []; for (var i = 0; i < 10; i++) a.push(d); return a; }
+function sd(k) { return shared['mini_sd' + k]; }
+var mix = even(9.2); mix[3] += 0.5; mix[5] -= 0.3; mix[9] += 0.4;
+function sectorLaps() {
+  reset({});
+  lap(1, 100, { mark: 11, from: 0.4 });
+  lap(2, 92, { sectors: even(9.2), mark: 22 });
+  expect('sem referencia, setor sem dado', sd(3), 99);
+  lap(3, 95, { sectors: even(9.5), mark: 33 });
+  expect('contra a referencia (lap 2) nos 0.3 s a mais por setor', sd(4), 0.3, 0.02);
+  lap(4, 92.4, { sectors: mix, mark: 44 });
+}
+// Volta 4 inteira: setores 0-8 fechados no caminho, o 9 so na virada.
+sectorLaps();
+for (var q = 0; q < 9; q++)
+  expect('setor ' + q + ' contra a referencia', sd(q), q == 3 ? 0.5 : q == 5 ? -0.3 : 0, 0.02);
+expect('ultimo setor ainda sem dado', sd(9), 99);
+// A virada fecha o ultimo setor (a volta 5 comeca no quadro seguinte).
+sectorLaps();
+lap(5, 92, { sectors: even(9.2), mark: 55, upto: 0.05 });
+expect('ultimo setor fechado na virada', sd(9), 0.4, 0.03);
+expect('resultado da volta anterior fica ate o setor 0 fechar', sd(3), 0.5, 0.02);
+sectorLaps();
+lap(5, 92, { sectors: even(9.2), mark: 55, upto: 0.15 });
+expect('setor 0 da volta nova apaga o resultado anterior', sd(3), 99);
+expect('setor 0 da volta nova', sd(0), 0, 0.02);
+// Reset (a volta conta para tras): o resultado some, a referencia fica.
+sectorLaps();
+lap(2, 30, { sectors: even(3), mark: 0 });
+expect('reset apaga os setores', sd(3), 99);
+expect('reset: a referencia fica', shared.mini_ok, 1);
 
 console.log(JSON.stringify(failures));
 """
