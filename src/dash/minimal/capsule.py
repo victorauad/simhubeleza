@@ -60,7 +60,7 @@ LAPS_BLOCK = Region(OTS_BAR.x, 128.0, OTS_BAR.width, 0.0)
 SIZE_LAP_VALUE = 30.0
 LAP_VALUE_Y = LAPS_BLOCK.y
 LAP_LABEL_Y = LAP_VALUE_Y + SIZE_LAP_VALUE + 4.0
-LAP_COLUMN_WIDTH = 70.0
+LAP_COLUMN_WIDTH = 80.0
 LAP_COLUMNS = [  # (x, alinhamento)
     (LAPS_BLOCK.x, LEFT),
     (LAPS_BLOCK.x + (LAPS_BLOCK.width - LAP_COLUMN_WIDTH) / 2, CENTER),
@@ -246,11 +246,13 @@ BIAS_CHANGED = (f"(isincreasing({BIAS_SHOW_MS}, [BrakeBias]) || "
 
 #: Voltas que faltam completar: total menos completas. Sem total de voltas
 #: (corrida por tempo, treino) nao ha conta exata, e a estimativa nao vale:
-#: "N/A".
+#: "N/A". Na ultima volta (falta 1) vira "LAST".
 LAPS_TO_GO = (
     "if([DataCorePlugin.GameData.TotalLaps] > 0, "
+    "if([DataCorePlugin.GameData.TotalLaps] - "
+    "[DataCorePlugin.GameData.CompletedLaps] = 1, 'LAST', "
     "format(Max([DataCorePlugin.GameData.TotalLaps] "
-    "- [DataCorePlugin.GameData.CompletedLaps], 0), '0'), 'N/A')"
+    "- [DataCorePlugin.GameData.CompletedLaps], 0), '0')), 'N/A')"
 )
 
 LAPS = [

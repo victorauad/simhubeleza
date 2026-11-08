@@ -21,6 +21,7 @@ tudo cabe na cápsula, nenhum desfoque e fórmulas o mais leves possível
 | `base.py` | Medidas (`CAPSULE`, `TRACE_BOX`, centros dos arcos), `rect`, `group`, cadências `SKIP_SLOW = 9` / `SKIP_NAMES = 29` |
 | `leds.py` | 9 LEDs por lado em arco, limiares do iRacing por carro, LED de status (bandeira/limiter) |
 | `capsule.py` | Fundo, pedais do centro para fora, marcha, km/h, rpm, OTS, LAPS / TO GO / STINT |
+| `context.py` | Painel por cima do box: pit e revisão da volta |
 | `alerts.py` | Área de alerta com prioridade, no lugar do cabeçalho do OTS |
 | `relative.py` | Mini relativo (2 à frente, eu, 2 atrás), dados do IRacingExtraProperties |
 | `trace.py` | Box de telemetria e gravador da volta de referência |
@@ -280,6 +281,29 @@ ganhou as que faltavam (vermelha, meatball, carro lento, pista suja,
 quadriculada); `leds.COND_*` são as condições compartilhadas. As cores de
 bandeira vêm de `theme.py`.
 
+## Painel de contexto (`context.py`)
+
+O box troca de conteúdo por estado: um painel opaco cobre o box por cima,
+só quando há o que mostrar, e some sozinho (grupo escondido por padrão, a
+~6 Hz):
+
+- **Pit** (`OnPitRoad`): `PIT LANE`, o limite de velocidade em km/h
+  (`TrackPitSpeedLimit`, "60.00 kph" do YAML) e o combustível a abastecer
+  (`PitSvFuel`).
+- **Volta** (5 s depois de fechar uma volta de corrida fora do pit:
+  `SessionTypeName = 'Race'` e `isincreasing(5000, CompletedLaps)`): número
+  e tempo da volta, delta contra a melhor (`BEST` se for a melhor; laranja
+  se mais lenta) e os 10 mini-setores, que ainda guardam o resultado da
+  volta que fechou (o setor 0 da próxima só fecha depois de ~9 s).
+
+Pit tem prioridade. **O painel cobre o box e não o esconde**: o `RECORDER`
+mora no `Visible` da linha "Now" e para de gravar se ela sumir. O fundo é
+opaco (o do box é 92% e o traço apareceria fantasma). Não depende do dash
+principal: sai de propriedades do SimHub, com um JS curto para formatar
+tempo (`states.FORMAT`). Na última volta (falta 1) o TO GO mostra `LAST`.
+Fora do que foi pedido, ficou de fora trocar o traço de delta por sessão
+(esconder em corrida): hoje ele aparece sempre.
+
 ## Brake bias e batalha
 
 - **Brake bias:** `BB 54.5` em âmbar (`BIAS`) toma o lugar do cabeçalho do
@@ -333,6 +357,11 @@ de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
+11. **Painel de contexto:** no pit lane o painel deve cobrir o box e, ao
+   sair, o gráfico voltar sem perder a gravação da referência; 5 s depois
+   de fechar uma volta de corrida deve aparecer a revisão. Conferir
+   `TrackPitSpeedLimit`, `PitSvFuel` e `SessionTypeName` e se `LAST`
+   cabe na coluna do TO GO.
 10. **Área de alerta:** com uma bandeira amarela, o `YELLOW` deve tomar o
    lugar do `OTS READY` e o LED de status ficar amarelo; conferir os nomes
    `SessionFlagsDetails.Isred/Isrepair/Isdebris` e se o aviso some ao fim
