@@ -186,8 +186,10 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
 
 ## LEDs de RPM (`leds.py`)
 
-Até o SLLastRPM, cada LED acende na cor do seu passo (verde, amarelo,
-vermelho). Acima do SLBlinkRPM, o mesmo critério do brilho roxo da marcha
+Até o SLLastRPM, cada LED acende na cor do seu passo: um azul que clareia
+para fora, interpolado entre os quatro pontos de `RPM_RAMP` (a rampa do
+dash principal; verde e vermelho ficam para os pedais, e o roxo é o único
+sinal de troca). Acima do SLBlinkRPM, o mesmo critério do brilho roxo da marcha
 no dash principal (`center.GLOW_COLOR`), a rampa sai inteira e os 18 LEDs
 piscam em roxo, juntos, alternando entre roxo e apagado.
 
@@ -195,7 +197,9 @@ piscam em roxo, juntos, alternando entre roxo e apagado.
   relógio, e na fase apagada a rampa aparecia por baixo, então o pisca
   alternava entre roxo e as cores da rampa.
 - Agora uma camada só (`Shift`) liga e desliga os 18, com
-  `SHIFT_PHASE`: o `SessionTime` em fatias de `BLINK_MS` (120 ms), aceso
+  `SHIFT_PHASE`: o `SessionTime` em fatias de `BLINK_MS` (180 ms: ~2,8
+  flashes por segundo, abaixo dos 3 do critério 2.3.1 da WCAG; eram 120 ms,
+  ~4,2), aceso
   nas pares. A rampa tem `Visible` falso na troca (`SHIFTING`).
 - O LED de status também pisca em roxo na troca, mesmo com bandeira. O
   pit limiter tem prioridade: com ele ligado não há pisca de troca.

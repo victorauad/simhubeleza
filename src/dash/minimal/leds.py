@@ -2,7 +2,8 @@
 
 Nove LEDs por lado acompanham a curvatura, de baixo para cima. Os limiares
 sao os do iRacing, por carro: o primeiro LED acende no SLFirstRPM, o ultimo
-no SLLastRPM, cada um na cor do seu passo (verde, amarelo, vermelho).
+no SLLastRPM, cada um na cor do seu passo: um azul que clareia para fora
+(a rampa do dash principal; verde e vermelho ficam para os pedais).
 Entre o primeiro e o ultimo os limiares se apertam (`RHYTHM`): os primeiros
 LEDs acendem espacados e os ultimos em sequencia rapida, e e essa
 aceleracao que da o tempo da troca.
@@ -56,8 +57,10 @@ LED_RADIUS = LED_H / 2
 #: fim da sequencia.
 RHYTHM = 1.6
 
-#: Pisca da troca e do pit limiter, em ms por fase.
-BLINK_MS = 120.0
+#: Pisca da troca e do pit limiter, em ms por fase: 180 ms e ~2,8 flashes por
+#: segundo, abaixo dos 3 por segundo do criterio 2.3.1 da WCAG (120 ms davam
+#: ~4,2).
+BLINK_MS = 180.0
 
 SL = "GameRawData.Telemetry.PlayerCarSL"
 FIRST, LAST, BLINK = (f"[{SL}{name}RPM]" for name in ("First", "Last", "Blink"))
@@ -88,10 +91,16 @@ def threshold(step):
 
 
 def ramp_color(step):
-    """Verde no comeco, amarelo no meio, vermelho no fim."""
-    f = fraction(step)
-    green, yellow, red = MINI_RPM_RAMP
-    return green if f < 0.45 else yellow if f < 0.75 else red
+    """Azul que clareia do primeiro ao ultimo passo: interpola entre os
+    pontos de `MINI_RPM_RAMP`."""
+    stops = MINI_RPM_RAMP
+    position = fraction(step) * (len(stops) - 1)
+    i = min(int(position), len(stops) - 2)
+    t = position - i
+    a, b = stops[i], stops[i + 1]
+    channels = (round(int(a[k:k + 2], 16) + (int(b[k:k + 2], 16) - int(a[k:k + 2], 16)) * t)
+                for k in (1, 3, 5, 7))
+    return "#" + "".join(f"{c:02X}" for c in channels)
 
 
 def positions(step):

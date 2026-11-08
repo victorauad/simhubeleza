@@ -207,8 +207,10 @@ TRACE_BOX_FILL = alpha("#FF101216", 92)
 TRACE_BOX_EDGE = alpha(TEXT, 18)
 #: Trilho dos LEDs apagados, das barras dos pedais e da barra do OTS.
 MINI_TRACK = "#FF1A1D21"
-#: Rampa dos LEDs de RPM, do primeiro ao ultimo; roxo para trocar a marcha.
-MINI_RPM_RAMP = (GREEN, YELLOW, RED)
+#: Rampa dos LEDs de RPM, do primeiro ao ultimo: a mesma azul do dash
+#: principal, que clareia para fora e deixa o verde e o vermelho so para os
+#: pedais; roxo para trocar a marcha.
+MINI_RPM_RAMP = RPM_RAMP
 MINI_SHIFT = SHIFT
 #: Aro claro do LED de status na bandeira preta, que sumiria no fundo.
 STATUS_RING = "#FFE6E9ED"
