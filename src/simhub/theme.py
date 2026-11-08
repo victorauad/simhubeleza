@@ -207,14 +207,35 @@ TRACE_BOX_FILL = alpha("#FF101216", 92)
 TRACE_BOX_EDGE = alpha(TEXT, 18)
 #: Trilho dos LEDs apagados, das barras dos pedais e da barra do OTS.
 MINI_TRACK = "#FF1A1D21"
-#: Rampa dos LEDs de RPM, do primeiro ao ultimo; roxo para trocar a marcha.
-MINI_RPM_RAMP = (GREEN, YELLOW, RED)
+#: Rampa dos LEDs de RPM, do primeiro ao ultimo: a mesma azul do dash
+#: principal, que clareia para fora e deixa o verde e o vermelho so para os
+#: pedais; roxo para trocar a marcha.
+MINI_RPM_RAMP = RPM_RAMP
 MINI_SHIFT = SHIFT
+#: Terceira camada de texto: rotulos e unidades de 11 px (KM/H, LAPS, YOU...),
+#: abaixo do cinza dos valores (`TEXT`) e dos rotulos de linha
+#: (`TEXT_SECONDARY`); ~5:1 sobre a capsula. A marcha (branco) e o numero
+#: (cinza) mandam, a unidade so acompanha.
+MINI_UNIT = "#FF7E838A"
+#: Filete de 1 px no topo da capsula, no lugar de brilho (nada de desfoque).
+MINI_HIGHLIGHT = "#1FE6E9ED"
 #: Aro claro do LED de status na bandeira preta, que sumiria no fundo.
 STATUS_RING = "#FFE6E9ED"
 #: Filetes do box: grade de 0/50/100% e a linha do "agora" no meio.
-TRACE_GRID = alpha(STATUS_RING, 7)
+TRACE_GRID = alpha(STATUS_RING, 15)
 TRACE_NOW = alpha(STATUS_RING, 55)
-#: Traco da volta de referencia: a cor do pedal, apagada.
-REF_THROTTLE = alpha(THROTTLE, 60)
-REF_BRAKE = alpha(BRAKE, 60)
+#: Faixa da volta de referencia, larga e translucida, por baixo da minha
+#: linha fina: a cor do pedal bem apagada. A legenda usa o cinza no mesmo
+#: alpha.
+REF_THROTTLE = alpha(THROTTLE, 40)
+REF_BRAKE = alpha(BRAKE, 40)
+REF_SWATCH = alpha(TEXT_SECONDARY, 40)
+#: Mini-setores: perdi tempo (laranja, o unico tom livre), ganhei (neutro
+#: claro), igual a referencia e ainda sem dado.
+MINI_SECTOR_LOSS = ORANGE
+MINI_SECTOR_GAIN = TEXT
+MINI_SECTOR_EQUAL = TEXT_TERTIARY
+MINI_SECTOR_NONE = MINI_TRACK
+#: Barra de combustivel: neutra, e laranja quando nao chega ao fim da corrida.
+MINI_FUEL = TEXT_SECONDARY
+MINI_FUEL_SHORT = ORANGE

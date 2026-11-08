@@ -12,11 +12,11 @@ avalia nada.
 """
 
 from simhub.bindings import formatted, js, ncalc
-from simhub.theme import FONT, PLAYER, TEXT, TEXT_SECONDARY
+from simhub.theme import FONT, GEAR, PLAYER, TEXT, TEXT_SECONDARY
 from .. import states
 from ..right import LAP_PARSE
 from ..widgets import LEFT, RIGHT, text
-from .base import SKIP_NAMES, SKIP_SLOW, group
+from .base import SKIP_NAMES, SKIP_SLOW, Region, group, rect
 
 BLOCK_X, BLOCK_Y, BLOCK_H = 150.0, 74.0, 130.0
 ROWS = 5
@@ -33,17 +33,23 @@ GAP = (336.0, 40.0, RIGHT)
 #: Velocidade de atualizacao do gap: muda o tempo todo, mas so no decimo.
 SKIP_GAP = 2
 
+#: Batalha: carro a menos de `BATTLE_S` segundos. O gap vai ao branco da
+#: marcha e a linha ganha um traco de 2 px na borda esquerda do bloco. O
+#: limite e escolha do projeto (nenhuma referencia define um).
+BATTLE_S = 1.0
+BATTLE_MARK_X, BATTLE_MARK_W = BLOCK_X - 8.0, 2.0
+
 LAST_NAME = ("var p = String({value} || '').trim().split(/\\s+/); "
              "return p[p.length - 1];")
 
 
 def cell(column, top, sample, *, name, color, bold=False, font=None,
-         binding=None, skip=0):
+         binding=None, skip=0, extra=None):
     x, width, align = column
-    extra = {"font": font} if font else {}
+    font_args = {"font": font} if font else {}
     item = text(x, top, width, ROW_H, sample, name=name, size=SIZE,
                 color=color, weight="Bold" if bold else None, align=align,
-                bindings={"Text": binding}, **extra)
+                bindings={"Text": binding, **(extra or {})}, **font_args)
     item["RenderingSkip"] = skip
     return item
 
@@ -54,6 +60,13 @@ def car_row(side, index, row):
         return f"IRacingExtraProperties.RLB_{side}_{field}_0{index}"
 
     top = BLOCK_Y + ROW_PITCH * row
+    gap = (f"var g = parseFloat($prop('{prop('RelativeGapToPlayer')}'));\r\n"
+           f"var near = !isNaN(g) && Math.abs(g) < {BATTLE_S:g};\r\n")
+    mark = rect("Battle", Region(BATTLE_MARK_X, top, BATTLE_MARK_W, ROW_H),
+                GEAR, radius=1, visible=False,
+                bindings={"Visible": js(gap + "return near;", jsext=3,
+                                        format_string="")})
+    mark["RenderingSkip"] = SKIP_GAP
     return group(
         f"{side} {index}",
         cell(POS, top, "5", name="Position", color=TEXT_SECONDARY,
@@ -73,7 +86,10 @@ def car_row(side, index, row):
              binding=js(f"var g = parseFloat($prop('{prop('RelativeGapToPlayer')}'));\r\n"
                         "if (isNaN(g)) return 'N/A';\r\n"
                         "return Math.abs(g).toFixed(1);", jsext=3, format_string=""),
-             skip=SKIP_GAP),
+             skip=SKIP_GAP, extra={"TextColor": js(
+                 gap + f"return near ? '{GEAR}' : '{TEXT}';", jsext=3,
+                 format_string="")}),
+        mark,
         bindings={"Visible": ncalc(f"isnull([{prop('Name')}],'')!=''")},
     )
 

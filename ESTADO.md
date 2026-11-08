@@ -43,24 +43,44 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
 Segundo dash, gerado junto pelo `build.py` em `build/SF23_Minimal`: uma
 cápsula de 900×240 com o box de telemetria pendurado embaixo (dash de
 900×480, fundo transparente). Código em `src/dash/minimal/`, uma peça por
-arquivo (`leds.py`, `capsule.py`, `relative.py`, `trace.py`); medidas e
+arquivo (`leds.py`, `capsule.py`, `alerts.py`, `context.py`, `relative.py`,
+`trace.py`); medidas e
 paleta vêm do canvas de design
 <https://claude.ai/artifact/S9sQwrTAbpMiBK7AwPpTP8>.
 
 - **LEDs**: 9 por lado em arco, limiares do iRacing por carro
-  (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`); roxo
-  piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
+  (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`). Acima
+  do SLBlinkRPM (o mesmo ponto do brilho roxo da marcha no dash principal) a
+  rampa sai e os 18 LEDs piscam em roxo juntos: uma camada só, pelo relógio
+  da sessão (`leds.SHIFT_PHASE`), não o `BlinkEnabled` de cada LED. O primeiro LED é o de status: cor da bandeira ou do pit
   limiter. Tudo NCalc com constante.
-- **Box de telemetria**: só `ChartItem`, ±10 s (`trace.WINDOW_S`). Esquerda =
-  meus pedais + referência no mesmo ponto; direita = referência a frente (o
-  gráfico recebe a referência onde ela estava `WINDOW_S` depois de passar
-  por aqui, pelo tempo de volta gravado em cada trecho — segue as
-  frenagens, sem supor velocidade constante; interpolada entre trechos). A referência é a minha melhor volta da sessão — a volta que vira
-  o `BestLapTime`, julgada quando o iRacing publica o `LastLapTime` dela —,
-  gravada por uma fórmula só (`trace.RECORDER`, a cada quadro) e publicada
-  com `setsharedvalue`; o rótulo mostra o tempo dela (`REF. LAP 1:36.1`).
-  Só vale volta gravada inteira com o dash aberto. Teste:
+- **Box de telemetria**: só `ChartItem`, uma janela com os últimos 15 s
+  (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha fina
+  e, por baixo, a referência no mesmo ponto da pista numa faixa larga e
+  translúcida (5 px, cor do pedal a 40%). O fundo do box é cortado na base:
+  a tira de baixo fica por cima dos gráficos e esconde o pedal solto (antes
+  o freio deixava uma linha vermelha permanente).
+  A referência é a minha melhor volta da sessão — a volta que vira o
+  `BestLapTime` —, gravada por uma fórmula só (`trace.RECORDER`, a cada
+  quadro) e publicada com `setsharedvalue`; o rótulo mostra o tempo dela
+  (`REF LAP 1:36.1`). A volta que fecha espera até a próxima virada pelo
+  `BestLapTime` (que pode chegar segundos depois do `LastLapTime` — julgar
+  num quadro só fazia a referência nunca aparecer); volta limpa pelo
+  IRacingExtraProperties vale pelo próprio tempo. Reset para os boxes não
+  apaga a referência; `SessionNum` novo apaga. Só vale volta gravada
+  inteira com o dash aberto. Teste:
   `python3 tools/check_minimal.py`.
+- **Evolução de 2026-11-08** (12 caminhos do relatório
+  `reports/Evolução do dash minimal.md`, detalhes em `docs/minimal.md`):
+  delta com sinal e barra centrada no cabeçalho do box; traço de delta numa
+  tira na base; mini-setores medidos pelo `RECORDER` e blocos no rodapé do
+  box; combustível em bullet sob as voltas; brake bias temporário e marcador
+  de batalha no relativo; limitador de pit em quatro estados; área de alerta
+  com prioridade no lugar do `OTS READY`; painel de contexto sobre o box (pit
+  e revisão da volta) e `LAST` na última volta; pisca do shift a ~2,8 Hz;
+  rampa de RPM azul; rótulos numa terceira camada de cor, `N` da marcha
+  esmaecido e filete de 1 px no topo da cápsula. Nenhum desses passou pelo
+  SimHub ainda: a lista de riscos está em `docs/minimal.md`.
 - **Opacidade** (teste no SimHub): cápsula e box a 92%, o mínimo de
   transparência que ainda mostra o movimento por trás — os 45% do canvas
   ficaram transparentes demais.
@@ -70,16 +90,21 @@ O que conferir primeiro no SimHub, por ordem de risco:
 1. **`Rotation` em `RectangleItem`** — os LEDs são pílulas giradas para
    acompanhar o arco. Se o SimHub ignorar a rotação ou girar em torno do
    canto, os arcos saem tortos (o preview gira em torno do centro).
-2. **Ritmo do `ChartItem`** — a metade direita do box assume ~30 amostras/s
-   com `RenderingSkip 1` (`trace.SAMPLES_PER_S`). Se a referência à frente
-   não "chegar" na linha do meio junto com o meu traço, ajustar ali.
-3. **Ponto do agora** — as bolinhas na linha do meio movem por binding de
+2. **Faixa da referência e tira da base** — linha de 5 px com alpha e a
+   tira de fundo a 92% por cima da base dos gráficos. Conferir se não
+   aparece emenda entre a tira e o corpo do box.
+3. **Ponto do agora** — as bolinhas na borda direita movem por binding de
    `Top`.
-4. **STINT** — `iRacing_Player_LapsSinceLastPit + 1`; conferir se o plugin
-   já conta a volta em curso.
+4. **LAPS / TO GO / STINT** — `CompletedLaps`; `TotalLaps - CompletedLaps`
+   (por tempo, `N/A`); `iRacing_Player_LapsSinceLastPit`
+   puro. Conferir se o STINT zera na saída dos boxes e conta só voltas
+   completas.
 
 ## Próximos passos
 
+- **Dash minimal** — handoff em `docs/minimal.md` (o que é, decisões do
+  box de telemetria e do gravador da referência, o que conferir no SimHub).
+  Falta validar no SimHub.
 - **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
   (fases 0–6, começar por medir).
 - **Estados temporários dos componentes laterais** (Damage, Lap Review,
