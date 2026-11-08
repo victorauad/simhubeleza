@@ -82,8 +82,10 @@ O que conferir primeiro no SimHub, por ordem de risco:
    fios entre as colunas.
 3. **Ponto do agora** — as bolinhas na borda direita movem por binding de
    `Top`.
-4. **STINT** — `iRacing_Player_LapsSinceLastPit + 1`; conferir se o plugin
-   já conta a volta em curso.
+4. **LAPS / TO GO / STINT** — `CompletedLaps`; `TotalLaps - CompletedLaps`
+   (por tempo, `iRacing_LapsRemaining`); `iRacing_Player_LapsSinceLastPit`
+   puro. Conferir se o STINT zera na saída dos boxes e conta só voltas
+   completas.
 
 ## Próximos passos
 

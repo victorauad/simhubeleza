@@ -20,7 +20,7 @@ tudo cabe na cápsula, nenhum desfoque e fórmulas o mais leves possível
 | `__init__.py` | `items()`, shell e tela transparentes, `NAME`/`DASH_ID` |
 | `base.py` | Medidas (`CAPSULE`, `TRACE_BOX`, centros dos arcos), `rect`, `group`, cadências `SKIP_SLOW = 9` / `SKIP_NAMES = 29` |
 | `leds.py` | 9 LEDs por lado em arco, limiares do iRacing por carro, LED de status (bandeira/limiter) |
-| `capsule.py` | Fundo, pedais do centro para fora, marcha, km/h, rpm, OTS, voltas/stint |
+| `capsule.py` | Fundo, pedais do centro para fora, marcha, km/h, rpm, OTS, LAPS / TO GO / STINT |
 | `relative.py` | Mini relativo (2 à frente, eu, 2 atrás), dados do IRacingExtraProperties |
 | `trace.py` | Box de telemetria e gravador da volta de referência |
 
@@ -139,6 +139,23 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
   O código antigo falha nas variantes com atraso. **Mudou o `RECORDER`?
   Rode o harness.**
 
+## Bloco de voltas (`capsule.laps()`)
+
+Três colunas abaixo do OTS, na largura da barra dele (522–727): LAPS na
+borda esquerda, TO GO no centro e STINT na borda direita. Número em
+Arame Mono 30 em cima, rótulo em Funnel Sans 11 embaixo, como km/h e rpm.
+
+- **LAPS:** voltas completas (`CompletedLaps`).
+- **TO GO:** voltas que faltam completar. Por voltas: `TotalLaps -
+  CompletedLaps` (mínimo 0). Por tempo: `iRacing_LapsRemaining`. Treino
+  ou estimativa 0/≥1000: `--`.
+- **STINT:** voltas completas desde a última saída dos boxes
+  (`iRacing_Player_LapsSinceLastPit`); sem o plugin, `--`.
+
+Antes era VOLTA (volta atual), TOTAL e STINT (+1, contando a volta em
+curso), com rótulo em cima e colunas centralizadas, fora do alinhamento
+do OTS.
+
 ## O que conferir no SimHub, por ordem de risco
 
 1. **A referência aparece?** Abrir o dash e dar duas voltas limpas: a
@@ -155,8 +172,9 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
    preview gira em torno do centro; se o SimHub girar em torno do canto ou
    ignorar a rotação, os arcos saem tortos.
 5. **Bolinhas do agora:** elas se movem por binding de `Top`.
-6. **STINT:** `iRacing_Player_LapsSinceLastPit + 1`. Conferir se o plugin
-   já conta a volta em curso.
+6. **LAPS / TO GO / STINT:** conferir se o STINT
+   (`iRacing_Player_LapsSinceLastPit`, sem +1) zera na saída dos boxes e
+   conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
 

@@ -3,7 +3,7 @@
     [ freio <======|======> acelerador ]
            52 |  00
     km/h  relativo     MARCHA     OTS READY 094      rpm
-    223   (5 linhas)              VOLTA TOTAL STINT  770
+    223   (5 linhas)              LAPS TO GO STINT   770
 
 Os pedais enchem do centro para fora, como no dash principal, e o valor
 fica logo acima da marcha. A marcha e o unico branco verdadeiro; o resto
@@ -47,13 +47,18 @@ OTS_SECONDS = Region(671.0, 68.0, 75.0, 30.0)
 SIZE_OTS_SECONDS = 30.0
 OTS_BAR = Region(522.0, 94.0, 205.0, 9.0)
 
-#: Voltas, abaixo do OTS: a base dos numeros alinha com a base da marcha.
-LAP_LABEL_Y, LAP_VALUE_Y = 165.0, 181.0
-SIZE_LAP_LABEL, SIZE_LAP_VALUE = 10.0, 22.0
-LAP_COLUMNS = [  # (x, largura, alinhamento)
-    (522.0, 70.0, CENTER),
-    (600.0, 70.0, CENTER),
-    (662.0, 70.0, RIGHT),
+#: Voltas, abaixo do OTS e na mesma largura da barra dele: LAPS encosta na
+#: borda esquerda, TO GO fica no centro e STINT na borda direita. Como em
+#: km/h e rpm, o numero vem em cima e o rotulo embaixo.
+LAPS_BLOCK = Region(OTS_BAR.x, 150.0, OTS_BAR.width, 0.0)
+SIZE_LAP_VALUE = 30.0
+LAP_VALUE_Y = LAPS_BLOCK.y
+LAP_LABEL_Y = LAP_VALUE_Y + SIZE_LAP_VALUE + 4.0
+LAP_COLUMN_WIDTH = 70.0
+LAP_COLUMNS = [  # (x, alinhamento)
+    (LAPS_BLOCK.x, LEFT),
+    (LAPS_BLOCK.x + (LAPS_BLOCK.width - LAP_COLUMN_WIDTH) / 2, CENTER),
+    (LAPS_BLOCK.x + LAPS_BLOCK.width - LAP_COLUMN_WIDTH, RIGHT),
 ]
 
 
@@ -207,27 +212,37 @@ def ots_layer():
 
 # --- Voltas ------------------------------------------------------------------
 
+#: Voltas que faltam completar. Corrida por voltas: total menos completas.
+#: Por tempo (TotalLaps 0), a estimativa do IRacingExtraProperties; treino e
+#: sessao sem fim (estimativa 0 ou absurda) ficam "--".
+LAPS_TO_GO = (
+    "if([DataCorePlugin.GameData.TotalLaps] > 0, "
+    "format(Max([DataCorePlugin.GameData.TotalLaps] "
+    "- [DataCorePlugin.GameData.CompletedLaps], 0), '0'), "
+    "if(isnull([IRacingExtraProperties.iRacing_LapsRemaining], 0) > 0 "
+    "&& [IRacingExtraProperties.iRacing_LapsRemaining] < 1000, "
+    "format([IRacingExtraProperties.iRacing_LapsRemaining], '0'), '--'))"
+)
+
 LAPS = [
-    ("Lap", "VOLTA", "12", formatted("[DataCorePlugin.GameData.CurrentLap]", "0")),
-    # Corrida por tempo nao tem total de voltas.
-    ("Total Laps", "TOTAL", "30", ncalc(
-        "if([DataCorePlugin.GameData.TotalLaps] > 0, "
-        "format([DataCorePlugin.GameData.TotalLaps], '0'), '--')")),
-    # A volta do stint em curso: as completas desde o box mais esta.
-    ("Stint Lap", "STINT", "8", ncalc(
-        "format([IRacingExtraProperties.iRacing_Player_LapsSinceLastPit] + 1, '0')")),
+    ("Laps", "LAPS", "10", formatted("[DataCorePlugin.GameData.CompletedLaps]", "0")),
+    ("Laps To Go", "TO GO", "20", ncalc(LAPS_TO_GO)),
+    # Voltas completas desde a ultima saida dos boxes; sem o plugin, "--".
+    ("Stint Laps", "STINT", "8", ncalc(
+        "if(isnull([IRacingExtraProperties.iRacing_Player_LapsSinceLastPit], -1) < 0, '--', "
+        "format([IRacingExtraProperties.iRacing_Player_LapsSinceLastPit], '0'))")),
 ]
 
 
 def laps():
     items = []
-    for (x, width, align), (name, label, sample, binding) in zip(LAP_COLUMNS, LAPS):
-        items.append(text(x, LAP_LABEL_Y, width, 12.0, label,
-                          name=f"{name} Label", size=SIZE_LAP_LABEL,
-                          color=TEXT_SECONDARY, align=align, font=FONT))
-        value = text(x, LAP_VALUE_Y, width, SIZE_LAP_VALUE, sample, name=name,
-                     size=SIZE_LAP_VALUE, color=TEXT, align=align,
+    for (x, align), (name, label, sample, binding) in zip(LAP_COLUMNS, LAPS):
+        value = text(x, LAP_VALUE_Y, LAP_COLUMN_WIDTH, SIZE_LAP_VALUE, sample,
+                     name=name, size=SIZE_LAP_VALUE, color=TEXT, align=align,
                      bindings={"Text": binding})
         value["RenderingSkip"] = SKIP_SLOW
         items.append(value)
+        items.append(text(x, LAP_LABEL_Y, LAP_COLUMN_WIDTH, 14.0, label,
+                          name=f"{name} Label", size=SIZE_READOUT_LABEL,
+                          color=TEXT_SECONDARY, align=align, font=FONT))
     return group("Laps", *items)
