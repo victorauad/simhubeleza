@@ -1,6 +1,6 @@
 """Box de telemetria: o meu pedal contra o da volta de referencia.
 
-    [ VOCE ----  REF - -                               REF. LAP ]
+    [ YOU ----  REF - -                                 REF LAP ]
     [ meu traco (cheio) + referencia no mesmo ponto (tracejada) ]
     [ -15 s                                                  0  ]
 
@@ -34,7 +34,7 @@ referencia; sessao nova (`SessionNum`) apaga.
 So da para usar volta gravada inteira: a melhor volta feita antes de o dash
 abrir nao tem os pedais, e a referencia aparece na primeira volta limpa (ou
 melhor volta) depois disso. Sem referencia, a
-camada dela fica escondida e o rotulo mostra "REF. LAP --".
+camada dela fica escondida e o rotulo mostra "REF LAP --".
 """
 
 from simhub.bindings import js, ncalc
@@ -231,12 +231,12 @@ def label(x, width, content, align, *, y=LEGEND_Y, font=FONT):
 
 def ref_label():
     """Qual volta e a referencia: o tempo dela, ou "--" enquanto nao ha."""
-    item = label(PLOT_RIGHT - 140.0, 140.0, "REF. LAP 1:36.1", RIGHT)
+    item = label(PLOT_RIGHT - 140.0, 140.0, "REF LAP 1:36.1", RIGHT)
     item["Bindings"] = {"Text": js(
         states.FMT_TIME
         + f"var s = {states.HAS_SHARED} ? Number(getsharedvalueordefault("
         f"'{states.SHARED}', {shared('best')}, 0)) : 0;\r\n"
-        "return 'REF. LAP ' + (s > 0 ? fmtTime(s) : '--');",
+        "return 'REF LAP ' + (s > 0 ? fmtTime(s) : '--');",
         format_string="")}
     item["RenderingSkip"] = SKIP_SLOW
     return item
@@ -249,7 +249,7 @@ def legend():
               for i in range(3)]
     return [
         rect("Me Swatch", Region(PLOT_X, swatch_y, 14.0, 2.0), TEXT_SECONDARY),
-        label(PLOT_X + 20.0, 40.0, "VOCÊ", LEFT),
+        label(PLOT_X + 20.0, 40.0, "YOU", LEFT),
         *dashes,
         label(PLOT_X + 80.0, 30.0, "REF", LEFT),
         ref_label(),

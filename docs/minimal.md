@@ -60,8 +60,8 @@ o dash principal.
 **O que mostra:** uma janela só, com os últimos 15 s (`WINDOW_S`) e o agora
 na borda direita. Meu acelerador e freio vão em linha cheia. A referência
 vai tracejada e mostra o que ela fazia **nos mesmos pontos da pista** por
-onde passei nesses 15 s, não nos mesmos segundos. A legenda (VOCÊ / REF) e o
-tempo da referência (`REF. LAP 1:36.1`, ou `--` sem referência) ficam em
+onde passei nesses 15 s, não nos mesmos segundos. A legenda (YOU / REF) e o
+tempo da referência (`REF LAP 1:36.1`, ou `--` sem referência) ficam em
 cima; o eixo `-15 s … 0` fica embaixo. Duas bolinhas na linha do agora
 mostram o valor atual.
 
@@ -138,6 +138,22 @@ agora). Roda com `RenderingSkip 0`, a cada quadro, e sempre devolve `true`.
   ainda testes de reset, sessão nova e leitura interpolada no ponto atual.
   O código antigo falha nas variantes com atraso. **Mudou o `RECORDER`?
   Rode o harness.**
+
+## Pedais, km/h e rpm (`capsule.py`)
+
+Ajustes vindos da crítica de design de 2026-11-08:
+
+- **Número dos pedais** em Arame Mono 30 (o tamanho dos números
+  secundários), no cinza `TEXT`, não mais na cor do pedal: a barra já diz
+  a cor e o lado, e o número em 34 px saturado competia com a marcha.
+  Some solto (< 0,5%) **e no fundo** (≥ 99,5%): antes o fundo virava
+  "00", que lia como pedal solto.
+- **RPM em milhares** com uma casa (`7.7`, rótulo `RPM ×1000`). Antes era
+  o RPM dividido por 10 (`770`) com o rótulo `RPM`. Conferir no SimHub se
+  a Funnel Sans tem o `×`.
+- **km/h e rpm na mesma altura** (`SPEED.y`); antes o rpm ficava 3 px
+  abaixo.
+- **Rótulos em inglês**: `YOU` (era `VOCÊ`) e `REF LAP` (era `REF. LAP`).
 
 ## Bloco de voltas (`capsule.laps()`)
 

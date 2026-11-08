@@ -61,7 +61,7 @@ paleta vêm do canvas de design
   A referência é a minha melhor volta da sessão — a volta que vira o
   `BestLapTime` —, gravada por uma fórmula só (`trace.RECORDER`, a cada
   quadro) e publicada com `setsharedvalue`; o rótulo mostra o tempo dela
-  (`REF. LAP 1:36.1`). A volta que fecha espera até a próxima virada pelo
+  (`REF LAP 1:36.1`). A volta que fecha espera até a próxima virada pelo
   `BestLapTime` (que pode chegar segundos depois do `LastLapTime` — julgar
   num quadro só fazia a referência nunca aparecer); volta limpa pelo
   IRacingExtraProperties vale pelo próprio tempo. Reset para os boxes não

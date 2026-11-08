@@ -1,13 +1,14 @@
 """O miolo da capsula: fundo, pedais, marcha, velocidade, RPM, OTS e voltas.
 
     [ freio <======|======> acelerador ]
-           52 |  00
-    km/h  relativo     MARCHA     OTS READY 094      rpm
-    223   (5 linhas)              LAPS TO GO STINT   770
+           52 |  47
+    km/h  relativo     MARCHA     OTS READY 094      rpm x1000
+    223   (5 linhas)              LAPS TO GO STINT   7.7
 
 Os pedais enchem do centro para fora, como no dash principal, e o valor
-fica logo acima da marcha. A marcha e o unico branco verdadeiro; o resto
-usa o cinza dos valores.
+fica logo acima da marcha, em cinza e menor que km/h e rpm: a barra ja
+diz a cor e o lado, o numero so refina. A marcha e o unico branco
+verdadeiro; o resto usa o cinza dos valores.
 """
 
 from simhub.bindings import formatted, ncalc
@@ -25,9 +26,11 @@ from .base import CAPSULE, RADIUS, SKIP_SLOW, Region, group, rect
 PEDALS = Region(120.0, 9.0, 657.0, 14.0)
 PEDAL_GAP = 4.0
 PEDAL_RADIUS = 3
-BRAKE_VALUE = Region(363.0, 29.0, 84.0, 34.0)
-THROTTLE_VALUE = Region(455.0, 29.0, 84.0, 34.0)
-SIZE_PEDAL = 34.0
+#: Mesmo tamanho dos numeros secundarios (OTS, voltas), centrado na altura
+#: que o de 34 px ocupava.
+SIZE_PEDAL = 30.0
+BRAKE_VALUE = Region(363.0, 31.0, 84.0, SIZE_PEDAL)
+THROTTLE_VALUE = Region(455.0, 31.0, 84.0, SIZE_PEDAL)
 
 GEAR_BOX = Region(364.0, 54.0, 170.0, 170.0)
 SIZE_GEAR = 176.0
@@ -36,8 +39,9 @@ SIZE_READOUT = 44.0
 SIZE_READOUT_LABEL = 11.0
 SPEED = Region(40.0, 87.0, 80.0, SIZE_READOUT)
 SPEED_LABEL = Region(40.0, 134.0, 40.0, 14.0)
-RPM = Region(778.0, 90.0, 80.0, SIZE_READOUT)
-RPM_LABEL = Region(818.0, 137.0, 40.0, 14.0)
+#: km/h e rpm na mesma altura, espelhados.
+RPM = Region(778.0, SPEED.y, 80.0, SIZE_READOUT)
+RPM_LABEL = Region(778.0, SPEED_LABEL.y, 80.0, 14.0)
 
 #: OTS: "OTS READY" e a barra a esquerda, os segundos na mesma altura do
 #: rotulo, a direita.
@@ -97,14 +101,15 @@ def gauge(name, region, color, prop, alignment):
     )
 
 
-def pedal_value(name, region, prop, color, align):
-    """Valor do pedal em 2 digitos: some solto (arredonda para 0) e o fundo,
-    que arredondaria para 100, vira "00"."""
-    return text(region.x, region.y, region.width, region.height, "00",
-                name=name, size=SIZE_PEDAL, color=color, align=align,
+def pedal_value(name, region, prop, align):
+    """Valor do pedal em 2 digitos. Some solto (arredondaria para 0) e no
+    fundo (arredondaria para 100): a barra cheia ja diz isso, e "00" no
+    fundo lia como pedal solto."""
+    return text(region.x, region.y, region.width, region.height, "47",
+                name=name, size=SIZE_PEDAL, color=TEXT, align=align,
                 bindings={
-                    "Text": ncalc(f"if([{prop}]>=99.5,'00',format([{prop}],'00'))"),
-                    "Visible": ncalc(f"if([{prop}]<0.5,0,1)"),
+                    "Text": ncalc(f"format([{prop}],'00')"),
+                    "Visible": ncalc(f"if([{prop}]<0.5 || [{prop}]>=99.5,0,1)"),
                 })
 
 
@@ -118,8 +123,8 @@ def pedals():
         gauge("Brake", brake, BRAKE, "Brake", alignment=2),
         rect("Throttle Track", throttle, MINI_TRACK, radius=PEDAL_RADIUS),
         gauge("Throttle", throttle, THROTTLE, "Throttle", alignment=0),
-        pedal_value("Brake Value", BRAKE_VALUE, "Brake", BRAKE, RIGHT),
-        pedal_value("Throttle Value", THROTTLE_VALUE, "Throttle", THROTTLE, LEFT),
+        pedal_value("Brake Value", BRAKE_VALUE, "Brake", RIGHT),
+        pedal_value("Throttle Value", THROTTLE_VALUE, "Throttle", LEFT),
     )
 
 
@@ -155,11 +160,12 @@ def gear():
     )
 
 
-def readout(name, value, label, caption, sample, expression, align):
+def readout(name, value, label, caption, sample, expression, align,
+            fmt="0"):
     return [
         text(value.x, value.y, value.width, value.height, sample, name=name,
              size=SIZE_READOUT, color=TEXT, align=align,
-             bindings={"Text": formatted(expression, "0")}),
+             bindings={"Text": formatted(expression, fmt)}),
         text(label.x, label.y, label.width, label.height, caption,
              name=f"{name} Label", size=SIZE_READOUT_LABEL,
              color=TEXT_SECONDARY, align=align, font=FONT),
@@ -170,8 +176,9 @@ def readouts():
     return group(
         "Speed & RPM",
         *readout("Speed", SPEED, SPEED_LABEL, "KM/H", "223", "[SpeedKmh]", LEFT),
-        # RPM dividido por 10: 8450 vira 845.
-        *readout("Rpm", RPM, RPM_LABEL, "RPM", "770", "[Rpms]/10", RIGHT),
+        # RPM em milhares com uma casa: 7720 vira 7.7, e o rotulo diz a escala.
+        *readout("Rpm", RPM, RPM_LABEL, "RPM ×1000", "7.7", "[Rpms]/1000",
+                 RIGHT, fmt="0.0"),
     )
 
 
