@@ -87,6 +87,9 @@ O que conferir primeiro no SimHub, por ordem de risco:
 
 ## Próximos passos
 
+- **Dash minimal** — handoff em `docs/minimal.md` (o que é, decisões do
+  box de telemetria e do gravador da referência, o que conferir no SimHub).
+  Falta validar no SimHub.
 - **Otimização de desempenho** — handoff completo em `docs/otimizacao.md`
   (fases 0–6, começar por medir).
 - **Estados temporários dos componentes laterais** (Damage, Lap Review,
