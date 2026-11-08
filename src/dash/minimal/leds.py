@@ -17,8 +17,17 @@ fase apagada): uma camada so liga e desliga os 18, pelo relogio da sessao
 O passo 0 e o LED de status, nos dois lados. Sem bandeira ele e so o
 primeiro da rampa; com bandeira fica sempre aceso na cor dela, mesmo com o
 RPM baixo -- menos na troca, quando pisca em roxo com os outros. O pit
-limiter (ciano piscando) tem prioridade sobre tudo e desliga o pisca da
-troca.
+limiter tem prioridade sobre tudo e desliga o pisca da troca.
+
+O limiter cruza duas coisas, o limitador ligado e estar no pit lane, e o
+pisca passa a dizer erro, nao estado normal:
+
+    limitador  pit lane   status
+    ligado     dentro     ciano fixo (certo, nada a fazer)
+    desligado  dentro     laranja piscando (em movimento: ligue o limitador)
+    ligado     fora       ciano piscando (esqueceu ligado: perde tempo)
+    ligado     dentro, acima do limite (`DahlDesign.PitSpeeding`): laranja
+               piscando
 
 Cada LED aceso e uma comparacao NCalc com os limiares do carro -- nenhum JS.
 Camadas, de baixo para cima: trilho apagado (sem formula), rampa (escondida
@@ -29,7 +38,7 @@ from math import cos, radians, sin
 
 from simhub.bindings import ncalc
 from simhub.theme import (
-    FLAG_BLACK, FLAG_BLUE, FLAG_GREEN, FLAG_WHITE, FLAG_YELLOW, LIMITER,
+    ALERT, FLAG_BLACK, FLAG_BLUE, FLAG_GREEN, FLAG_WHITE, FLAG_YELLOW, LIMITER,
     MINI_RPM_RAMP, MINI_SHIFT, MINI_TRACK, STATUS_RING,
 )
 from .base import ARC_LEFT_X, ARC_RIGHT_X, ARC_Y, Region, group, rect
@@ -54,9 +63,11 @@ FIRST, LAST, BLINK = (f"[{SL}{name}RPM]" for name in ("First", "Last", "Blink"))
 #: Carro sem shift lights no iRacing: os limiares vem zerados e nada acende.
 HAS_SL = f"{LAST} > 0"
 
+LIMITER_ON = "[PitLimiterOn]"
+
 #: Hora de trocar a marcha: o mesmo criterio do brilho da marcha do dash
 #: principal (`center.GLOW_COLOR`). Com o pit limiter, o ciano dele manda.
-SHIFTING = f"({HAS_SL} && [Rpms] > {BLINK} && ![PitLimiterOn])"
+SHIFTING = f"({HAS_SL} && [Rpms] > {BLINK} && !{LIMITER_ON})"
 
 #: Fase do pisca da troca, igual para os 18 LEDs: o relogio da sessao em
 #: fatias de `BLINK_MS`, aceso nas pares.
@@ -109,6 +120,20 @@ def each(prefix, steps, make):
             for side, (region, rotation) in zip("LR", positions(step))]
 
 
+# --- Pit limiter -------------------------------------------------------------
+
+PIT_ROAD = "isnull([GameRawData.Telemetry.OnPitRoad], false)"
+PIT_SPEEDING = "isnull([DahlDesign.PitSpeeding], false)"
+#: Parado no box nao e erro: o aviso so vale com o carro andando.
+MOVING = "[SpeedKmh] > 10"
+#: No pit lane andando sem o limitador, ou acima do limite com ele.
+PIT_ALERT = f"({PIT_ROAD} && {MOVING} && (!{LIMITER_ON} || {PIT_SPEEDING}))"
+#: Limitador ligado fora do pit lane: esquecido.
+LIMITER_LEFT_ON = f"({LIMITER_ON} && !{PIT_ROAD})"
+#: O LED pisca so em erro; o ciano fixo e o limitador certo no pit lane.
+STATUS_BLINK = f"if({PIT_ALERT} || {LIMITER_LEFT_ON}, 1, 0)"
+
+
 # --- Bandeiras ---------------------------------------------------------------
 
 def flag(name):
@@ -117,7 +142,8 @@ def flag(name):
 
 #: Prioridade do LED de status, da mais alta para a mais baixa.
 FLAGS = [
-    ("[PitLimiterOn]", LIMITER),
+    (PIT_ALERT, ALERT),
+    (LIMITER_ON, LIMITER),
     (flag("Flag_Black"), FLAG_BLACK),
     (flag("Flag_Yellow"), FLAG_YELLOW),
     (flag("Flag_Blue"), FLAG_BLUE),
@@ -136,8 +162,9 @@ def status_color():
 
 
 #: Aceso com bandeira, ou como primeiro da rampa -- ate a troca, quando some
-#: para piscar em roxo com os outros. O pit limiter acende sempre.
-STATUS_VISIBLE = (f"if([PitLimiterOn] || (!{SHIFTING} && (({FLAGGED}) || "
+#: para piscar em roxo com os outros. O limitador e o aviso do pit acendem
+#: sempre.
+STATUS_VISIBLE = (f"if({LIMITER_ON} || {PIT_ALERT} || (!{SHIFTING} && (({FLAGGED}) || "
                   f"({HAS_SL} && [Rpms] >= {FIRST}))), 1, 0)")
 
 
@@ -158,7 +185,7 @@ def layer():
                       BlinkDelay=BLINK_MS,
                       bindings={"Visible": ncalc(STATUS_VISIBLE),
                                 "BackgroundColor": ncalc(status_color()),
-                                "BlinkEnabled": ncalc("[PitLimiterOn]")}))
+                                "BlinkEnabled": ncalc(STATUS_BLINK)}))
     # Bandeira preta: o LED quase some no fundo, entao ganha um aro claro.
     ring = each("Black Ring", [0],
                 lambda name, region, rot, step: led(
