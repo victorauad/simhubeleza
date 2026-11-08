@@ -71,6 +71,19 @@ com a referência tracejada, e depois aumentou o histórico de 10 s para 15 s.
 As chaves `mini_ahead*` e a janela da frente foram removidas. Na crítica
 de design de 2026-11-08, o tracejado virou a faixa larga (ver abaixo).
 
+**Delta (`delta_readout()`):** na linha da legenda, ao centro, o delta da
+volta atual contra a referência: número com sinal (`-0.23`, o mesmo
+`DELTA_TEXT` do dash principal) e uma barra de 200 px que sai do zero —
+para a esquerda ganhando tempo, para a direita perdendo, escala de ±0,5 s
+(`DELTA_FULL_S`), construída como o trilho fino do dash principal. A fonte
+é `[DataCorePlugin.GameData.DeltaToSessionBest]`, que mede contra a melhor
+volta da sessão, a mesma que o `RECORDER` guarda como referência: nada é
+gravado a mais. O grupo só aparece com referência (`REF_READY`). Sem matiz
+de propósito (verde e vermelho são dos pedais): o lado e o sinal dizem
+ganho ou perda; `DELTA_GAIN`/`DELTA_LOSS` trocam as cores. **A conferir no
+SimHub:** se o gauge com `Maximum` negativo enche para a direita no
+minimal como no dash principal.
+
 ### Como os gráficos funcionam
 
 - Tudo é `ChartItem`: ele desenha o histórico de um valor com o ponto mais

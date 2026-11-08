@@ -44,10 +44,12 @@ camada dela fica escondida e o rotulo mostra "REF LAP --".
 from simhub.bindings import js, ncalc
 from simhub.model import ChartItem
 from simhub.theme import (
-    BRAKE, FONT, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT_SECONDARY, THROTTLE,
-    TRACE_BOX_EDGE, TRACE_BOX_FILL, TRACE_GRID, TRACE_NOW,
+    BRAKE, FONT, MINI_TRACK, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT,
+    TEXT_SECONDARY, THROTTLE, TRACE_BOX_EDGE, TRACE_BOX_FILL, TRACE_GRID,
+    TRACE_NOW, rounded,
 )
 from .. import states
+from ..top_bar import DELTA_TEXT, delta_gauge, marker
 from ..widgets import LEFT, RIGHT, text
 from .base import SKIP_SLOW, TRACE_BOX, Region, group, rect
 
@@ -87,6 +89,22 @@ LINE_THICKNESS, REF_THICKNESS = 2, 5
 BASE_TOP = PLOT_TOP + PLOT_H - (REF_THICKNESS / 2 + 0.5)
 #: Abaixo disso o ponto do agora ficaria na tira: some.
 DOT_MIN = 2
+
+#: Delta da volta atual contra a referencia, no cabecalho: numero com sinal
+#: e uma barra que sai do zero no centro -- para a esquerda ganhando tempo,
+#: para a direita perdendo --, na escala de `DELTA_FULL_S`. Verde e vermelho
+#: sao dos pedais, entao a barra nao leva matiz: o lado e o sinal ja dizem
+#: ganho ou perda (troque `DELTA_GAIN`/`DELTA_LOSS` para colorir).
+DELTA_FULL_S = 0.5
+DELTA_GAIN = DELTA_LOSS = TEXT
+DELTA_CENTER_X = (PLOT_X + PLOT_RIGHT) / 2
+DELTA_BAR_HALF, DELTA_BAR_H = 100.0, 4.0
+#: Na linha da legenda (centro em `BOX.y + 15.5`): a barra no meio e o
+#: numero logo a esquerda dela, alinhado a direita.
+DELTA_BAR_Y = BOX.y + 15.5 - DELTA_BAR_H / 2
+DELTA_VALUE = Region(DELTA_CENTER_X - DELTA_BAR_HALF - 70.0, BOX.y + 6.0,
+                     62.0, 19.0)
+SIZE_DELTA = 16.0
 
 KEY = "mini_"
 
@@ -266,6 +284,37 @@ def legend():
     ]
 
 
+def delta_readout():
+    """O delta contra a referencia (a melhor volta da sessao: o mesmo
+    `DeltaToSessionBest` do dash principal, entao sem gravar nada). So existe
+    com referencia, como o resto do box."""
+    track = Region(DELTA_CENTER_X - DELTA_BAR_HALF, DELTA_BAR_Y,
+                   2 * DELTA_BAR_HALF, DELTA_BAR_H)
+    left = Region(track.x, track.y, DELTA_BAR_HALF, DELTA_BAR_H)
+    right = Region(DELTA_CENTER_X, track.y, DELTA_BAR_HALF, DELTA_BAR_H)
+    zero = Region(DELTA_CENTER_X - 0.5, DELTA_BAR_Y - 2.0, 1.0,
+                  DELTA_BAR_H + 4.0)
+    value = text(*(getattr(DELTA_VALUE, a) for a in
+                   ("x", "y", "width", "height")), "-0.23", name="Delta Value",
+                 size=SIZE_DELTA, color=TEXT, align=RIGHT,
+                 bindings={"Text": ncalc(DELTA_TEXT)})
+    return group(
+        "Delta",
+        value,
+        rect("Delta Track", track, MINI_TRACK, radius=2),
+        # Mesma construcao do trilho fino do dash principal: o gauge da
+        # direita tem escala negativa e enche com o delta negativo.
+        delta_gauge("Delta Slower", left, DELTA_LOSS, DELTA_FULL_S,
+                    DELTA_FULL_S, alignment=2,
+                    radius=rounded(radius=(2, 0, 0, 2))),
+        delta_gauge("Delta Faster", right, DELTA_GAIN, -DELTA_FULL_S,
+                    -DELTA_FULL_S / 2, alignment=0,
+                    radius=rounded(radius=(0, 2, 2, 0))),
+        marker("Delta Zero", zero, TEXT),
+        bindings={"Visible": REF_READY},
+    )
+
+
 def axis():
     mono = "Arame Mono"
     return [
@@ -316,5 +365,5 @@ def layer():
         now,
         dot("Throttle Now", "Throttle", THROTTLE),
         dot("Brake Now", "Brake", BRAKE),
-        *legend(), *axis(),
+        *legend(), *axis(), delta_readout(),
     )
