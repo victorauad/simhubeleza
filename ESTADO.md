@@ -52,12 +52,11 @@ paleta vêm do canvas de design
   piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
   limiter. Tudo NCalc com constante.
 - **Box de telemetria**: só `ChartItem`, uma janela com os últimos 15 s
-  (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha cheia
-  e a referência no mesmo ponto da pista, tracejada. O `ChartItem` não tem
-  linha tracejada; o tracejado vem do fundo do box cortado em colunas da mesma cor
-  (6 px de traço por baixo da referência, 4 px de vão por cima —
-  `trace.DASH_ON/DASH_OFF`), então o fundo fica uniforme. Trecho quase
-  vertical da referência sai cheio ou some, conforme a coluna.
+  (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha fina
+  e, por baixo, a referência no mesmo ponto da pista numa faixa larga e
+  translúcida (5 px, cor do pedal a 40%). O fundo do box é cortado na base:
+  a tira de baixo fica por cima dos gráficos e esconde o pedal solto (antes
+  o freio deixava uma linha vermelha permanente).
   A referência é a minha melhor volta da sessão — a volta que vira o
   `BestLapTime` —, gravada por uma fórmula só (`trace.RECORDER`, a cada
   quadro) e publicada com `setsharedvalue`; o rótulo mostra o tempo dela
@@ -77,9 +76,9 @@ O que conferir primeiro no SimHub, por ordem de risco:
 1. **`Rotation` em `RectangleItem`** — os LEDs são pílulas giradas para
    acompanhar o arco. Se o SimHub ignorar a rotação ou girar em torno do
    canto, os arcos saem tortos (o preview gira em torno do centro).
-2. **Tracejado da referência** — colunas de fundo a 92% por cima e por
-   baixo da linha. Se o SimHub escalar o dash fora de 1:1, podem aparecer
-   fios entre as colunas.
+2. **Faixa da referência e tira da base** — linha de 5 px com alpha e a
+   tira de fundo a 92% por cima da base dos gráficos. Conferir se não
+   aparece emenda entre a tira e o corpo do box.
 3. **Ponto do agora** — as bolinhas na borda direita movem por binding de
    `Top`.
 4. **LAPS / TO GO / STINT** — `CompletedLaps`; `TotalLaps - CompletedLaps`

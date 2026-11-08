@@ -1,20 +1,24 @@
 """Box de telemetria: o meu pedal contra o da volta de referencia.
 
-    [ YOU ----  REF - -                                 REF LAP ]
-    [ meu traco (cheio) + referencia no mesmo ponto (tracejada) ]
-    [ -15 s                                                  0  ]
+    [ YOU ---  REF ===                                   REF LAP ]
+    [ meu traco (fino) sobre a referencia no mesmo ponto (faixa)  ]
+    [ -15 s                                                   0  ]
 
 Uma janela so: os ultimos `WINDOW_S` segundos, com o agora na borda
-direita. O meu acelerador/freio em linha cheia e, por baixo, o da
-referencia no mesmo ponto da pista, tracejado.
+direita. O meu acelerador/freio em linha fina e cheia e, por baixo, o da
+referencia no mesmo ponto da pista, numa faixa larga e translucida
+(`REF_THICKNESS`, `REF_THROTTLE`/`REF_BRAKE`). Quando eu acompanho a
+referencia, a minha linha corre dentro da faixa, e as duas continuam
+legiveis -- com a referencia na mesma espessura (antes, tracejada), ela
+sumia justamente nesse caso.
 
 Tudo e `ChartItem` do SimHub, que desenha o historico de um valor com o
-ponto mais novo na borda direita e nao tem linha tracejada. O tracejado e
-feito com o fundo do box: ele e cortado em colunas, e as colunas dos vaos
-ficam por cima da referencia (escondem a linha) e as dos tracos por baixo
-(a linha passa por cima). As duas tem a mesma cor e opacidade do resto do
-box, entao o fundo fica uniforme; o tracejado fica parado e a linha corre
-por baixo dele.
+ponto mais novo na borda direita. Pedal solto desenharia uma linha
+permanente na base (o freio, vermelho, a volta inteira): o fundo do box e
+cortado na altura da base, e a tira de baixo (`Fill Base`) fica por cima
+dos graficos, com a mesma cor e opacidade, entao o fundo continua
+uniforme e so o que sai do zero aparece. A linha de 0% da grade vem por
+cima dela, neutra.
 
 A referencia e a minha melhor volta da sessao -- a mesma do BestLapTime do
 SimHub, entao volta invalida nao conta --, gravada pelo proprio dash: uma
@@ -40,7 +44,7 @@ camada dela fica escondida e o rotulo mostra "REF LAP --".
 from simhub.bindings import js, ncalc
 from simhub.model import ChartItem
 from simhub.theme import (
-    BRAKE, FONT, REF_BRAKE, REF_THROTTLE, TEXT_SECONDARY, THROTTLE,
+    BRAKE, FONT, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT_SECONDARY, THROTTLE,
     TRACE_BOX_EDGE, TRACE_BOX_FILL, TRACE_GRID, TRACE_NOW,
 )
 from .. import states
@@ -75,12 +79,13 @@ DOT = 7.0
 LEGEND_Y, AXIS_Y = BOX.y + 9.0, BOX.y + 216.0
 SIZE_SMALL = 10.0
 
-#: Tracejado da referencia: traco e vao, em px. As colunas cobrem o grafico
-#: com folga de `MASK_PAD` em cima e embaixo (a espessura da linha em 0% e
-#: 100% passa da borda).
-DASH_ON, DASH_OFF = 6.0, 4.0
-MASK_PAD = 2.0
-MASK_TOP, MASK_BOTTOM = PLOT_TOP - MASK_PAD, PLOT_TOP + PLOT_H + MASK_PAD
+#: Espessura das linhas: a minha fina, a referencia uma faixa larga.
+LINE_THICKNESS, REF_THICKNESS = 2, 5
+#: Onde a tira da base comeca: cobre a faixa da referencia em 0% (meia
+#: espessura acima da base, com folga). Valor abaixo de ~2% fica escondido.
+BASE_TOP = PLOT_TOP + PLOT_H - (REF_THICKNESS / 2 + 0.5)
+#: Abaixo disso o ponto do agora ficaria na tira: some.
+DOT_MIN = 2
 
 KEY = "mini_"
 
@@ -200,13 +205,13 @@ def ref_value(name):
               f"'{states.SHARED}', {shared(name)}, 0)) || 0;")
 
 
-def chart(name, region, color, binding):
+def chart(name, region, color, binding, thickness=LINE_THICKNESS):
     return ChartItem(
         name=name,
         ChartSuspended=False, ChartEnabled=True,
         CurrentValue=0.0, Minimum=0.0, Maximum=100.0,
         UseMinimum=True, UseMaximum=True,
-        LineColor=color, LineTickness=2, PointsCount=float(POINTS),
+        LineColor=color, LineTickness=thickness, PointsCount=float(POINTS),
         BackgroundColor="#00FFFFFF",
         Left=region.x, Top=region.y, Width=region.width, Height=region.height,
         Visible=True, BlinkPhasisInverted=False,
@@ -219,8 +224,11 @@ def dot(name, prop, color):
     """O valor de agora, na linha do agora (borda direita)."""
     item = rect(name, Region(NOW_X - DOT / 2, PLOT_TOP + PLOT_H - DOT / 2,
                              DOT, DOT), color, radius=DOT / 2)
-    item["Bindings"] = {"Top": ncalc(
-        f"{PLOT_TOP + PLOT_H - DOT / 2:g} - [{prop}] * {PLOT_H / 100:g}")}
+    item["Bindings"] = {
+        "Top": ncalc(
+            f"{PLOT_TOP + PLOT_H - DOT / 2:g} - [{prop}] * {PLOT_H / 100:g}"),
+        "Visible": ncalc(f"if([{prop}] >= {DOT_MIN}, 1, 0)"),
+    }
     return item
 
 
@@ -244,13 +252,12 @@ def ref_label():
 
 def legend():
     swatch_y = LEGEND_Y + 5.0
-    dashes = [rect(f"Ref Swatch {i}", Region(PLOT_X + 60.0 + 5.0 * i, swatch_y,
-                                             4.0, 2.0), TEXT_SECONDARY)
-              for i in range(3)]
+    band = REF_THICKNESS
     return [
         rect("Me Swatch", Region(PLOT_X, swatch_y, 14.0, 2.0), TEXT_SECONDARY),
         label(PLOT_X + 20.0, 40.0, "YOU", LEFT),
-        *dashes,
+        rect("Ref Swatch", Region(PLOT_X + 60.0, swatch_y + 1.0 - band / 2,
+                                  14.0, band), REF_SWATCH, radius=1),
         label(PLOT_X + 80.0, 30.0, "REF", LEFT),
         ref_label(),
     ]
@@ -265,36 +272,15 @@ def axis():
 
 
 def background():
-    """O fundo do box em pedacos com a mesma cor: a moldura em volta do
-    grafico e as colunas do tracejado. Devolve (moldura, tracos, vaos) --
-    as colunas dos tracos vao por baixo da referencia, as dos vaos por cima.
-    """
-    band = MASK_BOTTOM - MASK_TOP
-    frame = [
-        rect("Fill Top", Region(BOX.x, BOX.y, BOX.width, MASK_TOP - BOX.y),
-             TRACE_BOX_FILL),
-        rect("Fill Bottom", Region(BOX.x, MASK_BOTTOM, BOX.width,
-                                   BOX.bottom - MASK_BOTTOM),
-             TRACE_BOX_FILL, radius=(0, 0, 14, 14)),
-        rect("Fill Left", Region(BOX.x, MASK_TOP, PLOT_X - BOX.x, band),
-             TRACE_BOX_FILL),
-        rect("Fill Right", Region(PLOT_RIGHT, MASK_TOP, BOX.right - PLOT_RIGHT,
-                                  band), TRACE_BOX_FILL),
-    ]
-    dashes, gaps = [], []
-    x, i = PLOT_X, 0
-    while x < PLOT_RIGHT:
-        on = min(DASH_ON, PLOT_RIGHT - x)
-        dashes.append(rect(f"Dash {i}", Region(x, MASK_TOP, on, band),
-                           TRACE_BOX_FILL))
-        x += on
-        off = min(DASH_OFF, PLOT_RIGHT - x)
-        if off > 0:
-            gaps.append(rect(f"Gap {i}", Region(x, MASK_TOP, off, band),
-                             TRACE_BOX_FILL))
-        x += off
-        i += 1
-    return frame, dashes, gaps
+    """O fundo do box em duas pecas com a mesma cor, cortado na base do
+    grafico. Devolve (corpo, base): o corpo vai por baixo dos graficos e a
+    base por cima, escondendo o pedal solto."""
+    body = rect("Fill", Region(BOX.x, BOX.y, BOX.width, BASE_TOP - BOX.y),
+                TRACE_BOX_FILL)
+    base = rect("Fill Base", Region(BOX.x, BASE_TOP, BOX.width,
+                                    BOX.bottom - BASE_TOP),
+                TRACE_BOX_FILL, radius=(0, 0, 14, 14))
+    return body, base
 
 
 def layer():
@@ -302,7 +288,7 @@ def layer():
     edge = rect("Trace Box", BOX, "#00000000", radius=(0, 0, 14, 14),
                 border=TRACE_BOX_EDGE, thickness=1)
     edge["BorderStyle"]["BorderTop"] = 0
-    frame, dashes, gaps = background()
+    body, base = background()
     grid_lines = [rect(f"Grid {i}", Region(PLOT_X, y, PLOT_RIGHT - PLOT_X, 1.0),
                        TRACE_GRID) for i, y in enumerate(GRID_YS)]
     now = rect("Now", NOW_LINE, TRACE_NOW, bindings={"Visible": RECORDER})
@@ -312,18 +298,18 @@ def layer():
 
     return group(
         "Telemetry",
-        group("Box Fill", *frame),
-        group("Ref Dashes", *dashes),
+        body,
         group(
             "Reference",
-            chart("Ref Throttle", PLOT, REF_THROTTLE, ref_value("thr")),
-            chart("Ref Brake", PLOT, REF_BRAKE, ref_value("brk")),
+            chart("Ref Throttle", PLOT, REF_THROTTLE, ref_value("thr"),
+                  thickness=REF_THICKNESS),
+            chart("Ref Brake", PLOT, REF_BRAKE, ref_value("brk"),
+                  thickness=REF_THICKNESS),
             bindings={"Visible": REF_READY},
         ),
-        group("Ref Gaps", *gaps),
-        edge, *grid_lines,
         chart("Throttle", PLOT, THROTTLE, ncalc("[Throttle]")),
         chart("Brake", PLOT, BRAKE, ncalc("[Brake]")),
+        base, edge, *grid_lines,
         now,
         dot("Throttle Now", "Throttle", THROTTLE),
         dot("Brake Now", "Brake", BRAKE),

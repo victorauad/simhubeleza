@@ -58,8 +58,8 @@ o dash principal.
 ## Box de telemetria (`trace.py`)
 
 **O que mostra:** uma janela só, com os últimos 15 s (`WINDOW_S`) e o agora
-na borda direita. Meu acelerador e freio vão em linha cheia. A referência
-vai tracejada e mostra o que ela fazia **nos mesmos pontos da pista** por
+na borda direita. Meu acelerador e freio vão em linha fina. A referência
+vai numa faixa larga e translúcida por baixo e mostra o que ela fazia **nos mesmos pontos da pista** por
 onde passei nesses 15 s, não nos mesmos segundos. A legenda (YOU / REF) e o
 tempo da referência (`REF LAP 1:36.1`, ou `--` sem referência) ficam em
 cima; o eixo `-15 s … 0` fica embaixo. Duas bolinhas na linha do agora
@@ -68,7 +68,8 @@ mostram o valor atual.
 **Histórico de pedidos:** primeiro havia duas janelas, de -10 s a +10 s, com
 "o que vem" da referência à frente. O usuário trocou para uma janela só,
 com a referência tracejada, e depois aumentou o histórico de 10 s para 15 s.
-As chaves `mini_ahead*` e a janela da frente foram removidas.
+As chaves `mini_ahead*` e a janela da frente foram removidas. Na crítica
+de design de 2026-11-08, o tracejado virou a faixa larga (ver abaixo).
 
 ### Como os gráficos funcionam
 
@@ -79,24 +80,27 @@ As chaves `mini_ahead*` e a janela da frente foram removidas.
   é em `SAMPLES_PER_S`.
 - Meus pedais vêm de `[Throttle]` e `[Brake]` em NCalc. Os da referência
   vêm de `getsharedvalueordefault('sf23dash', 'mini_thr'|'mini_brk')`.
-- **Tracejado:** o `ChartItem` não tem linha tracejada. O fundo do box
-  (`TRACE_BOX_FILL`, 92%) foi cortado em colunas da mesma cor: 6 px de
-  traço **por baixo** da referência e 4 px de vão **por cima**
-  (`DASH_ON`/`DASH_OFF`, `background()`). Ordem das camadas em `layer()`:
-  moldura → colunas dos traços → gráficos da referência → colunas dos vãos
-  → borda → grade → meus gráficos → linha do agora → bolinhas → textos.
-  Como tudo tem a mesma cor e opacidade, o fundo parece uniforme.
-- Limitações conhecidas do tracejado:
-  - o padrão fica parado e a linha corre por baixo dele;
-  - trecho quase vertical da referência sai cheio ou some, conforme a coluna;
-  - se o SimHub escalar o dash fora de 1:1, podem aparecer fios entre as colunas.
-- Alternativas descartadas:
-  - máscara opaca: faz listras sobre o box semitransparente;
-  - xadrez: retângulos demais, e a diagonal quebra;
-  - valor fora da escala: desenha riscos verticais;
-  - vários gráficos pequenos: pesado demais.
-- A cor da referência é `REF_THROTTLE`/`REF_BRAKE` em `src/simhub/theme.py`,
-  com 85% de alpha. A 60%, ela sumia sob o tracejado.
+- **Referência em faixa:** `LineTickness` 5 (`REF_THICKNESS`) com a cor
+  do pedal a 40% (`REF_THROTTLE`/`REF_BRAKE` em `src/simhub/theme.py`),
+  por baixo das minhas linhas de 2 px. Quando eu acompanho a referência, a
+  minha linha corre dentro da faixa e as duas continuam legíveis. No
+  tracejado anterior, a referência tinha a mesma espessura e cor a 85%
+  (1,3:1 contra a linha cheia) e sumia justamente nesse caso. A legenda
+  tem uma amostra da faixa no cinza a 40% (`REF_SWATCH`).
+- **Base escondida:** pedal solto desenhava uma linha permanente na base,
+  o freio vermelho durante a volta inteira. O fundo do box
+  (`TRACE_BOX_FILL`, 92%) foi cortado em duas peças da mesma cor em
+  `BASE_TOP` (3 px acima da base): o corpo vai por baixo dos gráficos e a
+  tira da base (`Fill Base`) vai por cima. Valor abaixo de ~2% some, e a
+  linha de 0% da grade, neutra, vem por cima da tira. As bolinhas do agora
+  também somem abaixo de 2% (`DOT_MIN`). Pela tira passa 8% da linha de
+  baixo, então sobra um vestígio bem fraco da cor.
+- Ordem das camadas em `layer()`: corpo do fundo → referência → meus
+  gráficos → tira da base → borda → grade → linha do agora → bolinhas →
+  textos.
+- Alternativas descartadas para o tracejado anterior: máscara opaca,
+  xadrez, valor fora da escala e vários gráficos pequenos. O tracejado em
+  colunas (6/4 px) foi substituído pela faixa.
 
 ### Gravador da referência (`RECORDER`)
 
@@ -182,8 +186,9 @@ do OTS.
    `SessionTime` chegam pelo `GameRawData.Telemetry`.
 2. **Velocidade da linha:** a janela deve cobrir 15 s. Se não cobrir,
    ajustar `SAMPLES_PER_S`.
-3. **Tracejado:** procurar fios entre as colunas, principalmente com o
-   overlay escalado.
+3. **Faixa da referência e tira da base:** conferir se o SimHub desenha a
+   linha de 5 px com alpha sem escurecer as junções, e se a tira da base
+   não mostra uma emenda com o corpo do box (as duas a 92%).
 4. **`Rotation` em `RectangleItem`:** os LEDs são pílulas giradas. O
    preview gira em torno do centro; se o SimHub girar em torno do canto ou
    ignorar a rotação, os arcos saem tortos.
@@ -200,7 +205,3 @@ do OTS.
   Hoje só vale volta gravada com o dash aberto, e nada é persistido.
 - Delta da referência no box: o tempo da referência já é publicado em
   `mini_best`.
-- Se o tracejado der problema no SimHub, o plano B mais simples é a
-  referência em linha cheia mais fina e mais apagada. Basta remover as
-  colunas e a moldura de `background()` e voltar a um retângulo único de
-  fundo.
