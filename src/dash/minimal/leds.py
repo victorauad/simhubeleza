@@ -38,8 +38,9 @@ from math import cos, radians, sin
 
 from simhub.bindings import ncalc
 from simhub.theme import (
-    ALERT, FLAG_BLACK, FLAG_BLUE, FLAG_GREEN, FLAG_WHITE, FLAG_YELLOW, LIMITER,
-    MINI_RPM_RAMP, MINI_SHIFT, MINI_TRACK, STATUS_RING,
+    ALERT, FLAG_BLACK, FLAG_BLUE, FLAG_DIRT, FLAG_GREEN, FLAG_RED,
+    FLAG_SLOW_CAR, FLAG_WHITE, FLAG_YELLOW, LIMITER, MINI_RPM_RAMP, MINI_SHIFT,
+    MINI_TRACK, STATUS_RING,
 )
 from .base import ARC_LEFT_X, ARC_RIGHT_X, ARC_Y, Region, group, rect
 
@@ -140,15 +141,39 @@ def flag(name):
     return f"[{name}]='True'"
 
 
+def raw_flag(bit):
+    """Bit de `SessionFlags` ja separado pelo SimHub em booleano."""
+    return f"isnull([GameRawData.Telemetry.SessionFlagsDetails.Is{bit}], false)"
+
+
+#: As condicoes das bandeiras: o LED de status e a area de alerta
+#: (`alerts.py`) leem as mesmas.
+COND_RED = raw_flag("red")
+COND_BLACK = flag("Flag_Black")
+COND_REPAIR = raw_flag("repair")
+COND_YELLOW = flag("Flag_Yellow")
+COND_BLUE = flag("Flag_Blue")
+COND_SLOW_CAR = ("(isnull([IRacingExtraProperties.iRacing_SlowCarAhead], false) || "
+                 "isnull([IRacingExtraProperties.iRacing_StoppedCarAhead], false))")
+COND_DEBRIS = raw_flag("debris")
+COND_WHITE = flag("Flag_White")
+COND_CHECKERED = flag("Flag_Checkered")
+COND_GREEN = flag("Flag_Green")
+
 #: Prioridade do LED de status, da mais alta para a mais baixa.
 FLAGS = [
     (PIT_ALERT, ALERT),
     (LIMITER_ON, LIMITER),
-    (flag("Flag_Black"), FLAG_BLACK),
-    (flag("Flag_Yellow"), FLAG_YELLOW),
-    (flag("Flag_Blue"), FLAG_BLUE),
-    (flag("Flag_White"), FLAG_WHITE),
-    (flag("Flag_Green"), FLAG_GREEN),
+    (COND_RED, FLAG_RED),
+    (COND_BLACK, FLAG_BLACK),
+    (COND_REPAIR, ALERT),
+    (COND_YELLOW, FLAG_YELLOW),
+    (COND_BLUE, FLAG_BLUE),
+    (COND_SLOW_CAR, FLAG_SLOW_CAR),
+    (COND_DEBRIS, FLAG_DIRT),
+    (COND_WHITE, FLAG_WHITE),
+    (COND_CHECKERED, STATUS_RING),
+    (COND_GREEN, FLAG_GREEN),
 ]
 FLAGGED = " || ".join(condition for condition, _ in FLAGS)
 

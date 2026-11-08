@@ -21,6 +21,7 @@ tudo cabe na cápsula, nenhum desfoque e fórmulas o mais leves possível
 | `base.py` | Medidas (`CAPSULE`, `TRACE_BOX`, centros dos arcos), `rect`, `group`, cadências `SKIP_SLOW = 9` / `SKIP_NAMES = 29` |
 | `leds.py` | 9 LEDs por lado em arco, limiares do iRacing por carro, LED de status (bandeira/limiter) |
 | `capsule.py` | Fundo, pedais do centro para fora, marcha, km/h, rpm, OTS, LAPS / TO GO / STINT |
+| `alerts.py` | Área de alerta com prioridade, no lugar do cabeçalho do OTS |
 | `relative.py` | Mini relativo (2 à frente, eu, 2 atrás), dados do IRacingExtraProperties |
 | `trace.py` | Box de telemetria e gravador da volta de referência |
 
@@ -257,15 +258,35 @@ Antes era VOLTA (volta atual), TOTAL e STINT (+1, contando a volta em
 curso), com rótulo em cima e colunas centralizadas, fora do alinhamento
 do OTS.
 
+## Área de alerta (`alerts.py`)
+
+Um slot só para avisar: o cabeçalho do OTS (`OTS READY`, 16 px). Com um
+aviso ativo ele toma o lugar do cabeçalho (os segundos e a barra do OTS
+ficam), e sem aviso o OTS volta. Ganha o de maior prioridade, em duas ou
+três palavras:
+
+1. `RED FLAG`, `BLACK FLAG`, `REPAIR` (meatball)
+2. pit: `LIMITER` (andando sem limitador), `SLOW DOWN` (acima do limite no
+   pit), `LIMITER ON` (esquecido ligado fora do pit)
+3. bandeiras de pista: `YELLOW`, `BLUE FLAG`, `SLOW CAR`
+4. combustível: `FUEL SHORT` (não chega ao fim), `LOW FUEL` (< 2 voltas)
+5. `DEBRIS`, `CHECKERED`, `LAST LAP`
+6. informação: `BB 54.5` (o brake bias mudou nos últimos 2 s)
+
+Tudo NCalc a ~6 Hz; o grupo do aviso nasce escondido e só avalia a cadeia
+quando há aviso (`ACTIVE`). Nada pisca: o aviso é condicional e some quando
+a condição acaba. O LED de status (`leds.FLAGS`) pinta as mesmas bandeiras e
+ganhou as que faltavam (vermelha, meatball, carro lento, pista suja,
+quadriculada); `leds.COND_*` são as condições compartilhadas. As cores de
+bandeira vêm de `theme.py`.
+
 ## Brake bias e batalha
 
-- **Brake bias (`capsule.bias_alert()`):** `BB 54.5` em âmbar (`BIAS`) toma
-  o lugar do cabeçalho do OTS por 2 s (`BIAS_SHOW_MS`) depois de cada
-  ajuste. A detecção usa `isincreasing`/`isdecreasing` do NCalc, as mesmas
+- **Brake bias:** `BB 54.5` em âmbar (`BIAS`) toma o lugar do cabeçalho do
+  OTS por 2 s (`BIAS_SHOW_MS`) depois de cada ajuste, como o aviso de menor
+  prioridade da área de alerta. A detecção usa `isincreasing`/`isdecreasing` do NCalc, as mesmas
   funções que o dash principal usa para piscar o bias: sem JS nem estado.
-  O cabeçalho do OTS fica `Visible` só sem ajuste; o grupo do aviso nasce
-  escondido e, escondido, não avalia nada. Os números do OTS (`094`) e a
-  barra continuam.
+  Os números do OTS (`094`) e a barra continuam.
 - **Batalha (`relative.py`):** carro a menos de 1 s (`BATTLE_S`) no mini
   relativo: o gap vai ao branco da marcha e aparece um traço de 2 px à
   esquerda do bloco. O limite de 1 s é escolha do projeto. Não há seta de
@@ -312,6 +333,10 @@ de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
+10. **Área de alerta:** com uma bandeira amarela, o `YELLOW` deve tomar o
+   lugar do `OTS READY` e o LED de status ficar amarelo; conferir os nomes
+   `SessionFlagsDetails.Isred/Isrepair/Isdebris` e se o aviso some ao fim
+   da condição.
 9. **Brake bias e batalha:** o `BB` deve aparecer por 2 s ao mexer no
    bias (se `isincreasing`/`isdecreasing` não reagirem a passos de 0,1,
    usar JS com valor anterior em `root`); o traço e o branco do gap devem

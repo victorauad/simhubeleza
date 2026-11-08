@@ -5,7 +5,8 @@ design: tudo cabe na capsula, o box fica abaixo dela e encostado, formulas o
 mais leves possivel (NCalc com constante onde der) e nenhum desfoque.
 
     leds.py      arcos de LED de RPM nas pontas, com o LED de status
-    capsule.py   fundo, pedais, marcha, velocidade, RPM, OTS e voltas
+    capsule.py   fundo, pedais, marcha, velocidade, RPM, OTS, voltas e combustivel
+    alerts.py    area de alerta com prioridade, no lugar do cabecalho do OTS
     relative.py  mini relativo (2 a frente, eu, 2 atras)
     trace.py     box de telemetria contra a volta de referencia
 
@@ -15,7 +16,7 @@ Gerado ao lado do dash principal por `build.py`, como `SF23_Minimal`.
 import uuid
 
 from simhub.dashboard import metadata, screen, shell
-from . import capsule, leds, relative, trace
+from . import alerts, capsule, leds, relative, trace
 from .base import HEIGHT, WIDTH, group
 
 NAME = "SF23_Minimal"
@@ -44,8 +45,8 @@ def items():
             capsule.pedals(),
             relative.layer(),
             capsule.gear(),
-            capsule.ots_layer(),
-            capsule.bias_alert(),
+            capsule.ots_layer(alert_active=alerts.ACTIVE),
+            alerts.layer(),
             capsule.laps(),
             capsule.fuel(),
             capsule.readouts(),
