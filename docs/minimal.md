@@ -375,26 +375,34 @@ de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
-12. **Acabamento:** o `N` da marcha deve ficar esmaecido (se o `TextColor`
-   do `GearText` não aceitar binding, ele fica branco) e o filete de topo
-   deve aparecer.
+8. **Combustível:** a marca deve ficar à direita do fim da barra quando
+   falta combustível (barra laranja) e à esquerda quando sobra; conferir
+   se `Fuel_LitersPerLap` já vem preenchido depois da primeira volta e se
+   o SimHub aceita o binding de `Left` na marca.
+9. **Brake bias e batalha:** o `BB` deve aparecer por 2 s ao mexer no
+   bias (se `isincreasing`/`isdecreasing` não reagirem a passos de 0,1,
+   usar JS com valor anterior em `root`); o traço e o branco do gap devem
+   aparecer com um carro a menos de 1 s.
+10. **Área de alerta:** com uma bandeira amarela, o `YELLOW` deve tomar o
+   lugar do `OTS READY` e o LED de status ficar amarelo; conferir os nomes
+   `SessionFlagsDetails.Isred/Isrepair/Isdebris` e se o aviso some ao fim
+   da condição.
 11. **Painel de contexto:** no pit lane o painel deve cobrir o box e, ao
    sair, o gráfico voltar sem perder a gravação da referência; 5 s depois
    de fechar uma volta de corrida deve aparecer a revisão. Conferir
    `TrackPitSpeedLimit`, `PitSvFuel` e `SessionTypeName` e se `LAST`
    cabe na coluna do TO GO.
-10. **Área de alerta:** com uma bandeira amarela, o `YELLOW` deve tomar o
-   lugar do `OTS READY` e o LED de status ficar amarelo; conferir os nomes
-   `SessionFlagsDetails.Isred/Isrepair/Isdebris` e se o aviso some ao fim
-   da condição.
-9. **Brake bias e batalha:** o `BB` deve aparecer por 2 s ao mexer no
-   bias (se `isincreasing`/`isdecreasing` não reagirem a passos de 0,1,
-   usar JS com valor anterior em `root`); o traço e o branco do gap devem
-   aparecer com um carro a menos de 1 s.
-8. **Combustível:** a marca deve ficar à direita do fim da barra quando
-   falta combustível (barra laranja) e à esquerda quando sobra; conferir
-   se `Fuel_LitersPerLap` já vem preenchido depois da primeira volta e se
-   o SimHub aceita o binding de `Left` na marca.
+12. **Acabamento:** o `N` da marcha deve ficar esmaecido (se o `TextColor`
+   do `GearText` não aceitar binding, ele fica branco) e o filete de topo
+   deve aparecer.
+13. **Delta, traço de delta e mini-setores:** a barra do cabeçalho deve
+   encher para a esquerda ganhando tempo (gauge com `Maximum` negativo);
+   o `ChartItem` do delta deve aceitar escala simétrica (`Minimum -1`); e,
+   depois de duas voltas limpas, os blocos de setor devem acender no
+   rodapé do box a cada setor fechado.
+14. **Limitador de pit:** no pit lane com o limitador, o LED fica ciano fixo;
+   sem ele e andando, laranja piscando. Conferir se `OnPitRoad` chega
+   como booleano.
 
 ## Ideias em aberto (não pedidas)
 
