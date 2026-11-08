@@ -213,7 +213,7 @@ MINI_SHIFT = SHIFT
 #: Aro claro do LED de status na bandeira preta, que sumiria no fundo.
 STATUS_RING = "#FFE6E9ED"
 #: Filetes do box: grade de 0/50/100% e a linha do "agora" no meio.
-TRACE_GRID = alpha(STATUS_RING, 7)
+TRACE_GRID = alpha(STATUS_RING, 15)
 TRACE_NOW = alpha(STATUS_RING, 55)
 #: Faixa da volta de referencia, larga e translucida, por baixo da minha
 #: linha fina: a cor do pedal bem apagada. A legenda usa o cinza no mesmo

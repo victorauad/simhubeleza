@@ -77,7 +77,8 @@ GRID_YS = (PLOT_TOP, PLOT_TOP + PLOT_H / 2, PLOT_TOP + PLOT_H)
 NOW_LINE = Region(NOW_X - 0.5, BOX.y + 22.0, 1.0, 190.0)
 DOT = 7.0
 LEGEND_Y, AXIS_Y = BOX.y + 9.0, BOX.y + 216.0
-SIZE_SMALL = 10.0
+#: Rotulos do box no tamanho dos rotulos da capsula (km/h, LAPS...).
+SIZE_SMALL = 11.0
 
 #: Espessura das linhas: a minha fina, a referencia uma faixa larga.
 LINE_THICKNESS, REF_THICKNESS = 2, 5
@@ -233,7 +234,9 @@ def dot(name, prop, color):
 
 
 def label(x, width, content, align, *, y=LEGEND_Y, font=FONT):
-    return text(x, y, width, 12.0, content, name=content.strip(),
+    # 14 px de altura (como os rotulos da capsula), 1 px acima para o centro
+    # do texto continuar na altura das amostras da legenda.
+    return text(x, y - 1.0, width, 14.0, content, name=content.strip(),
                 size=SIZE_SMALL, color=TEXT_SECONDARY, align=align, font=font)
 
 

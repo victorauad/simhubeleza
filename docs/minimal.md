@@ -158,6 +158,15 @@ Ajustes vindos da crítica de design de 2026-11-08:
 - **km/h e rpm na mesma altura** (`SPEED.y`); antes o rpm ficava 3 px
   abaixo.
 - **Rótulos em inglês**: `YOU` (era `VOCÊ`) e `REF LAP` (era `REF. LAP`).
+- **Escala de tipos** reduzida a cinco tamanhos: marcha 176, primário 44
+  (km/h, rpm), secundário 30 (pedais, OTS, voltas), linha 16 (relativo e
+  `OTS READY`, que era 17) e rótulo 11 (inclusive os do box de
+  telemetria, que eram 10).
+- **Barras** (pedais e OTS) com o mesmo raio de canto, `BAR_RADIUS = 3`
+  (o OTS usava 2).
+- **Grade do box** (`TRACE_GRID`) de 7% para 15% de alpha: era 1,16:1,
+  invisível; agora é 1,5:1, discreta mas presente. A linha de 0% serve de
+  base neutra por cima da tira que esconde o pedal solto.
 
 ## Bloco de voltas (`capsule.laps()`)
 

@@ -25,7 +25,8 @@ from .base import CAPSULE, RADIUS, SKIP_SLOW, Region, group, rect
 
 PEDALS = Region(120.0, 9.0, 657.0, 14.0)
 PEDAL_GAP = 4.0
-PEDAL_RADIUS = 3
+#: Raio dos cantos das barras (pedais e OTS).
+BAR_RADIUS = 3
 #: Mesmo tamanho dos numeros secundarios (OTS, voltas), centrado na altura
 #: que o de 34 px ocupava.
 SIZE_PEDAL = 30.0
@@ -46,7 +47,8 @@ RPM_LABEL = Region(778.0, SPEED_LABEL.y, 80.0, 14.0)
 #: OTS: "OTS READY" e a barra a esquerda, os segundos na mesma altura do
 #: rotulo, a direita.
 OTS_HEADER = Region(522.0, 70.0, 140.0, 20.0)
-SIZE_OTS_HEADER = 17.0
+#: Mesmo tamanho das linhas do relativo.
+SIZE_OTS_HEADER = 16.0
 OTS_SECONDS = Region(671.0, 68.0, 75.0, 30.0)
 SIZE_OTS_SECONDS = 30.0
 OTS_BAR = Region(522.0, 94.0, 205.0, 9.0)
@@ -91,7 +93,7 @@ def gauge(name, region, color, prop, alignment):
         Minimum=0.0, Maximum=100.0, Value=50.0, Steps=0.0,
         PAW=region.width,
         BackgroundColor="#00FFFFFF",
-        BorderStyle=rounded(radius=PEDAL_RADIUS),
+        BorderStyle=rounded(radius=BAR_RADIUS),
         Left=region.x, Top=region.y, Width=region.width, Height=region.height,
         Visible=True,
         BlinkPhasisInverted=False,
@@ -119,9 +121,9 @@ def pedals():
     throttle = Region(PEDALS.x + half + PEDAL_GAP, PEDALS.y, half, PEDALS.height)
     return group(
         "Pedals",
-        rect("Brake Track", brake, MINI_TRACK, radius=PEDAL_RADIUS),
+        rect("Brake Track", brake, MINI_TRACK, radius=BAR_RADIUS),
         gauge("Brake", brake, BRAKE, "Brake", alignment=2),
-        rect("Throttle Track", throttle, MINI_TRACK, radius=PEDAL_RADIUS),
+        rect("Throttle Track", throttle, MINI_TRACK, radius=BAR_RADIUS),
         gauge("Throttle", throttle, THROTTLE, "Throttle", alignment=0),
         pedal_value("Brake Value", BRAKE_VALUE, "Brake", RIGHT),
         pedal_value("Throttle Value", THROTTLE_VALUE, "Throttle", LEFT),
@@ -206,12 +208,12 @@ def ots_layer():
     bar = gauge("OTS Gauge", OTS_BAR, ots.READY, "DahlDesign.SF23.OTTimeLeft",
                 alignment=0)
     bar.update(Maximum=ots.CAPACITY, Value=94.0,
-               BorderStyle=rounded(radius=2))
+               BorderStyle=rounded(radius=BAR_RADIUS))
     bar["Bindings"]["GaugeColor"] = ncalc(ots.COLOR)
     return group(
         "OTS",
         header, seconds,
-        rect("OTS Track", OTS_BAR, MINI_TRACK, radius=2),
+        rect("OTS Track", OTS_BAR, MINI_TRACK, radius=BAR_RADIUS),
         bar,
         bindings={"Visible": ncalc(f"if({OTS_HIDDEN}, 0, 1)")},
     )
