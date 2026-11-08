@@ -215,6 +215,6 @@ STATUS_RING = "#FFE6E9ED"
 #: Filetes do box: grade de 0/50/100% e a linha do "agora" no meio.
 TRACE_GRID = alpha(STATUS_RING, 7)
 TRACE_NOW = alpha(STATUS_RING, 55)
-#: Traco da volta de referencia: a cor do pedal, apagada.
-REF_THROTTLE = alpha(THROTTLE, 60)
-REF_BRAKE = alpha(BRAKE, 60)
+#: Traco da volta de referencia (tracejado): a cor do pedal, um pouco apagada.
+REF_THROTTLE = alpha(THROTTLE, 85)
+REF_BRAKE = alpha(BRAKE, 85)

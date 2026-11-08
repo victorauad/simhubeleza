@@ -51,11 +51,13 @@ paleta vêm do canvas de design
   (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`); roxo
   piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
   limiter. Tudo NCalc com constante.
-- **Box de telemetria**: só `ChartItem`, ±10 s (`trace.WINDOW_S`). Esquerda =
-  meus pedais + referência no mesmo ponto; direita = referência a frente (o
-  gráfico recebe a referência onde ela estava `WINDOW_S` depois de passar
-  por aqui, pelo tempo de volta gravado em cada trecho — segue as
-  frenagens, sem supor velocidade constante; interpolada entre trechos).
+- **Box de telemetria**: só `ChartItem`, uma janela com os últimos 10 s
+  (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha cheia
+  e a referência no mesmo ponto da pista, tracejada. O `ChartItem` não tem
+  linha tracejada; o tracejado vem do fundo do box cortado em colunas da mesma cor
+  (6 px de traço por baixo da referência, 4 px de vão por cima —
+  `trace.DASH_ON/DASH_OFF`), então o fundo fica uniforme. Trecho quase
+  vertical da referência sai cheio ou some, conforme a coluna.
   A referência é a minha melhor volta da sessão — a volta que vira o
   `BestLapTime` —, gravada por uma fórmula só (`trace.RECORDER`, a cada
   quadro) e publicada com `setsharedvalue`; o rótulo mostra o tempo dela
@@ -63,8 +65,8 @@ paleta vêm do canvas de design
   `BestLapTime` (que pode chegar segundos depois do `LastLapTime` — julgar
   num quadro só fazia a referência nunca aparecer); volta limpa pelo
   IRacingExtraProperties vale pelo próprio tempo. Reset para os boxes não
-  apaga a referência; `SessionNum` novo apaga. Só vale volta gravada inteira com o dash
-  aberto. Teste:
+  apaga a referência; `SessionNum` novo apaga. Só vale volta gravada
+  inteira com o dash aberto. Teste:
   `python3 tools/check_minimal.py`.
 - **Opacidade** (teste no SimHub): cápsula e box a 92%, o mínimo de
   transparência que ainda mostra o movimento por trás — os 45% do canvas
@@ -75,10 +77,10 @@ O que conferir primeiro no SimHub, por ordem de risco:
 1. **`Rotation` em `RectangleItem`** — os LEDs são pílulas giradas para
    acompanhar o arco. Se o SimHub ignorar a rotação ou girar em torno do
    canto, os arcos saem tortos (o preview gira em torno do centro).
-2. **Ritmo do `ChartItem`** — a metade direita do box assume ~30 amostras/s
-   com `RenderingSkip 1` (`trace.SAMPLES_PER_S`). Se a referência à frente
-   não "chegar" na linha do meio junto com o meu traço, ajustar ali.
-3. **Ponto do agora** — as bolinhas na linha do meio movem por binding de
+2. **Tracejado da referência** — colunas de fundo a 92% por cima e por
+   baixo da linha. Se o SimHub escalar o dash fora de 1:1, podem aparecer
+   fios entre as colunas.
+3. **Ponto do agora** — as bolinhas na borda direita movem por binding de
    `Top`.
 4. **STINT** — `iRacing_Player_LapsSinceLastPit + 1`; conferir se o plugin
    já conta a volta em curso.

@@ -174,6 +174,60 @@ def render_gauge(node):
             f'<div style="{";".join(fill)}"></div></div>')
 
 
+def _pedals(x, late=0.0, lift=35.0):
+    """Pedais simulados ao longo da janela (x de 0 = mais velho a 1 = agora):
+    reta, frenagem forte, retomada, uma aliviada e outra frenagem curta.
+    `late` atrasa as frenagens (a referencia freia um pouco depois) e
+    `lift` e o tamanho da aliviada."""
+    def ramp(a, b, v):
+        return max(0.0, min(1.0, (v - a) / (b - a)))
+    b1, b2 = 0.30 + late, 0.70 + late
+    brake = 0.0
+    if b1 <= x < b1 + 0.16:
+        brake = 92 * (1 - ramp(b1 + 0.03, b1 + 0.16, x)) * ramp(b1, b1 + 0.012, x)
+    if b2 <= x < b2 + 0.09:
+        brake = 55 * (1 - ramp(b2 + 0.02, b2 + 0.09, x)) * ramp(b2, b2 + 0.01, x)
+    throttle = 100.0
+    if b1 - 0.01 <= x < b1 + 0.26:
+        throttle = 100 * ramp(b1 + 0.15, b1 + 0.26, x) * (1 - ramp(b1 - 0.01, b1, x))
+    if 0.55 <= x < 0.62:
+        throttle = min(throttle, 100 - lift * (1 - abs(x - 0.585) / 0.035))
+    if b2 - 0.01 <= x < b2 + 0.2:
+        throttle = min(throttle, 100 * ramp(b2 + 0.08, b2 + 0.2, x)
+                       * (1 - ramp(b2 - 0.01, b2, x)) + 0)
+    return throttle, brake
+
+
+def render_chart(node):
+    """ChartItem: o historico so existe em tempo de execucao; o preview
+    desenha pedais simulados pelo nome do grafico (`Ref ...` = referencia,
+    com as frenagens um pouco depois). Outros nomes: so o contorno."""
+    parts = box_css(node)
+    name = node.get("Name", "")
+    pedal = ("Brake" if "Brake" in name else
+             "Throttle" if "Throttle" in name else None)
+    if pedal is None:
+        parts.append("outline:1px dashed rgba(255,255,255,.15)")
+        return f'<div style="{";".join(p for p in parts if p)}"></div>'
+    width, height = node.get("Width", 0.0), node.get("Height", 0.0)
+    low, high = node.get("Minimum", 0.0), node.get("Maximum", 100.0)
+    ref = name.startswith("Ref")
+    late, lift = (0.04, 12.0) if ref else (0.0, 35.0)
+    points = []
+    for i in range(301):
+        x = i / 300
+        value = _pedals(x, late, lift)[0 if pedal == "Throttle" else 1]
+        y = height - (value - low) / ((high - low) or 1) * height
+        points.append(f"{x * width:.1f},{y:.1f}")
+    stroke = css_color(node.get("LineColor"))
+    thickness = node.get("LineTickness", 2)
+    parts.append("overflow:visible")
+    return (f'<svg style="{";".join(p for p in parts if p)}" '
+            f'viewBox="0 0 {width} {height}">'
+            f'<polyline fill="none" stroke="{stroke}" stroke-width="{thickness}" '
+            f'stroke-linejoin="round" points="{" ".join(points)}"/></svg>')
+
+
 def render_gradient(node):
     """GradientItem: so a moldura. O brush do SimHub nao tem equivalente direto."""
     parts = box_css(node)
@@ -274,10 +328,7 @@ def render_node(node, folder, images, depth=0):
     if kind == "WidgetItem":
         return render_widget(node, folder, images, depth)
     if kind == "ChartItem":
-        # O historico de telemetria so existe em tempo de execucao.
-        parts = box_css(node)
-        parts.append("outline:1px dashed rgba(255,255,255,.15)")
-        return f'<div style="{";".join(p for p in parts if p)}"></div>'
+        return render_chart(node)
     return ""
 
 
