@@ -196,8 +196,21 @@ piscam em roxo, juntos, alternando entre roxo e apagado.
   `SHIFT_PHASE`: o `SessionTime` em fatias de `BLINK_MS` (120 ms), aceso
   nas pares. A rampa tem `Visible` falso na troca (`SHIFTING`).
 - O LED de status também pisca em roxo na troca, mesmo com bandeira. O
-  pit limiter tem prioridade: com ele ligado não há pisca de troca, e o
-  status fica ciano piscando sobre a rampa normal.
+  pit limiter tem prioridade: com ele ligado não há pisca de troca.
+- **Limitador em quatro estados** (`leds.PIT_ALERT`, `LIMITER_LEFT_ON`):
+  o LED de status cruza o limitador com estar no pit lane
+  (`GameRawData.Telemetry.OnPitRoad`), e o pisca passa a significar erro:
+
+  | Limitador | Pit lane | LED de status |
+  |---|---|---|
+  | ligado | dentro | ciano fixo (certo) |
+  | desligado | dentro, andando (> 10 km/h) | laranja piscando |
+  | ligado | dentro, acima do limite (`DahlDesign.PitSpeeding`) | laranja piscando |
+  | ligado | fora | ciano piscando (esquecido ligado) |
+
+  Parado no box sem limitador não é erro. Antes o ciano piscava sempre que
+  o limitador estava ligado. A tabela-verdade foi conferida em Python; no
+  SimHub falta ver se o `OnPitRoad` chega como booleano no `isnull(...)`.
 - A conferir no SimHub: se o `Floor(...) % 2` do NCalc funciona e se o
   `SessionTime` avança a cada quadro. Com o jogo pausado, o relógio para
   e o roxo fica parado aceso ou apagado.
