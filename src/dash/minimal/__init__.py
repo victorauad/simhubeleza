@@ -46,6 +46,7 @@ def items():
             capsule.gear(),
             capsule.ots_layer(),
             capsule.laps(),
+            capsule.fuel(),
             capsule.readouts(),
         ),
         trace.layer(),

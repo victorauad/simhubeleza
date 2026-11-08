@@ -244,6 +244,24 @@ Antes era VOLTA (volta atual), TOTAL e STINT (+1, contando a volta em
 curso), com rótulo em cima e colunas centralizadas, fora do alinhamento
 do OTS.
 
+## Combustível (`capsule.fuel()`)
+
+Abaixo do bloco de voltas (que subiu de y 150 para 128 para abrir espaço),
+na mesma largura: `FUEL` à esquerda, a margem à direita e uma barra fina
+de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
+
+- **Barra:** `Fuel / MaxFuel`, cinza. Vira laranja quando o tanque não
+  chega ao fim da corrida.
+- **Marca** (traço claro de 2 px): o combustível que falta para a
+  bandeira, `Max(TotalLaps - CompletedLaps - LapDistPct, 0) *
+  Fuel_LitersPerLap`, como fração da capacidade. Só existe em corrida por
+  voltas com consumo medido.
+- **Texto:** em corrida por voltas, a margem com sinal em litros (`+1.4 L`:
+  sobra; `-0.8 L`: falta). Sem total de voltas, as voltas que o tanque ainda
+  dá (`Fuel_RemainingLaps`, `6.2 LAPS`). Sem consumo medido (antes da
+  primeira volta), `--`.
+- Assume litros (`Fuel` vem em `FuelUnit`; o dash principal faz o mesmo).
+
 ## O que conferir no SimHub, por ordem de risco
 
 1. **A referência aparece?** Abrir o dash e dar duas voltas limpas: a
@@ -266,10 +284,13 @@ do OTS.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
+8. **Combustível:** a marca deve ficar à direita do fim da barra quando
+   falta combustível (barra laranja) e à esquerda quando sobra; conferir
+   se `Fuel_LitersPerLap` já vem preenchido depois da primeira volta e se
+   o SimHub aceita o binding de `Left` na marca.
 
 ## Ideias em aberto (não pedidas)
 
 - Opção de referência = volta de outro piloto ou volta salva entre sessões.
   Hoje só vale volta gravada com o dash aberto, e nada é persistido.
-- Delta da referência no box: o tempo da referência já é publicado em
-  `mini_best`.
+
