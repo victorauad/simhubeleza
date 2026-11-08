@@ -212,6 +212,13 @@ MINI_TRACK = "#FF1A1D21"
 #: pedais; roxo para trocar a marcha.
 MINI_RPM_RAMP = RPM_RAMP
 MINI_SHIFT = SHIFT
+#: Terceira camada de texto: rotulos e unidades de 11 px (KM/H, LAPS, YOU...),
+#: abaixo do cinza dos valores (`TEXT`) e dos rotulos de linha
+#: (`TEXT_SECONDARY`); ~5:1 sobre a capsula. A marcha (branco) e o numero
+#: (cinza) mandam, a unidade so acompanha.
+MINI_UNIT = "#FF7E838A"
+#: Filete de 1 px no topo da capsula, no lugar de brilho (nada de desfoque).
+MINI_HIGHLIGHT = "#1FE6E9ED"
 #: Aro claro do LED de status na bandeira preta, que sumiria no fundo.
 STATUS_RING = "#FFE6E9ED"
 #: Filetes do box: grade de 0/50/100% e a linha do "agora" no meio.

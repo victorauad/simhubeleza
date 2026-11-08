@@ -308,6 +308,20 @@ tempo (`states.FORMAT`). Na última volta (falta 1) o TO GO mostra `LAST`.
 Fora do que foi pedido, ficou de fora trocar o traço de delta por sessão
 (esconder em corrida): hoje ele aparece sempre.
 
+## Acabamento visual
+
+- **Terceira camada de texto** (`MINI_UNIT`, #7E838A, ~5:1): rótulos e
+  unidades de 11 px (KM/H, RPM ×1000, LAPS, TO GO, STINT, YOU, REF, eixo,
+  SECTORS, DELTA) ficam abaixo dos valores (`TEXT`) e dos rótulos de linha
+  (`TEXT_SECONDARY`). A marcha (branco) e os números mandam.
+- **`N` da marcha** a 40% (`GEAR_NEUTRAL`), por binding de `TextColor` e
+  `GearTextColor` com `[Gear] = 'N'`.
+- **Filete de 1 px** (`capsule.highlight()`, `MINI_HIGHLIGHT`, branco a 12%)
+  no trecho reto do topo da cápsula, no lugar de brilho.
+- **Não feito:** espaçamento aberto nas unidades (o `TextItem` do SimHub não
+  tem espaçamento entre letras) e "valores de marcador em opacidade
+  reduzida" (o relatório não define quais).
+
 ## Brake bias e batalha
 
 - **Brake bias:** `BB 54.5` em âmbar (`BIAS`) toma o lugar do cabeçalho do
@@ -361,6 +375,9 @@ de 5 px embaixo, como um gráfico de bullet. Tudo NCalc, a ~6 Hz.
    conta só voltas completas, e se o TO GO bate com o fim da corrida.
 7. **Opacidade:** cápsula e box a 92%. Os 45% do canvas ficaram
    transparentes demais.
+12. **Acabamento:** o `N` da marcha deve ficar esmaecido (se o `TextColor`
+   do `GearText` não aceitar binding, ele fica branco) e o filete de topo
+   deve aparecer.
 11. **Painel de contexto:** no pit lane o painel deve cobrir o box e, ao
    sair, o gráfico voltar sem perder a gravação da referência; 5 s depois
    de fechar uma volta de corrida deve aparecer a revisão. Conferir

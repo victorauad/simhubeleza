@@ -15,7 +15,8 @@ from simhub.bindings import formatted, ncalc
 from simhub.model import GearText, LinearGaugeItem
 from simhub.theme import (
     BRAKE, CAPSULE_EDGE, CAPSULE_FILL, FONT, GEAR, MINI_FUEL, MINI_FUEL_SHORT,
-    MINI_TRACK, STATUS_RING, TEXT, TEXT_SECONDARY, THROTTLE, rounded,
+    MINI_HIGHLIGHT, MINI_TRACK, MINI_UNIT, STATUS_RING, TEXT, TEXT_SECONDARY,
+    THROTTLE, alpha, rounded,
 )
 from .. import ots
 from ..widgets import CENTER, LEFT, RIGHT, text
@@ -86,6 +87,14 @@ def background():
                 border=CAPSULE_EDGE, thickness=1)
 
 
+def highlight():
+    """Filete de 1 px mais claro so na borda de cima, no trecho reto: da
+    profundidade sem brilho nem desfoque."""
+    return rect("Capsule Highlight",
+                Region(CAPSULE.x + RADIUS, CAPSULE.y + 1.0,
+                       CAPSULE.width - 2 * RADIUS, 1.0), MINI_HIGHLIGHT)
+
+
 # --- Pedais ------------------------------------------------------------------
 
 def gauge(name, region, color, prop, alignment):
@@ -140,6 +149,11 @@ def pedals():
 
 # --- Marcha, velocidade e RPM ------------------------------------------------
 
+#: "N" no branco a 40%; as marchas e o "R" no branco cheio.
+GEAR_NEUTRAL = alpha(GEAR, 40)
+GEAR_COLOR = f"if([Gear] = 'N', '{GEAR_NEUTRAL}', '{GEAR}')"
+
+
 def gear():
     return GearText(
         name="Gear",
@@ -167,6 +181,9 @@ def gear():
         BlinkPhasisInverted=False,
         RenderingSkip=0,
         MinimumRefreshIntervalMS=0.0,
+        # Ponto morto apagado: o "N" nao disputa com as marchas.
+        bindings={"TextColor": ncalc(GEAR_COLOR),
+                  "GearTextColor": ncalc(GEAR_COLOR)},
     )
 
 
@@ -178,7 +195,7 @@ def readout(name, value, label, caption, sample, expression, align,
              bindings={"Text": formatted(expression, fmt)}),
         text(label.x, label.y, label.width, label.height, caption,
              name=f"{name} Label", size=SIZE_READOUT_LABEL,
-             color=TEXT_SECONDARY, align=align, font=FONT),
+             color=MINI_UNIT, align=align, font=FONT),
     ]
 
 
@@ -275,7 +292,7 @@ def laps():
         items.append(value)
         items.append(text(x, LAP_LABEL_Y, LAP_COLUMN_WIDTH, 14.0, label,
                           name=f"{name} Label", size=SIZE_READOUT_LABEL,
-                          color=TEXT_SECONDARY, align=align, font=FONT))
+                          color=MINI_UNIT, align=align, font=FONT))
     return group("Laps", *items)
 
 

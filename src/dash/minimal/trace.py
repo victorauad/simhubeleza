@@ -45,7 +45,7 @@ from simhub.bindings import js, ncalc
 from simhub.model import ChartItem
 from simhub.theme import (
     BRAKE, FONT, MINI_SECTOR_EQUAL, MINI_SECTOR_GAIN, MINI_SECTOR_LOSS,
-    MINI_SECTOR_NONE, MINI_TRACK, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT,
+    MINI_SECTOR_NONE, MINI_TRACK, MINI_UNIT, REF_BRAKE, REF_SWATCH, REF_THROTTLE, TEXT,
     TEXT_SECONDARY, THROTTLE, TRACE_BOX_EDGE, TRACE_BOX_FILL, TRACE_GRID,
     TRACE_NOW, rounded,
 )
@@ -299,7 +299,7 @@ def label(x, width, content, align, *, y=LEGEND_Y, font=FONT):
     # 14 px de altura (como os rotulos da capsula), 1 px acima para o centro
     # do texto continuar na altura das amostras da legenda.
     return text(x, y - 1.0, width, 14.0, content, name=content.strip(),
-                size=SIZE_SMALL, color=TEXT_SECONDARY, align=align, font=font)
+                size=SIZE_SMALL, color=MINI_UNIT, align=align, font=font)
 
 
 def ref_label():

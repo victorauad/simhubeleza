@@ -20,7 +20,7 @@ propriedades do SimHub (NCalc, e um JS curto para formatar tempos), a ~6 Hz.
 
 from simhub.bindings import js, ncalc
 from simhub.theme import (
-    FONT, MINI_SECTOR_LOSS, TEXT, TEXT_SECONDARY, TRACE_BOX_EDGE, alpha,
+    FONT, MINI_SECTOR_LOSS, MINI_UNIT, TEXT, TRACE_BOX_EDGE, alpha,
 )
 from .. import states
 from ..widgets import CENTER, LEFT, text
@@ -89,13 +89,13 @@ def readout(name, x, y, width, sample, binding, label, *, size=SIZE_PRIMARY,
     return [
         value,
         text(x, y + size + 6.0, width, 14.0, label, name=f"{name} Label",
-             size=SIZE_LABEL, color=TEXT_SECONDARY, align=CENTER, font=FONT),
+             size=SIZE_LABEL, color=MINI_UNIT, align=CENTER, font=FONT),
     ]
 
 
 def title(content, *, binding=None):
     item = text(BOX.x + 24.0, BOX.y + 18.0, 200.0, 14.0, content,
-                name="Context Title", size=SIZE_LABEL, color=TEXT_SECONDARY,
+                name="Context Title", size=SIZE_LABEL, color=MINI_UNIT,
                 align=LEFT, font=FONT, bindings={"Text": binding} if binding else None)
     return item
 
@@ -121,7 +121,7 @@ def review_panel():
     for i in range(trace.SECTORS):
         block = rect(f"Review Sector {i + 1}",
                      Region(center - 190.0 + i * 38.0, BOX.y + 176.0, 34.0, 12.0),
-                     TEXT_SECONDARY, radius=2,
+                     MINI_UNIT, radius=2,
                      bindings={"BackgroundColor": trace.sector_color(i)})
         block["RenderingSkip"] = SKIP_SLOW
         sectors.append(block)
@@ -135,7 +135,7 @@ def review_panel():
                  _js(DELTA_JS), "VS BEST", color_binding=_js(DELTA_COLOR_JS)),
         text(center - 190.0, BOX.y + 156.0, 120.0, 14.0, "SECTORS",
              name="Review Sectors Label", size=SIZE_LABEL,
-             color=TEXT_SECONDARY, align=LEFT, font=FONT),
+             color=MINI_UNIT, align=LEFT, font=FONT),
         *sectors,
         bindings={"Visible": ncalc(f"if({REVIEW} && !{PIT}, 1, 0)")},
         skip=SKIP_SLOW)

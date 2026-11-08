@@ -42,6 +42,7 @@ def items():
         group(
             "Capsule",
             capsule.background(),
+            capsule.highlight(),
             leds.layer(),
             capsule.pedals(),
             relative.layer(),

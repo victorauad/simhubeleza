@@ -43,7 +43,8 @@ pela janela, não pelo layout — o que já custou um diagnóstico errado.
 Segundo dash, gerado junto pelo `build.py` em `build/SF23_Minimal`: uma
 cápsula de 900×240 com o box de telemetria pendurado embaixo (dash de
 900×480, fundo transparente). Código em `src/dash/minimal/`, uma peça por
-arquivo (`leds.py`, `capsule.py`, `relative.py`, `trace.py`); medidas e
+arquivo (`leds.py`, `capsule.py`, `alerts.py`, `context.py`, `relative.py`,
+`trace.py`); medidas e
 paleta vêm do canvas de design
 <https://claude.ai/artifact/S9sQwrTAbpMiBK7AwPpTP8>.
 
@@ -69,6 +70,17 @@ paleta vêm do canvas de design
   apaga a referência; `SessionNum` novo apaga. Só vale volta gravada
   inteira com o dash aberto. Teste:
   `python3 tools/check_minimal.py`.
+- **Evolução de 2026-11-08** (12 caminhos do relatório
+  `reports/Evolução do dash minimal.md`, detalhes em `docs/minimal.md`):
+  delta com sinal e barra centrada no cabeçalho do box; traço de delta numa
+  tira na base; mini-setores medidos pelo `RECORDER` e blocos no rodapé do
+  box; combustível em bullet sob as voltas; brake bias temporário e marcador
+  de batalha no relativo; limitador de pit em quatro estados; área de alerta
+  com prioridade no lugar do `OTS READY`; painel de contexto sobre o box (pit
+  e revisão da volta) e `LAST` na última volta; pisca do shift a ~2,8 Hz;
+  rampa de RPM azul; rótulos numa terceira camada de cor, `N` da marcha
+  esmaecido e filete de 1 px no topo da cápsula. Nenhum desses passou pelo
+  SimHub ainda: a lista de riscos está em `docs/minimal.md`.
 - **Opacidade** (teste no SimHub): cápsula e box a 92%, o mínimo de
   transparência que ainda mostra o movimento por trás — os 45% do canvas
   ficaram transparentes demais.
