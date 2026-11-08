@@ -83,7 +83,7 @@ O que conferir primeiro no SimHub, por ordem de risco:
 3. **Ponto do agora** — as bolinhas na borda direita movem por binding de
    `Top`.
 4. **LAPS / TO GO / STINT** — `CompletedLaps`; `TotalLaps - CompletedLaps`
-   (por tempo, `iRacing_LapsRemaining`); `iRacing_Player_LapsSinceLastPit`
+   (por tempo, `N/A`); `iRacing_Player_LapsSinceLastPit`
    puro. Conferir se o STINT zera na saída dos boxes e conta só voltas
    completas.
 

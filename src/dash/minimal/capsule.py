@@ -212,16 +212,13 @@ def ots_layer():
 
 # --- Voltas ------------------------------------------------------------------
 
-#: Voltas que faltam completar. Corrida por voltas: total menos completas.
-#: Por tempo (TotalLaps 0), a estimativa do IRacingExtraProperties; treino e
-#: sessao sem fim (estimativa 0 ou absurda) ficam "--".
+#: Voltas que faltam completar: total menos completas. Sem total de voltas
+#: (corrida por tempo, treino) nao ha conta exata, e a estimativa nao vale:
+#: "N/A".
 LAPS_TO_GO = (
     "if([DataCorePlugin.GameData.TotalLaps] > 0, "
     "format(Max([DataCorePlugin.GameData.TotalLaps] "
-    "- [DataCorePlugin.GameData.CompletedLaps], 0), '0'), "
-    "if(isnull([IRacingExtraProperties.iRacing_LapsRemaining], 0) > 0 "
-    "&& [IRacingExtraProperties.iRacing_LapsRemaining] < 1000, "
-    "format([IRacingExtraProperties.iRacing_LapsRemaining], '0'), '--'))"
+    "- [DataCorePlugin.GameData.CompletedLaps], 0), '0'), 'N/A')"
 )
 
 LAPS = [

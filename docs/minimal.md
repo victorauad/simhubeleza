@@ -146,9 +146,9 @@ borda esquerda, TO GO no centro e STINT na borda direita. Número em
 Arame Mono 30 em cima, rótulo em Funnel Sans 11 embaixo, como km/h e rpm.
 
 - **LAPS:** voltas completas (`CompletedLaps`).
-- **TO GO:** voltas que faltam completar. Por voltas: `TotalLaps -
-  CompletedLaps` (mínimo 0). Por tempo: `iRacing_LapsRemaining`. Treino
-  ou estimativa 0/≥1000: `--`.
+- **TO GO:** voltas que faltam completar: `TotalLaps - CompletedLaps`
+  (mínimo 0). Sem total de voltas (corrida por tempo, treino): `N/A`. A
+  estimativa por tempo (`iRacing_LapsRemaining`) foi descartada a pedido.
 - **STINT:** voltas completas desde a última saída dos boxes
   (`iRacing_Player_LapsSinceLastPit`); sem o plugin, `--`.
 
