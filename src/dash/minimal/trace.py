@@ -2,7 +2,7 @@
 
     [ VOCE ----  REF - -                               REF. LAP ]
     [ meu traco (cheio) + referencia no mesmo ponto (tracejada) ]
-    [ -10 s                                                  0  ]
+    [ -15 s                                                  0  ]
 
 Uma janela so: os ultimos `WINDOW_S` segundos, com o agora na borda
 direita. O meu acelerador/freio em linha cheia e, por baixo, o da
@@ -48,7 +48,7 @@ from ..widgets import LEFT, RIGHT, text
 from .base import SKIP_SLOW, TRACE_BOX, Region, group, rect
 
 #: Segundos de historico no box.
-WINDOW_S = 10.0
+WINDOW_S = 15.0
 #: Amostras por segundo de um ChartItem com RenderingSkip 1 (~30 Hz, medido
 #: no widget de telemetria do dash principal): define quantos pontos cabem
 #: em `WINDOW_S`.

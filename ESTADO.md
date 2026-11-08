@@ -51,7 +51,7 @@ paleta vêm do canvas de design
   (`PlayerCarSLFirst/Last/BlinkRPM`) apertados no fim (`RHYTHM = 1.6`); roxo
   piscando no Blink. O primeiro LED é o de status: cor da bandeira ou do pit
   limiter. Tudo NCalc com constante.
-- **Box de telemetria**: só `ChartItem`, uma janela com os últimos 10 s
+- **Box de telemetria**: só `ChartItem`, uma janela com os últimos 15 s
   (`trace.WINDOW_S`) e o agora na borda direita: meus pedais em linha cheia
   e a referência no mesmo ponto da pista, tracejada. O `ChartItem` não tem
   linha tracejada; o tracejado vem do fundo do box cortado em colunas da mesma cor
